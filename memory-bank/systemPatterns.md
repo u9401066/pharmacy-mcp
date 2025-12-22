@@ -34,6 +34,23 @@ class APIClientFactory:
     def create_fda_client() -> FDAClient: ...
 ```
 
+### 4. Integration Pattern (台灣整合)
+自動整合本地化資訊到現有查詢流程。
+
+```python
+class DrugInfoService:
+    def _get_taiwan_info(self, drug_name: str) -> dict | None:
+        """Get Taiwan-specific drug information."""
+        translation = translate_drug_name(drug_name)
+        nhi_coverage = get_nhi_coverage_info(drug_name)
+        return {"translation": translation, "nhi": nhi_coverage}
+    
+    async def get_full_info(self, drug_name: str) -> dict:
+        # ... 原有查詢 ...
+        result["taiwan"] = self._get_taiwan_info(drug_name)
+        return result
+```
+
 ## 編碼慣例
 
 ### 命名規範
@@ -74,8 +91,36 @@ async def fetch_drug(rxcui: str) -> dict: ...
 
 ### 快取策略
 ```python
+# 台灣資料 - 7 天 TTL（配合政府更新頻率）
+TFDA_CACHE_TTL = 7 * 24 * 60 * 60  # 604800 seconds
+
+# 健保資料 - 30 天 TTL（更新頻率較低）
+NHI_CACHE_TTL = 30 * 24 * 60 * 60  # 2592000 seconds
+
 @cached(ttl=86400)  # 24 hours
 async def get_drug_info(rxcui: str) -> Drug: ...
+```
+
+## 台灣本地化模式
+
+### 資料來源整合
+```python
+# 不自建資料庫，使用政府開放資料 + disk cache
+
+TFDA_SOURCE = "https://data.fda.gov.tw/opendata/exportDataList.do"
+NHI_SOURCE = "https://data.nhi.gov.tw/"
+
+# 本地規則資料庫（因無公開 API）
+NHI_COVERAGE_RULES: dict[str, dict] = {
+    "warfarin": {...},
+    "clopidogrel": {...},
+    # 60+ 藥品規則
+}
+
+DRUG_NAME_MAPPING: dict[str, dict] = {
+    "warfarin": {"chinese_generic": "華法林", ...},
+    # 120+ 藥品對照
+}
 ```
 
 ---

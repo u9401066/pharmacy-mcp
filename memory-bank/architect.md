@@ -74,7 +74,7 @@
 ```
 src/pharmacy_mcp/
 ├── __init__.py
-├── server.py              # MCP Server 入口
+├── __main__.py            # MCP Server 入口
 ├── config.py              # 設定管理
 │
 ├── domain/                # 領域層
@@ -86,30 +86,45 @@ src/pharmacy_mcp/
 │       └── severity.py    # 嚴重等級值物件
 │
 ├── application/           # 應用層
-│   ├── search/
-│   │   └── service.py     # 搜尋服務
-│   ├── info/
-│   │   └── service.py     # 資訊服務
-│   ├── dosage/
-│   │   └── calculator.py  # 劑量計算器
-│   └── interaction/
-│       └── checker.py     # 交互作用檢查器
+│   └── services/
+│       ├── drug_search.py # 搜尋服務
+│       ├── drug_info.py   # 資訊服務 (整合台灣資訊)
+│       ├── dosage.py      # 劑量計算器
+│       ├── interaction.py # 交互作用檢查器
+│       └── taiwan_drug.py # 🇹🇼 台灣藥品服務
 │
 ├── infrastructure/        # 基礎設施層
 │   ├── api/
 │   │   ├── rxnorm.py      # RxNorm Client
 │   │   ├── fda.py         # FDA Client
-│   │   └── dailymed.py    # DailyMed Client
+│   │   ├── tfda.py        # 🇹🇼 TFDA Client + 藥名對照
+│   │   └── nhi.py         # 🇹🇼 NHI Client + 給付規則
 │   └── cache/
 │       └── disk_cache.py  # 磁碟快取
 │
 └── presentation/          # 呈現層
-    └── tools/
-        ├── search.py      # 搜尋 Tools
-        ├── info.py        # 資訊 Tools
-        ├── dosage.py      # 劑量 Tools
-        └── interaction.py # 交互作用 Tools
+    └── server.py          # MCP Server (19 Tools)
 ```
+
+## 🛠️ MCP Tools 清單 (19 個)
+
+### 基礎功能 (13 個)
+| 類別 | Tools |
+|------|-------|
+| 搜尋 | `search_drug` |
+| 資訊 | `get_drug_info`, `get_drug_dosage`, `get_drug_warnings` |
+| 交互作用 | `check_drug_interaction`, `check_multi_drug_interactions`, `check_food_drug_interaction` |
+| 劑量計算 | `calculate_dose_by_weight`, `calculate_dose_by_bsa`, `calculate_creatinine_clearance`, `calculate_pediatric_dose`, `calculate_infusion_rate`, `convert_dose_units` |
+
+### 台灣功能 (6 個) 🇹🇼
+| Tool | 說明 |
+|------|------|
+| `search_tfda_drug` | 搜尋 TFDA 藥品許可證 |
+| `get_nhi_coverage` | 查詢健保給付 |
+| `get_nhi_drug_price` | 查詢健保藥價 |
+| `translate_drug_name` | 中英藥名對照 |
+| `list_prior_authorization_drugs` | 事前審查清單 |
+| `list_nhi_coverage_rules` | 健保給付規則 |
 
 ## 🔗 依賴關係
 
