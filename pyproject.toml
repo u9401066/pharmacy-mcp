@@ -1,7 +1,7 @@
 [project]
 name = "pharmacy-mcp"
-version = "0.1.0"
-description = "完整藥品資訊 MCP Server - 藥品查詢、資訊取得、劑量計算、交互作用檢查、食品藥品衝突"
+version = "0.8.0"
+description = "完整藥品資訊 MCP Server - 藥品查詢、資訊取得、劑量計算、交互作用檢查、食品藥品衝突、台灣健保整合"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11"
@@ -16,7 +16,10 @@ keywords = [
     "interaction",
     "dosage",
     "fda",
-    "rxnorm"
+    "rxnorm",
+    "taiwan",
+    "nhi",
+    "tfda"
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

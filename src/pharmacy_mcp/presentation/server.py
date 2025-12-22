@@ -12,6 +12,7 @@ from pharmacy_mcp.application.services.drug_search import DrugSearchService
 from pharmacy_mcp.application.services.drug_info import DrugInfoService
 from pharmacy_mcp.application.services.interaction import InteractionService
 from pharmacy_mcp.application.services.dosage import DosageService
+from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +23,7 @@ drug_search_service = DrugSearchService()
 drug_info_service = DrugInfoService()
 interaction_service = InteractionService()
 dosage_service = DosageService()
+taiwan_drug_service = TaiwanDrugService()
 
 
 def create_server() -> Server:
@@ -309,6 +311,92 @@ def create_server() -> Server:
                     "required": ["value", "from_unit", "to_unit"],
                 },
             ),
+            # ========== Taiwan Drug Tools (台灣藥品工具) ==========
+            Tool(
+                name="search_tfda_drug",
+                description="搜尋台灣 TFDA 藥品資料庫。Search Taiwan TFDA drug database for drug permits and information.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query (drug name in Chinese or English)",
+                        },
+                        "search_type": {
+                            "type": "string",
+                            "description": "Type of search: name (default), ingredient, permit_number, manufacturer",
+                            "enum": ["name", "ingredient", "permit_number", "manufacturer"],
+                            "default": "name",
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum number of results (default: 20)",
+                            "default": 20,
+                        },
+                    },
+                    "required": ["query"],
+                },
+            ),
+            Tool(
+                name="get_nhi_coverage",
+                description="查詢藥品健保給付狀態。Check if a drug is covered by Taiwan National Health Insurance (NHI) and get coverage details.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "drug_name": {
+                            "type": "string",
+                            "description": "Drug name (generic or brand name)",
+                        },
+                    },
+                    "required": ["drug_name"],
+                },
+            ),
+            Tool(
+                name="get_nhi_drug_price",
+                description="查詢健保藥價。Get NHI reimbursement price for a drug by NHI code.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "nhi_code": {
+                            "type": "string",
+                            "description": "NHI drug code (e.g., A022664100)",
+                        },
+                    },
+                    "required": ["nhi_code"],
+                },
+            ),
+            Tool(
+                name="translate_drug_name",
+                description="藥品名稱中英對照。Translate drug names between English and Chinese (Traditional).",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Drug name to translate (English or Chinese)",
+                        },
+                    },
+                    "required": ["name"],
+                },
+            ),
+            Tool(
+                name="list_prior_authorization_drugs",
+                description="列出需事前審查的健保藥品。List drugs requiring NHI prior authorization.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                },
+            ),
+            Tool(
+                name="list_nhi_coverage_rules",
+                description="列出健保給付規則資料庫。List all NHI coverage rules in the database.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                },
+            ),
         ]
     
     @server.call_tool()
@@ -419,6 +507,35 @@ async def _handle_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
             from_unit=arguments["from_unit"],
             to_unit=arguments["to_unit"],
         )
+    
+    # Taiwan drug tools (台灣藥品工具)
+    elif name == "search_tfda_drug":
+        return await taiwan_drug_service.search_tfda_drug(
+            query=arguments["query"],
+            limit=arguments.get("limit", 20),
+            search_type=arguments.get("search_type", "name"),
+        )
+    
+    elif name == "get_nhi_coverage":
+        return await taiwan_drug_service.get_nhi_coverage(
+            drug_name=arguments["drug_name"],
+        )
+    
+    elif name == "get_nhi_drug_price":
+        return await taiwan_drug_service.get_nhi_drug_price(
+            nhi_code=arguments["nhi_code"],
+        )
+    
+    elif name == "translate_drug_name":
+        return taiwan_drug_service.translate_drug_name(
+            name=arguments["name"],
+        )
+    
+    elif name == "list_prior_authorization_drugs":
+        return await taiwan_drug_service.get_prior_authorization_drugs()
+    
+    elif name == "list_nhi_coverage_rules":
+        return taiwan_drug_service.list_nhi_coverage_rules()
     
     else:
         return {"error": f"Unknown tool: {name}"}

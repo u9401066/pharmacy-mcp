@@ -15,6 +15,7 @@
 - 🧮 **劑量計算** - 小兒劑量、腎功能調整、體重劑量
 - ⚠️ **交互作用** - 藥物-藥物交互作用檢查
 - 🍎 **食品衝突** - 食品、酒精、保健品與藥物衝突
+- 🇹🇼 **台灣健保整合** - TFDA 藥品查詢、健保給付、中英藥名對照
 
 ## 📦 資料來源
 
@@ -24,6 +25,8 @@
 | [openFDA](https://open.fda.gov/apis/) | FDA | 不良反應、藥品標籤 |
 | [DailyMed](https://dailymed.nlm.nih.gov/dailymed/) | NLM | 藥品仿單 |
 | [RxClass](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxClassAPIs.html) | NIH/NLM | 藥品分類 |
+| [TFDA 開放資料](https://data.fda.gov.tw/) | 台灣 TFDA | 台灣藥品許可證 |
+| [NHI 開放資料](https://data.nhi.gov.tw/) | 台灣健保署 | 健保給付、藥價 |
 
 ## 🚀 快速開始
 
@@ -111,6 +114,16 @@ python -m pharmacy_mcp.server
 | `check_alcohol_interaction` | 酒精交互作用 |
 | `check_supplement_interaction` | 保健品交互作用 |
 | `get_dietary_restrictions` | 飲食限制建議 |
+
+### 台灣健保整合 🇹🇼
+| 工具 | 說明 |
+|------|------|
+| `search_tfda_drug` | 搜尋台灣 TFDA 藥品資料庫 |
+| `get_nhi_coverage` | 查詢健保給付狀態 |
+| `get_nhi_drug_price` | 查詢健保藥價 |
+| `translate_drug_name` | 藥品名稱中英對照 |
+| `list_prior_authorization_drugs` | 列出需事前審查藥品 |
+| `list_nhi_coverage_rules` | 列出健保給付規則 |
 
 ## 🏗️ 專案架構
 

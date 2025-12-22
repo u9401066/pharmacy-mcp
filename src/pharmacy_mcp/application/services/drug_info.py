@@ -6,6 +6,8 @@ from typing import Any
 from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
 from pharmacy_mcp.infrastructure.cache.disk_cache import CacheService
+from pharmacy_mcp.infrastructure.api.tfda import translate_drug_name
+from pharmacy_mcp.infrastructure.api.nhi import get_nhi_coverage_info
 
 
 class DrugInfoService:
@@ -53,13 +55,60 @@ class DrugInfoService:
                     "drug_classes": drug.drug_classes,
                 }
         
+        # Get Taiwan-specific information
+        taiwan_info = self._get_taiwan_info(drug_name)
+        
         result = {
             "drug_name": drug_name,
             "rxnorm": rxnorm_info,
             "label": label_info,
+            "taiwan": taiwan_info,
         }
         
         self.cache.set(cache_key, result)
+        return result
+    
+    def _get_taiwan_info(self, drug_name: str) -> dict[str, Any] | None:
+        """
+        Get Taiwan-specific drug information.
+        
+        Args:
+            drug_name: Name of the drug
+            
+        Returns:
+            Taiwan drug information including translation and NHI coverage
+        """
+        # Get Chinese name translation
+        translation = translate_drug_name(drug_name)
+        
+        # Get NHI coverage information (synchronous lookup)
+        nhi_coverage = get_nhi_coverage_info(drug_name)
+        
+        if not translation and not nhi_coverage:
+            return None
+        
+        result = {}
+        
+        if translation:
+            result["translation"] = {
+                "english": translation.get("english"),
+                "chinese_generic": translation.get("chinese_generic"),
+                "chinese_brand": translation.get("chinese_brand", []),
+                "category": translation.get("category"),
+            }
+            if translation.get("nickname"):
+                result["translation"]["nickname"] = translation.get("nickname")
+        
+        if nhi_coverage:
+            result["nhi"] = {
+                "is_covered": nhi_coverage.get("is_covered", False),
+                "coverage_type": nhi_coverage.get("coverage_type"),
+                "indications": nhi_coverage.get("indications", []),
+                "restrictions": nhi_coverage.get("restrictions", []),
+                "prior_authorization_required": nhi_coverage.get("prior_authorization", False),
+                "nhi_codes": nhi_coverage.get("nhi_codes", []),
+            }
+        
         return result
     
     async def get_dosage_info(self, drug_name: str) -> dict[str, Any]:

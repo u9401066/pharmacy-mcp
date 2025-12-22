@@ -2,6 +2,7 @@
 
 ## Done
 
+### v0.1.x 基礎建設
 - ✅ 建立完整專案結構
 - ✅ 初始化 pyproject.toml
 - ✅ 建立 README (中/英)
@@ -20,12 +21,26 @@
 - ✅ Application: InteractionService (drug-drug + food-drug)
 - ✅ Application: DosageService (weight/BSA/CrCl/pediatric)
 - ✅ Presentation: MCP Server with 13 tools
-- ✅ Tests: domain, value objects, services, server (23 passed)
-- ✅ 專案驗證成功
 - ✅ 修復 RxNorm Drug Interaction API 停用問題
 - ✅ 新增本地藥物交互作用資料庫（25+ 種常見交互作用）
-- ✅ 所有 13 個 MCP Tools 測試通過
 - ✅ Git 倉庫初始化
+
+### v0.8.0 台灣健保整合 🇹🇼
+- ✅ TFDA 藥品資料 API Client (`TFDAClient`)
+- ✅ NHI 健保給付查詢 Client (`NHIClient`)
+- ✅ 中文藥名對照功能 (`translate_drug_name`)
+- ✅ 藥名對照表 - 120+ 常用藥品
+- ✅ 健保給付規則資料庫 - 60+ 藥品
+- ✅ TaiwanDrugService 服務層
+- ✅ 6 個新 MCP Tools:
+  - `search_tfda_drug`
+  - `get_nhi_coverage`
+  - `get_nhi_drug_price`
+  - `translate_drug_name`
+  - `list_prior_authorization_drugs`
+  - `list_nhi_coverage_rules`
+- ✅ 整合至 DrugInfoService（自動加入台灣資訊）
+- ✅ 43 個測試全部通過
 
 ## Doing
 
@@ -33,10 +48,14 @@
 
 ## Next
 
-- 📋 整合更多藥品資料庫 (DailyMed, DrugBank)
-- 📋 擴充食品-藥物交互作用資料庫
-- 📋 尋找替代的藥物交互作用 API（DrugBank、Drugs.com）
-- 📋 實作藥品 barcode/NDC 搜尋
-- 📋 加入中文藥品名稱支援
-- 📋 效能最佳化與壓力測試
-- 📋 發布至 PyPI
+### v0.9.0 Agent 增強
+- 📋 藥品比較功能 (`compare_drugs`)
+- 📋 適應症 ↔ 藥品雙向查詢
+- 📋 重複用藥檢查
+- 📋 台灣學名藥替代品查詢
+
+### v1.0.0 正式發布
+- 📋 完整測試覆蓋（> 80%）
+- 📋 文檔完善
+- 📋 效能優化
+- 📋 PyPI 發布

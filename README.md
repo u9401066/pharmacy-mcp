@@ -15,6 +15,7 @@
 - 🧮 **Dosage Calculator** - 小兒、腎功能、體重劑量計算
 - ⚠️ **Interaction Checker** - 藥物-藥物交互作用檢查
 - 🍎 **Food-Drug Interactions** - 食品、酒精、保健品衝突
+- 🇹🇼 **Taiwan NHI Integration** - 台灣健保給付、TFDA 藥品、中英藥名對照
 
 ## 📦 Data Sources
 
@@ -23,8 +24,8 @@
 | [RxNorm API](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html) | NIH/NLM | Drug naming, concepts |
 | [openFDA](https://open.fda.gov/apis/) | FDA | Adverse events, labels |
 | [DailyMed](https://dailymed.nlm.nih.gov/dailymed/) | NLM | Drug labels |
-| [RxClass](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxClassAPIs.html) | NIH/NLM | Drug classification |
-
+| [RxClass](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxClassAPIs.html) | NIH/NLM | Drug classification || [TFDA Open Data](https://data.fda.gov.tw/) | 台灣 TFDA | Taiwan drug permits |
+| [NHI Open Data](https://data.nhi.gov.tw/) | 台灣健保署 | NHI coverage, pricing |
 ## 🚀 Quick Start
 
 ### Installation
@@ -111,6 +112,16 @@ Add to your `claude_desktop_config.json`:
 | `check_alcohol_interaction` | Alcohol interaction |
 | `check_supplement_interaction` | Supplement interaction |
 | `get_dietary_restrictions` | Dietary restrictions |
+
+### Taiwan NHI Integration 🇹🇼
+| Tool | Description |
+|------|-------------|
+| `search_tfda_drug` | Search Taiwan TFDA drug database |
+| `get_nhi_coverage` | Check NHI coverage status |
+| `get_nhi_drug_price` | Get NHI reimbursement price |
+| `translate_drug_name` | Translate drug names (EN↔TW) |
+| `list_prior_authorization_drugs` | List drugs requiring prior auth |
+| `list_nhi_coverage_rules` | List NHI coverage rules |
 
 ## 🏗️ Architecture
 
