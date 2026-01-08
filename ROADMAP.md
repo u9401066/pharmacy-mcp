@@ -67,7 +67,19 @@
 - [x] 6 個新 MCP Tools
 - [x] 43 個測試全部通過
 
-### v0.9.0 - Agent 增強功能 🔜
+### v0.9.0 - 處方執行功能 🔜
+- [ ] Domain: Prescription entity, Order value objects
+- [ ] Mock Data: formulary.json, renal_adjustments.json
+- [ ] Infrastructure: HIS Mock API client
+- [ ] Service: PrescriptionService (整合現有 services)
+- [ ] Tools: `get_formulary_options` - 查詢院內可開立藥品
+- [ ] Tools: `get_dosing_recommendations` - 取得建議用法用量
+- [ ] Tools: `generate_prescription_plan` - 產生處方計畫
+- [ ] Tools: `submit_prescription` - 確認開立處方
+- [ ] Tools: `discontinue_order` - 停止醫囑
+- [ ] 知識庫: 腎功能調整規則 (Top 30 藥物)
+
+### v0.10.0 - Agent 增強功能
 - [ ] 藥品比較功能 (`compare_drugs`)
 - [ ] 適應症 ↔ 藥品雙向查詢
 - [ ] 重複用藥檢查 (`check_therapeutic_duplication`)
