@@ -5,6 +5,7 @@ from pharmacy_mcp.application.services.drug_info import DrugInfoService
 from pharmacy_mcp.application.services.interaction import InteractionService
 from pharmacy_mcp.application.services.dosage import DosageService
 from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
+from pharmacy_mcp.application.services.prescription import PrescriptionService
 
 __all__ = [
     "DrugSearchService",
@@ -12,4 +13,5 @@ __all__ = [
     "InteractionService",
     "DosageService",
     "TaiwanDrugService",
+    "PrescriptionService",
 ]

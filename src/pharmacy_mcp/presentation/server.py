@@ -13,6 +13,7 @@ from pharmacy_mcp.application.services.drug_info import DrugInfoService
 from pharmacy_mcp.application.services.interaction import InteractionService
 from pharmacy_mcp.application.services.dosage import DosageService
 from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
+from pharmacy_mcp.application.services.prescription import PrescriptionService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +25,7 @@ drug_info_service = DrugInfoService()
 interaction_service = InteractionService()
 dosage_service = DosageService()
 taiwan_drug_service = TaiwanDrugService()
+prescription_service = PrescriptionService()
 
 
 def create_server() -> Server:
@@ -397,6 +399,161 @@ def create_server() -> Server:
                     "required": [],
                 },
             ),
+            # ========== Prescription Tools (處方工具) ==========
+            Tool(
+                name="get_formulary_item",
+                description="取得院內藥品詳情。Get hospital formulary item details by drug code.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "drug_code": {
+                            "type": "string",
+                            "description": "Hospital drug code (e.g., GENTA-INJ, VANCO-INJ)",
+                        },
+                    },
+                    "required": ["drug_code"],
+                },
+            ),
+            Tool(
+                name="search_formulary",
+                description="搜尋院內藥品檔。Search hospital formulary by drug name or code.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Search query (drug name, generic name, or code)",
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "description": "Maximum results (default: 10)",
+                            "default": 10,
+                        },
+                    },
+                    "required": ["query"],
+                },
+            ),
+            Tool(
+                name="get_renal_adjustment",
+                description="取得腎功能劑量調整建議。Get renal dosing adjustment recommendation based on CrCl.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "drug_code": {
+                            "type": "string",
+                            "description": "Hospital drug code",
+                        },
+                        "crcl": {
+                            "type": "number",
+                            "description": "Creatinine clearance in mL/min",
+                        },
+                    },
+                    "required": ["drug_code", "crcl"],
+                },
+            ),
+            Tool(
+                name="validate_order",
+                description="驗證醫囑。Validate a medication order before submission.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "drug_code": {
+                            "type": "string",
+                            "description": "Hospital drug code",
+                        },
+                        "dose": {
+                            "type": "number",
+                            "description": "Dose value",
+                        },
+                        "dose_unit": {
+                            "type": "string",
+                            "description": "Dose unit (mg, g, mL, etc.)",
+                        },
+                        "route": {
+                            "type": "string",
+                            "description": "Route of administration (PO, IV, IM, SC, etc.)",
+                        },
+                        "frequency": {
+                            "type": "string",
+                            "description": "Dosing frequency (QD, BID, TID, Q8H, etc.)",
+                        },
+                        "patient_crcl": {
+                            "type": "number",
+                            "description": "Patient CrCl in mL/min (optional, for renal adjustment)",
+                        },
+                    },
+                    "required": ["drug_code", "dose", "dose_unit", "route", "frequency"],
+                },
+            ),
+            Tool(
+                name="submit_order",
+                description="送出醫囑到 HIS。Submit a medication order to HIS.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "patient_id": {
+                            "type": "string",
+                            "description": "Patient ID",
+                        },
+                        "drug_code": {
+                            "type": "string",
+                            "description": "Hospital drug code",
+                        },
+                        "dose": {
+                            "type": "number",
+                            "description": "Dose value",
+                        },
+                        "dose_unit": {
+                            "type": "string",
+                            "description": "Dose unit",
+                        },
+                        "route": {
+                            "type": "string",
+                            "description": "Route of administration",
+                        },
+                        "frequency": {
+                            "type": "string",
+                            "description": "Dosing frequency",
+                        },
+                        "duration_days": {
+                            "type": "integer",
+                            "description": "Treatment duration in days",
+                        },
+                        "physician_id": {
+                            "type": "string",
+                            "description": "Prescribing physician ID",
+                        },
+                        "override_warnings": {
+                            "type": "boolean",
+                            "description": "Override warnings and submit anyway",
+                            "default": False,
+                        },
+                        "notes": {
+                            "type": "string",
+                            "description": "Optional notes for the order",
+                        },
+                    },
+                    "required": ["patient_id", "drug_code", "dose", "dose_unit", "route", "frequency", "duration_days", "physician_id"],
+                },
+            ),
+            Tool(
+                name="stop_order",
+                description="停止醫囑。Discontinue an active medication order.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "order_id": {
+                            "type": "string",
+                            "description": "Order ID to discontinue",
+                        },
+                        "reason": {
+                            "type": "string",
+                            "description": "Reason for discontinuation",
+                        },
+                    },
+                    "required": ["order_id", "reason"],
+                },
+            ),
         ]
     
     @server.call_tool()
@@ -536,6 +693,63 @@ async def _handle_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     
     elif name == "list_nhi_coverage_rules":
         return taiwan_drug_service.list_nhi_coverage_rules()
+    
+    # Prescription tools (處方工具)
+    elif name == "get_formulary_item":
+        item = prescription_service.get_formulary_item(arguments["drug_code"])
+        if item:
+            return item.to_dict()
+        return {"error": f"Drug code {arguments['drug_code']} not found in formulary"}
+    
+    elif name == "search_formulary":
+        items = prescription_service.search_formulary(
+            query=arguments["query"],
+            limit=arguments.get("limit", 10),
+        )
+        return {
+            "count": len(items),
+            "items": [item.to_dict() for item in items],
+        }
+    
+    elif name == "get_renal_adjustment":
+        adjustment = prescription_service.get_renal_adjustment(
+            drug_code=arguments["drug_code"],
+            crcl=arguments["crcl"],
+        )
+        return adjustment.to_dict()
+    
+    elif name == "validate_order":
+        result = prescription_service.validate_order(
+            drug_code=arguments["drug_code"],
+            dose=arguments["dose"],
+            dose_unit=arguments["dose_unit"],
+            route=arguments["route"],
+            frequency=arguments["frequency"],
+            patient_crcl=arguments.get("patient_crcl"),
+        )
+        return result.to_dict()
+    
+    elif name == "submit_order":
+        result = await prescription_service.submit_order(
+            patient_id=arguments["patient_id"],
+            drug_code=arguments["drug_code"],
+            dose=arguments["dose"],
+            dose_unit=arguments["dose_unit"],
+            route=arguments["route"],
+            frequency=arguments["frequency"],
+            duration_days=arguments["duration_days"],
+            physician_id=arguments["physician_id"],
+            override_warnings=arguments.get("override_warnings", False),
+            notes=arguments.get("notes"),
+        )
+        return result.to_dict()
+    
+    elif name == "stop_order":
+        result = await prescription_service.stop_order(
+            order_id=arguments["order_id"],
+            reason=arguments["reason"],
+        )
+        return result.to_dict()
     
     else:
         return {"error": f"Unknown tool: {name}"}

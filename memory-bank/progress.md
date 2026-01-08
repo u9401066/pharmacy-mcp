@@ -1,4 +1,4 @@
-# Progress (Updated: 2025-12-22)
+# Progress (Updated: 2026-01-08)
 
 ## Done
 
@@ -41,6 +41,23 @@
   - `list_nhi_coverage_rules`
 - ✅ 整合至 DrugInfoService（自動加入台灣資訊）
 - ✅ 43 個測試全部通過
+
+### v0.8.5 模板整合 + 處方功能 🆕
+- ✅ 整合 template-is-all-you-need 模板架構
+- ✅ Claude Skills (13 個技能)
+- ✅ Bylaws (4 個子法)
+- ✅ 合併 AGENTS.md + CLAUDE.md → copilot-instructions.md
+- ✅ Domain: Order 實體、OrderStatus
+- ✅ Domain: ValidationResult, OrderResult, StopResult, FormularyItem, RenalAdjustment 值物件
+- ✅ Infrastructure: FormularyKnowledge (院內藥品檔)
+- ✅ Infrastructure: RenalDosingKnowledge (腎功能劑量調整)
+- ✅ Infrastructure: HISMockClient (模擬 HIS)
+- ✅ Data: formulary.json (15 種院內藥品)
+- ✅ Data: renal_adjustments.json (12 種腎功能調整規則)
+- ✅ Application: PrescriptionService (原子化處方操作)
+- ✅ Presentation: 6 個新 MCP Tools (處方相關)
+- ✅ LangGraph 範例模組 (`examples/langgraph_prescription/`)
+- ✅ 71 個測試全部通過
 
 ## Doing
 

@@ -1,0 +1,416 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-01-08",
+  "description": "腎功能劑量調整規則 - Top 20 需調整藥物",
+  "source": "Sanford Guide, UpToDate",
+  "adjustments": {
+    "GENTA-INJ": {
+      "drug_name": "Gentamicin",
+      "normal_dose": "1.5-2.5 mg/kg Q8H",
+      "ranges": [
+        {
+          "crcl_min": 60,
+          "crcl_max": 999,
+          "recommendation": "標準劑量：1.5-2.5 mg/kg Q8H",
+          "dose_adjustment": 1.0,
+          "frequency": "Q8H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 40,
+          "crcl_max": 59,
+          "recommendation": "劑量不變，延長間隔至 Q12H",
+          "dose_adjustment": 1.0,
+          "frequency": "Q12H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 20,
+          "crcl_max": 39,
+          "recommendation": "劑量不變，延長間隔至 Q24H",
+          "dose_adjustment": 1.0,
+          "frequency": "Q24H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 10,
+          "crcl_max": 19,
+          "recommendation": "劑量減半，間隔 Q24-48H，需監測血中濃度",
+          "dose_adjustment": 0.5,
+          "frequency": "Q24-48H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 9,
+          "recommendation": "Loading dose 後依血中濃度調整，建議會診腎臟科",
+          "dose_adjustment": 0.5,
+          "frequency": "依濃度",
+          "contraindicated": false
+        }
+      ]
+    },
+    "VANCO-INJ": {
+      "drug_name": "Vancomycin",
+      "normal_dose": "15-20 mg/kg Q12H",
+      "ranges": [
+        {
+          "crcl_min": 50,
+          "crcl_max": 999,
+          "recommendation": "標準劑量：15-20 mg/kg Q12H",
+          "dose_adjustment": 1.0,
+          "frequency": "Q12H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 30,
+          "crcl_max": 49,
+          "recommendation": "15-20 mg/kg Q24H",
+          "dose_adjustment": 1.0,
+          "frequency": "Q24H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 10,
+          "crcl_max": 29,
+          "recommendation": "15-20 mg/kg Q48H，監測血中濃度",
+          "dose_adjustment": 1.0,
+          "frequency": "Q48H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 9,
+          "recommendation": "Loading dose 15-20 mg/kg，之後依血中濃度調整",
+          "dose_adjustment": 1.0,
+          "frequency": "依濃度",
+          "contraindicated": false
+        }
+      ]
+    },
+    "CIPRO-TAB": {
+      "drug_name": "Ciprofloxacin",
+      "normal_dose": "500-750 mg BID",
+      "ranges": [
+        {
+          "crcl_min": 50,
+          "crcl_max": 999,
+          "recommendation": "標準劑量",
+          "dose_adjustment": 1.0,
+          "frequency": "BID",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 30,
+          "crcl_max": 49,
+          "recommendation": "250-500 mg Q12H",
+          "dose_adjustment": 0.67,
+          "frequency": "Q12H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 5,
+          "crcl_max": 29,
+          "recommendation": "250-500 mg Q18H",
+          "dose_adjustment": 0.5,
+          "frequency": "Q18H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 4,
+          "recommendation": "250 mg Q24H，透析後補充劑量",
+          "dose_adjustment": 0.33,
+          "frequency": "Q24H",
+          "contraindicated": false
+        }
+      ]
+    },
+    "LEVO-INJ": {
+      "drug_name": "Levofloxacin",
+      "normal_dose": "500-750 mg QD",
+      "ranges": [
+        {
+          "crcl_min": 50,
+          "crcl_max": 999,
+          "recommendation": "標準劑量",
+          "dose_adjustment": 1.0,
+          "frequency": "QD",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 20,
+          "crcl_max": 49,
+          "recommendation": "初始劑量不變，之後減半",
+          "dose_adjustment": 0.5,
+          "frequency": "QD",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 10,
+          "crcl_max": 19,
+          "recommendation": "初始劑量不變，之後 250 mg Q24H",
+          "dose_adjustment": 0.33,
+          "frequency": "Q24H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 9,
+          "recommendation": "初始劑量不變，之後 250 mg Q48H",
+          "dose_adjustment": 0.25,
+          "frequency": "Q48H",
+          "contraindicated": false
+        }
+      ]
+    },
+    "MEROP-INJ": {
+      "drug_name": "Meropenem",
+      "normal_dose": "1g Q8H",
+      "ranges": [
+        {
+          "crcl_min": 50,
+          "crcl_max": 999,
+          "recommendation": "標準劑量",
+          "dose_adjustment": 1.0,
+          "frequency": "Q8H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 26,
+          "crcl_max": 49,
+          "recommendation": "標準劑量 Q12H",
+          "dose_adjustment": 1.0,
+          "frequency": "Q12H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 10,
+          "crcl_max": 25,
+          "recommendation": "減半劑量 Q12H",
+          "dose_adjustment": 0.5,
+          "frequency": "Q12H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 9,
+          "recommendation": "減半劑量 Q24H",
+          "dose_adjustment": 0.5,
+          "frequency": "Q24H",
+          "contraindicated": false
+        }
+      ]
+    },
+    "PIPERA-INJ": {
+      "drug_name": "Piperacillin/Tazobactam",
+      "normal_dose": "4.5g Q6H",
+      "ranges": [
+        {
+          "crcl_min": 40,
+          "crcl_max": 999,
+          "recommendation": "標準劑量",
+          "dose_adjustment": 1.0,
+          "frequency": "Q6H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 20,
+          "crcl_max": 39,
+          "recommendation": "3.375g Q6H",
+          "dose_adjustment": 0.75,
+          "frequency": "Q6H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 19,
+          "recommendation": "2.25g Q6H (重症) 或 2.25g Q8H",
+          "dose_adjustment": 0.5,
+          "frequency": "Q6-8H",
+          "contraindicated": false
+        }
+      ]
+    },
+    "METFOR-TAB": {
+      "drug_name": "Metformin",
+      "normal_dose": "500-1000 mg BID-TID",
+      "ranges": [
+        {
+          "crcl_min": 45,
+          "crcl_max": 999,
+          "recommendation": "標準劑量，最大 2550 mg/day",
+          "dose_adjustment": 1.0,
+          "frequency": "BID-TID",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 30,
+          "crcl_max": 44,
+          "recommendation": "最大 1000 mg/day，不建議新開始使用",
+          "dose_adjustment": 0.4,
+          "frequency": "BID",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 29,
+          "recommendation": "禁忌使用 - 乳酸中毒風險",
+          "dose_adjustment": 0,
+          "frequency": "N/A",
+          "contraindicated": true
+        }
+      ]
+    },
+    "ENOX-INJ": {
+      "drug_name": "Enoxaparin",
+      "normal_dose": "1 mg/kg Q12H 或 1.5 mg/kg QD",
+      "ranges": [
+        {
+          "crcl_min": 30,
+          "crcl_max": 999,
+          "recommendation": "標準劑量",
+          "dose_adjustment": 1.0,
+          "frequency": "Q12H",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 29,
+          "recommendation": "1 mg/kg QD (治療劑量) 或 30 mg QD (預防)",
+          "dose_adjustment": 0.5,
+          "frequency": "QD",
+          "contraindicated": false
+        }
+      ]
+    },
+    "MORPH-INJ": {
+      "drug_name": "Morphine",
+      "normal_dose": "2-10 mg Q4H PRN",
+      "ranges": [
+        {
+          "crcl_min": 50,
+          "crcl_max": 999,
+          "recommendation": "標準劑量",
+          "dose_adjustment": 1.0,
+          "frequency": "Q4H PRN",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 10,
+          "crcl_max": 49,
+          "recommendation": "減量 25-50%，延長間隔",
+          "dose_adjustment": 0.5,
+          "frequency": "Q6H PRN",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 9,
+          "recommendation": "減量 50-75%，考慮其他藥物 (fentanyl)，監測呼吸",
+          "dose_adjustment": 0.25,
+          "frequency": "Q8H PRN",
+          "contraindicated": false
+        }
+      ]
+    },
+    "DIGOX-TAB": {
+      "drug_name": "Digoxin",
+      "normal_dose": "0.125-0.25 mg QD",
+      "ranges": [
+        {
+          "crcl_min": 50,
+          "crcl_max": 999,
+          "recommendation": "標準劑量",
+          "dose_adjustment": 1.0,
+          "frequency": "QD",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 25,
+          "crcl_max": 49,
+          "recommendation": "0.125 mg QD 或 0.25 mg QOD",
+          "dose_adjustment": 0.5,
+          "frequency": "QD 或 QOD",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 10,
+          "crcl_max": 24,
+          "recommendation": "0.0625-0.125 mg QD，監測血中濃度",
+          "dose_adjustment": 0.25,
+          "frequency": "QD",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 9,
+          "recommendation": "避免使用或極低劑量，需密切監測",
+          "dose_adjustment": 0.125,
+          "frequency": "QOD",
+          "contraindicated": false
+        }
+      ]
+    },
+    "LISIN-TAB": {
+      "drug_name": "Lisinopril",
+      "normal_dose": "10-40 mg QD",
+      "ranges": [
+        {
+          "crcl_min": 30,
+          "crcl_max": 999,
+          "recommendation": "標準劑量",
+          "dose_adjustment": 1.0,
+          "frequency": "QD",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 10,
+          "crcl_max": 29,
+          "recommendation": "減半劑量起始 (5 mg)",
+          "dose_adjustment": 0.5,
+          "frequency": "QD",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 9,
+          "recommendation": "2.5 mg QD 起始，謹慎調整",
+          "dose_adjustment": 0.25,
+          "frequency": "QD",
+          "contraindicated": false
+        }
+      ]
+    },
+    "INSUL-R": {
+      "drug_name": "Insulin Regular",
+      "normal_dose": "依血糖調整",
+      "ranges": [
+        {
+          "crcl_min": 50,
+          "crcl_max": 999,
+          "recommendation": "標準劑量，依血糖調整",
+          "dose_adjustment": 1.0,
+          "frequency": "依醫囑",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 10,
+          "crcl_max": 49,
+          "recommendation": "減量 25%，密切監測血糖（低血糖風險增加）",
+          "dose_adjustment": 0.75,
+          "frequency": "依醫囑",
+          "contraindicated": false
+        },
+        {
+          "crcl_min": 0,
+          "crcl_max": 9,
+          "recommendation": "減量 50%，密切監測血糖",
+          "dose_adjustment": 0.5,
+          "frequency": "依醫囑",
+          "contraindicated": false
+        }
+      ]
+    }
+  }
+}
