@@ -1,5 +1,10 @@
-"""Presentation layer - MCP Server and Tools."""
+"""Presentation layer - MCP Server and deployment helpers."""
 
-from pharmacy_mcp.presentation.server import create_server, main
+from pharmacy_mcp.presentation.server import (
+    app,
+    create_server,
+    create_streamable_http_app,
+    main,
+)
 
-__all__ = ["create_server", "main"]
+__all__ = ["app", "create_server", "create_streamable_http_app", "main"]

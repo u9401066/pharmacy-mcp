@@ -58,7 +58,7 @@ dev = [
 ]
 
 [project.scripts]
-pharmacy-mcp = "pharmacy_mcp.server:main"
+pharmacy-mcp = "pharmacy_mcp.presentation.server:main"
 
 [build-system]
 requires = ["hatchling"]

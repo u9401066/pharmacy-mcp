@@ -49,12 +49,25 @@ uv sync --all-extras
 ### 執行伺服器
 
 ```bash
-# 執行 MCP server
+# 以 stdio 啟動（預設，適合 Claude Desktop 與本地 MCP client）
 pharmacy-mcp
 
 # 或使用 Python
-python -m pharmacy_mcp.server
+python -m pharmacy_mcp
 ```
+
+### Streamable HTTP 部署
+
+```bash
+# 啟動新的 Streamable HTTP transport
+pharmacy-mcp --transport streamable-http --host 0.0.0.0 --port 8000
+
+# 或直接用 uvicorn 部署 ASGI app
+uv run uvicorn pharmacy_mcp.presentation.server:app --host 0.0.0.0 --port 8000
+```
+
+也支援 `PHARMACY_MCP_` 前綴的環境變數，例如 `MCP_TRANSPORT`、`MCP_HOST`、
+`MCP_PORT`、`MCP_MOUNT_PATH`、`MCP_STREAMABLE_HTTP_PATH`、`MCP_STATELESS_HTTP`。
 
 ### Claude Desktop 設定
 
@@ -65,7 +78,7 @@ python -m pharmacy_mcp.server
   "mcpServers": {
     "pharmacy": {
       "command": "uv",
-      "args": ["run", "pharmacy-mcp"],
+      "args": ["run", "pharmacy-mcp", "--transport", "stdio"],
       "cwd": "/path/to/pharmacy-mcp"
     }
   }
@@ -148,17 +161,14 @@ src/pharmacy_mcp/
 
 ```bash
 # 執行所有測試
-pytest
+uv run pytest
 
-# 含覆蓋率報告
-pytest --cov=src --cov-report=html
+# 只驗證 server 相關測試
+uv run pytest tests/test_server.py -v
 
-# 只執行單元測試
-pytest -m unit
-
-# 靜態分析
-ruff check src tests
-mypy src
+# 靜態分析（目前 repository 仍有既存 ruff/mypy 問題）
+uv run ruff check src tests
+uv run mypy src
 ```
 
 ## ⚠️ 免責聲明
