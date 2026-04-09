@@ -25,12 +25,12 @@ class Settings(BaseSettings):
     max_retries: int = 3
 
     # MCP deployment settings
-    transport: str = "stdio"
-    host: str = "127.0.0.1"
-    port: int = 8000
-    mount_path: str = "/"
-    streamable_http_path: str = "/mcp"
-    stateless_http: bool = False
+    transport: str = "stdio"  # stdio, sse, or streamable-http
+    host: str = "127.0.0.1"  # Bind address for HTTP-based transports
+    port: int = 8000  # Bind port for HTTP-based transports
+    mount_path: str = "/"  # ASGI mount prefix when embedding the app
+    streamable_http_path: str = "/mcp"  # MCP endpoint under the mount path
+    stateless_http: bool = False  # Enable stateless Streamable HTTP sessions
 
     # Disclaimer
     disclaimer: str = (

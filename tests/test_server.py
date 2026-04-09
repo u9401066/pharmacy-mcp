@@ -10,6 +10,35 @@ from pharmacy_mcp.presentation.server import (
     create_streamable_http_app,
 )
 
+EXPECTED_TOOL_NAMES = {
+    "search_drug",
+    "get_drug_info",
+    "get_drug_dosage",
+    "get_drug_warnings",
+    "check_drug_interaction",
+    "check_multi_drug_interactions",
+    "check_food_drug_interaction",
+    "calculate_dose_by_weight",
+    "calculate_dose_by_bsa",
+    "calculate_creatinine_clearance",
+    "calculate_pediatric_dose",
+    "calculate_infusion_rate",
+    "convert_dose_units",
+    "search_tfda_drug",
+    "get_nhi_coverage",
+    "get_nhi_drug_price",
+    "translate_drug_name",
+    "list_prior_authorization_drugs",
+    "list_nhi_coverage_rules",
+    "get_formulary_item",
+    "search_formulary",
+    "get_renal_adjustment",
+    "validate_order",
+    "submit_order",
+    "stop_order",
+}
+EXPECTED_TOOL_COUNT = len(EXPECTED_TOOL_NAMES)
+
 
 class TestMCPServer:
     """Tests for MCP server."""
@@ -29,15 +58,8 @@ class TestMCPServer:
         tools = await server.list_tools()
         tool_names = {tool.name for tool in tools}
 
-        assert len(tools) == 25
-        assert {
-            "search_drug",
-            "calculate_dose_by_weight",
-            "search_tfda_drug",
-            "validate_order",
-            "submit_order",
-            "stop_order",
-        }.issubset(tool_names)
+        assert len(tools) == EXPECTED_TOOL_COUNT
+        assert tool_names == EXPECTED_TOOL_NAMES
 
         search_tool = next(tool for tool in tools if tool.name == "search_drug")
         assert search_tool.inputSchema["properties"]["max_results"]["default"] == 10

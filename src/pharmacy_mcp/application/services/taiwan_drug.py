@@ -137,19 +137,16 @@ class TaiwanDrugService:
     def translate_drug_name(
         self,
         name: str,
-        target_language_reserved: str = "auto"
     ) -> dict[str, Any]:
         """
         Translate drug name between English and Chinese.
 
         Args:
             name: Drug name to translate
-            target_language_reserved: Reserved for future language-routing support
 
         Returns:
             Translation result
         """
-        _ = target_language_reserved
         result = translate_drug_name(name)
 
         if result:

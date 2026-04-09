@@ -374,7 +374,7 @@ async def _handle_tool(name: str, arguments: dict[str, Any]) -> ToolResult:
     if name == "list_prior_authorization_drugs":
         return await taiwan_drug_service.get_prior_authorization_drugs()
 
-    raise ValueError(f"Unknown async tool: {name}")
+    raise ValueError(f"Unknown tool: {name}")
 
 
 def create_streamable_http_app() -> Starlette:
