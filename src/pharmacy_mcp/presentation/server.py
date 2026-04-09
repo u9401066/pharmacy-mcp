@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
@@ -33,7 +33,7 @@ drug_search_service = DrugSearchService()
 drug_info_service = DrugInfoService()
 interaction_service = InteractionService()
 dosage_service = DosageService()
-taiwan_drug_service: Any = TaiwanDrugService()  # type: ignore[no-untyped-call]
+taiwan_drug_service = TaiwanDrugService()
 prescription_service = PrescriptionService()
 
 
@@ -246,7 +246,7 @@ def create_server(
         description="列出健保給付規則資料庫。List all NHI coverage rules in the database."
     )
     def list_nhi_coverage_rules() -> ToolResult:
-        return cast(ToolResult, taiwan_drug_service.list_nhi_coverage_rules())
+        return taiwan_drug_service.list_nhi_coverage_rules()
 
     @server.tool(
         description="取得院內藥品詳情。Get hospital formulary item details by drug code."
@@ -291,7 +291,7 @@ def create_server(
         )
         return result.to_dict()
 
-    @server.tool(description="送出醫囑到 HIS。Submit a medication order to the HIS mock service.")
+    @server.tool(description="送出醫囑到 HIS。Submit a medication order to the HIS service.")
     async def submit_order(
         patient_id: str,
         drug_code: str,
@@ -356,23 +356,23 @@ async def _handle_tool(name: str, arguments: dict[str, Any]) -> ToolResult:
         return await interaction_service.check_food_drug_interaction(arguments["drug_name"])
 
     if name == "search_tfda_drug":
-        return cast(ToolResult, await taiwan_drug_service.search_tfda_drug(
+        return await taiwan_drug_service.search_tfda_drug(
             query=arguments["query"],
             limit=arguments.get("limit", 20),
             search_type=arguments.get("search_type", "name"),
-        ))
+        )
 
     if name == "get_nhi_coverage":
-        return cast(ToolResult, await taiwan_drug_service.get_nhi_coverage(arguments["drug_name"]))
+        return await taiwan_drug_service.get_nhi_coverage(arguments["drug_name"])
 
     if name == "get_nhi_drug_price":
-        return cast(ToolResult, await taiwan_drug_service.get_nhi_drug_price(arguments["nhi_code"]))
+        return await taiwan_drug_service.get_nhi_drug_price(arguments["nhi_code"])
 
     if name == "translate_drug_name":
-        return cast(ToolResult, taiwan_drug_service.translate_drug_name(arguments["name"]))
+        return taiwan_drug_service.translate_drug_name(arguments["name"])
 
     if name == "list_prior_authorization_drugs":
-        return cast(ToolResult, await taiwan_drug_service.get_prior_authorization_drugs())
+        return await taiwan_drug_service.get_prior_authorization_drugs()
 
     raise ValueError(f"Unknown async tool: {name}")
 
