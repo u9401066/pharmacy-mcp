@@ -245,7 +245,7 @@ def create_server(
     @server.tool(
         description="列出健保給付規則資料庫。List all NHI coverage rules in the database."
     )
-    def list_nhi_coverage_rules() -> ToolResult:
+    async def list_nhi_coverage_rules() -> ToolResult:
         return taiwan_drug_service.list_nhi_coverage_rules()
 
     @server.tool(
