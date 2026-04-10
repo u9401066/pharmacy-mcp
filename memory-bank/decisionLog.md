@@ -82,5 +82,14 @@
 - 台灣資訊作為補充，不影響原有 API 結構
 - 當藥品有對應資料時才顯示，無則為 null
 
+
+### DEC-010: Presentation layer 改採 FastMCP 與 Streamable HTTP 部署
+**日期**: 2026-04-09
+**決策**: 將 `presentation/server.py` 從 low-level `Server`/stdio 改為 `FastMCP`，並提供 `app` ASGI 入口與 CLI transport 切換。
+**原因**:
+- 對齊新版 MCP Python SDK 的 decorator 與 deployment 能力
+- 讓 `pharmacy-mcp` 同時支援 stdio、本地測試與 HTTP 部署
+- 保留既有 25 個 tools 與 service routing，降低翻新風險
+
 ---
-*Last updated: 2025-12-22*
+*Last updated: 2026-04-09*

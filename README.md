@@ -47,12 +47,26 @@ uv sync --all-extras
 ### Running the Server
 
 ```bash
-# Run MCP server
+# Run MCP over stdio (default, for Claude Desktop and local MCP clients)
 pharmacy-mcp
 
 # Or with Python
-python -m pharmacy_mcp.server
+python -m pharmacy_mcp
 ```
+
+### Streamable HTTP Deployment
+
+```bash
+# Run the new Streamable HTTP transport locally
+pharmacy-mcp --transport streamable-http --host 0.0.0.0 --port 8000
+
+# Serve the ASGI app with uvicorn
+uv run uvicorn pharmacy_mcp.presentation.server:app --host 0.0.0.0 --port 8000
+```
+
+Environment variables are also supported via the `PHARMACY_MCP_` prefix, including
+`MCP_TRANSPORT`, `MCP_HOST`, `MCP_PORT`, `MCP_MOUNT_PATH`, `MCP_STREAMABLE_HTTP_PATH`,
+and `MCP_STATELESS_HTTP`.
 
 ### Claude Desktop Configuration
 
@@ -63,7 +77,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "pharmacy": {
       "command": "uv",
-      "args": ["run", "pharmacy-mcp"],
+      "args": ["run", "pharmacy-mcp", "--transport", "stdio"],
       "cwd": "/path/to/pharmacy-mcp"
     }
   }
@@ -146,17 +160,14 @@ src/pharmacy_mcp/
 
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
-# Run with coverage
-pytest --cov=src --cov-report=html
+# Run focused server tests
+uv run pytest tests/test_server.py -v
 
-# Run only unit tests
-pytest -m unit
-
-# Static analysis
-ruff check src tests
-mypy src
+# Static analysis (repository currently has pre-existing ruff/mypy issues)
+uv run ruff check src tests
+uv run mypy src
 ```
 
 ## ⚠️ Disclaimer

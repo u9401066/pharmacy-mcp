@@ -1,4 +1,4 @@
-# Progress (Updated: 2026-01-08)
+# Progress (Updated: 2026-04-09)
 
 ## Done
 
@@ -58,6 +58,17 @@
 - ✅ Presentation: 6 個新 MCP Tools (處方相關)
 - ✅ LangGraph 範例模組 (`examples/langgraph_prescription/`)
 - ✅ 71 個測試全部通過
+
+### v0.8.6 MCP SDK 現代化 + 部署
+- ✅ 將 low-level MCP server 改為 FastMCP 實作
+- ✅ 保留 25 個既有 MCP Tools 並改為 decorator 註冊
+- ✅ 新增 Streamable HTTP ASGI app (`pharmacy_mcp.presentation.server:app`)
+- ✅ 新增 CLI transport 選項：`stdio` / `sse` / `streamable-http`
+- ✅ 新增 `PHARMACY_MCP_*` 部署環境變數設定
+- ✅ 修復壞掉的 package script (`pharmacy-mcp`)
+- ✅ README / README.zh-TW 補上部署說明
+- ✅ `tests/test_server.py` 擴充為 FastMCP/CLI/ASGI 驗證
+- ✅ 75 個測試全部通過
 
 ## Doing
 
