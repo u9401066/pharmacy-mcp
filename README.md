@@ -11,13 +11,23 @@ for educational PK/DDI simulation.
 
 Traditional Chinese: [README.zh-TW.md](README.zh-TW.md)
 
+## What Is New In 0.9.1
+
+- Hardened interaction outputs so local database guidance is surfaced as
+  non-prescriptive management considerations with safety metadata.
+- Added fail-closed simulation guardrails for NaN, infinity, unstable
+  denominators, and catalog metadata drift.
+- Added release artifact auditing and packaged-wheel smoke tests.
+- Made Streamable HTTP ASGI exports lazy and mount-aware.
+
 ## What Is New In 0.9.0
 
 - Built-in trusted PK/DDI formula catalog under `src/pharmacy_mcp/data/formulas/`.
 - Deterministic simulation service for one-compartment concentration, repeated-dose accumulation, renal clearance adjustment, CYP reversible inhibition, AUC ratio, and temperature-corrected elimination.
 - Mechanism-aware DDI tools for supported CYP inhibition examples such as warfarin/fluconazole and statin/clarithromycin.
 - Modern MCP surfaces: tools, read-only resources, resource templates, prompts, Streamable HTTP deployment helpers, and structured outputs.
-- Release gates for pytest coverage, ruff, mypy, bandit, and wheel build.
+- Release gates for pytest coverage, ruff, mypy, bandit, package build, and
+  artifact audit.
 
 Simulation outputs are screening estimates only. They always include the project
 disclaimer and `not_for_direct_clinical_decision: true`.
@@ -47,8 +57,9 @@ uv run uvicorn pharmacy_mcp.presentation.server:app --host 0.0.0.0 --port 8000
 ```
 
 Environment variables use the `PHARMACY_MCP_` prefix. Supported settings include
-`MCP_TRANSPORT`, `MCP_HOST`, `MCP_PORT`, `MCP_MOUNT_PATH`,
-`MCP_STREAMABLE_HTTP_PATH`, and `MCP_STATELESS_HTTP`.
+`PHARMACY_MCP_TRANSPORT`, `PHARMACY_MCP_HOST`, `PHARMACY_MCP_PORT`,
+`PHARMACY_MCP_MOUNT_PATH`, `PHARMACY_MCP_STREAMABLE_HTTP_PATH`, and
+`PHARMACY_MCP_STATELESS_HTTP`.
 
 ## Claude Desktop Example
 
@@ -133,7 +144,7 @@ limitations, references, and validation cases. The Python simulation service
 dispatches by formula ID to reviewed implementations.
 
 External formula generators such as NSForge can be used as companion authoring
-tools, but Pharmacy MCP does not vendor NSForge in 0.9.0. Generated formulas
+tools, but Pharmacy MCP does not vendor NSForge in 0.9.x. Generated formulas
 must be reviewed, committed to the trusted catalog, and covered by tests before
 production tools can use them.
 
@@ -168,6 +179,7 @@ uv run ruff check src tests
 uv run mypy src
 uv run bandit -q -r src
 uv build
+uv run python scripts/audit_release_artifacts.py dist
 ```
 
 ## Disclaimer

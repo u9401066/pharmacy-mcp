@@ -207,19 +207,23 @@ if [ "$TOOL_NAME" = "unified_search" ] && [ "$PENDING_TIER" = "moderate" ] && { 
     SUGGESTION="Quick search returned ${RESULT_COUNT} results - good start. For comprehensive coverage, also run a pipeline search to include more sources and semantic expansion."
 fi
 
+QUERY_HASH=$(printf '%s' "$QUERY" | sha256sum | awk '{print $1}')
+QUERY_LENGTH=${#QUERY}
+
 if [ "$QUALITY" != "good" ]; then
     jq -n \
         --arg tool_name "$TOOL_NAME" \
         --arg tool_group "${TOOL_GROUP:-unknown}" \
         --arg evaluation_mode "$MODE" \
-        --arg query "$QUERY" \
+        --arg query_hash "$QUERY_HASH" \
+        --argjson query_length "$QUERY_LENGTH" \
         --arg quality "$QUALITY" \
         --argjson result_count "$RESULT_COUNT" \
         --argjson source_count "$SOURCE_COUNT" \
         --arg suggestion "$SUGGESTION" \
         --arg had_pipeline "${HAD_PIPELINE:-none}" \
         --arg template "${PENDING_TEMPLATE:-comprehensive}" \
-        '{tool_name: $tool_name, tool_group: $tool_group, evaluation_mode: $evaluation_mode, query: $query, quality: $quality, result_count: $result_count, source_count: $source_count, suggestion: $suggestion, had_pipeline: $had_pipeline, template: $template, nudged: false}' \
+        '{tool_name: $tool_name, tool_group: $tool_group, evaluation_mode: $evaluation_mode, query_hash: $query_hash, query_length: $query_length, quality: $quality, result_count: $result_count, source_count: $source_count, suggestion: $suggestion, had_pipeline: $had_pipeline, template: $template, nudged: false}' \
         > "$STATE_DIR/last_research_eval.json"
     rm -f "$STATE_DIR/last_search_eval.json" 2>/dev/null
 else
@@ -231,13 +235,14 @@ jq -n \
     --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     --arg tool_name "$TOOL_NAME" \
     --arg tool_group "${TOOL_GROUP:-unknown}" \
-    --arg query "$QUERY" \
+    --arg query_hash "$QUERY_HASH" \
+    --argjson query_length "$QUERY_LENGTH" \
     --arg quality "$QUALITY" \
     --argjson result_count "$RESULT_COUNT" \
     --argjson source_count "$SOURCE_COUNT" \
     --arg had_pipeline "${HAD_PIPELINE:-none}" \
     --arg tier "${PENDING_TIER:-none}" \
-    '{timestamp: $timestamp, tool_name: $tool_name, tool_group: $tool_group, query: $query, quality: $quality, result_count: $result_count, source_count: $source_count, had_pipeline: $had_pipeline, tier: $tier}' \
+    '{timestamp: $timestamp, tool_name: $tool_name, tool_group: $tool_group, query_hash: $query_hash, query_length: $query_length, quality: $quality, result_count: $result_count, source_count: $source_count, had_pipeline: $had_pipeline, tier: $tier}' \
     >> "$STATE_DIR/search_audit.jsonl" 2>/dev/null
 
 exit 0

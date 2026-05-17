@@ -1,13 +1,13 @@
 ---
 name: asset-aware-mcp-harness
-description: "Codex harness for Asset-Aware MCP. Triggers: asset-aware, MCP, PDF, DOCX, DFM, citation-ready, CRAAP, release checklist, VSIX."
+description: "Codex harness for Asset-Aware MCP references bundled with Pharmacy MCP. Triggers: asset-aware, MCP, PDF, DOCX, DFM, citation-ready, CRAAP, release checklist."
 ---
 
 # Asset-Aware MCP: Codex Harness Skill
 
-Use this skill when working with Codex on this repository, the VS Code
-extension, MCP configuration, citation-ready document pipelines, or release
-verification.
+Use this skill when working with Codex on Asset-Aware MCP reference workflows
+bundled in this repository. Extension-specific commands are external-reference
+only unless the referenced extension repository is explicitly opened.
 
 ## What To Read First
 
@@ -18,11 +18,12 @@ verification.
 
 ## Canonical Commands
 
-- Python checks: `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy src --ignore-missing-imports`, `uv run pytest`
-- Extension checks: `cd vscode-extension && npm run test:ci`
-- Assistant asset sync: `cd vscode-extension && npm run sync-assets:check`
-- VSIX smoke: `cd vscode-extension && npm run test:install-smoke`
-- Docker smoke: `docker build -t asset-aware-mcp:smoke .` then `docker run --rm --entrypoint python asset-aware-mcp:smoke -c "import src.presentation.server"`
+- Tests: `uv run pytest --cov=src --cov-report=term-missing`
+- Lint: `uv run ruff check src tests scripts`
+- Type check: `uv run mypy src`
+- Security scan: `uv run bandit -q -r src`
+- Build: `uv build`
+- Artifact audit: `uv run python scripts/audit_release_artifacts.py dist`
 
 ## Citation-Ready Rules
 
@@ -33,8 +34,7 @@ verification.
 
 ## Release Rules
 
-- Treat VSIX install/update as a first-class release path.
-- Confirm Copilot, Cline, and Codex MCP config merge behavior remains
-  idempotent and non-destructive.
-- Do not tag until sync-assets, unit tests, package contents, install smoke,
-  artifact audit, Docker smoke, and git diff hygiene are clean.
+- Do not run extension, VSIX, Docker, or Asset-Aware package release commands
+  from Pharmacy MCP unless that external repository is active.
+- Do not tag until tests, lint, type checks, security scan, package build,
+  artifact audit, wheel smoke, and git diff hygiene are clean.

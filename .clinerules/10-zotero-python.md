@@ -1,35 +1,11 @@
----
-paths:
-  - "mcp-server/**/*.py"
-  - "mcp-server/pyproject.toml"
-  - "mcp-server/uv.lock"
-  - "scripts/**/*.py"
----
+# Legacy Zotero Python Rules
 
-# Zotero Python Rules
+This file is retained only as a bundled harness marker. The current Pharmacy
+MCP repository has no `mcp-server/` layout. Do not run Zotero Keeper Python
+commands here unless an external Zotero Keeper repository is explicitly opened.
 
-## Environment
+For this repository, use:
 
-- Use `uv` for Python package and command execution.
-- Prefer `uv run ...` from `mcp-server/` so commands use the correct dependency set.
-- Avoid ad-hoc global installs.
-
-## Architecture Guardrails
-
-- Keep `domain/` free of I/O and infrastructure imports.
-- Put Zotero HTTP access in `infrastructure/zotero_client/`.
-- Keep MCP tool registration and validation in `infrastructure/mcp/`.
-- Keep PubMed-specific mapping isolated in `infrastructure/mappers/pubmed_mapper.py` and bridge tools.
-
-## Validation Gates
-
-- Lint: `cd mcp-server && uv run ruff check .`
-- Types: `cd mcp-server && uv run mypy src --ignore-missing-imports`
-- Tests: `cd mcp-server && uv run pytest`
-
-## Behavioral Rules
-
-- Preserve duplicate detection by DOI, PMID, title, and Zotero item identity.
-- Keep collection writes explicit; do not silently import into arbitrary collections.
-- Return structured MCP responses that agents can parse without scraping prose.
-- Add focused tests for tool behavior changes, especially import, saved-search, and collection flows.
+- `uv run pytest --cov=src --cov-report=term-missing`
+- `uv run ruff check src tests scripts`
+- `uv run mypy src`

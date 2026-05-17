@@ -1,5 +1,7 @@
 """MCP Server configuration."""
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,6 +11,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="PHARMACY_MCP_",
         env_file=".env",
+        extra="ignore",
     )
 
     # API URLs
@@ -25,15 +28,20 @@ class Settings(BaseSettings):
     max_retries: int = 3
 
     # MCP deployment settings
-    transport: str = "stdio"  # stdio, sse, or streamable-http
-    host: str = "127.0.0.1"  # Bind address for HTTP-based transports
-    port: int = 8000  # Bind port for HTTP-based transports
-    mount_path: str = "/"  # ASGI mount prefix when embedding the app
-    streamable_http_path: str = "/mcp"  # MCP endpoint under the mount path
-    stateless_http: bool = False  # Enable stateless Streamable HTTP sessions
+    transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
+    host: str = "127.0.0.1"
+    port: int = 8000
+    mount_path: str = "/"
+    streamable_http_path: str = "/mcp"
+    stateless_http: bool = False
 
     # Disclaimer
-    disclaimer: str = "⚠️ 免責聲明：本資訊僅供參考，不構成醫療建議。請諮詢專業醫療人員。"
+    disclaimer: str = (
+        "This information is for reference, education, and workflow support only. "
+        "It does not constitute medical advice and must not be used as the sole "
+        "basis for clinical decisions. Consult qualified healthcare professionals "
+        "and validated clinical systems for patient care."
+    )
 
 
 settings = Settings()

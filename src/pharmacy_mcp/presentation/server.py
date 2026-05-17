@@ -5,10 +5,13 @@ from __future__ import annotations
 import argparse
 import logging
 from collections.abc import Sequence
+from functools import lru_cache
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.types import Receive, Scope, Send
 
 from pharmacy_mcp.application.services.dosage import DosageService
 from pharmacy_mcp.application.services.drug_info import DrugInfoService
@@ -20,7 +23,6 @@ from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
 from pharmacy_mcp.config import settings
 from pharmacy_mcp.infrastructure.knowledge.formula_catalog import FormulaCatalog
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 SERVER_NAME = "pharmacy-mcp"
@@ -30,18 +32,55 @@ SERVER_INSTRUCTIONS = (
 )
 SERVER_WEBSITE_URL = "https://github.com/u9401066/pharmacy-mcp"
 
-# Initialize services once and reuse them across transports.
-drug_search_service = DrugSearchService()
-drug_info_service = DrugInfoService()
-formula_catalog = FormulaCatalog()
-simulation_service = SimulationService(formula_catalog=formula_catalog)
-interaction_service = InteractionService(simulation_service=simulation_service)
-dosage_service = DosageService()
-taiwan_drug_service = TaiwanDrugService()
-prescription_service = PrescriptionService()
-
-
 ToolResult = dict[str, Any]
+
+
+@lru_cache(maxsize=1)
+def get_drug_search_service() -> DrugSearchService:
+    """Return the lazily initialized drug search service."""
+    return DrugSearchService()
+
+
+@lru_cache(maxsize=1)
+def get_drug_info_service() -> DrugInfoService:
+    """Return the lazily initialized drug information service."""
+    return DrugInfoService()
+
+
+@lru_cache(maxsize=1)
+def get_formula_catalog() -> FormulaCatalog:
+    """Return the lazily loaded trusted formula catalog."""
+    return FormulaCatalog()
+
+
+@lru_cache(maxsize=1)
+def get_simulation_service() -> SimulationService:
+    """Return the lazily initialized simulation service."""
+    return SimulationService(formula_catalog=get_formula_catalog())
+
+
+@lru_cache(maxsize=1)
+def get_interaction_service() -> InteractionService:
+    """Return the lazily initialized interaction service."""
+    return InteractionService(simulation_service=get_simulation_service())
+
+
+@lru_cache(maxsize=1)
+def get_dosage_service() -> DosageService:
+    """Return the lazily initialized dosage service."""
+    return DosageService()
+
+
+@lru_cache(maxsize=1)
+def get_taiwan_drug_service() -> TaiwanDrugService:
+    """Return the lazily initialized Taiwan drug service."""
+    return TaiwanDrugService()
+
+
+@lru_cache(maxsize=1)
+def get_prescription_service() -> PrescriptionService:
+    """Return the lazily initialized prescription service."""
+    return PrescriptionService()
 
 
 def create_server(
@@ -57,10 +96,14 @@ def create_server(
         name=SERVER_NAME,
         instructions=SERVER_INSTRUCTIONS,
         website_url=SERVER_WEBSITE_URL,
-        host=host or settings.host,
-        port=port or settings.port,
-        mount_path=mount_path or settings.mount_path,
-        streamable_http_path=streamable_http_path or settings.streamable_http_path,
+        host=settings.host if host is None else host,
+        port=settings.port if port is None else port,
+        mount_path=settings.mount_path if mount_path is None else mount_path,
+        streamable_http_path=(
+            settings.streamable_http_path
+            if streamable_http_path is None
+            else streamable_http_path
+        ),
         stateless_http=(
             settings.stateless_http if stateless_http is None else stateless_http
         ),
@@ -120,7 +163,7 @@ def create_server(
         dose_unit: str = "mg",
         max_dose: float | None = None,
     ) -> ToolResult:
-        return dosage_service.calculate_weight_based_dose(
+        return get_dosage_service().calculate_weight_based_dose(
             dose_per_kg=dose_per_kg,
             patient_weight_kg=patient_weight_kg,
             dose_unit=dose_unit,
@@ -137,7 +180,7 @@ def create_server(
         dose_unit: str = "mg",
         max_dose: float | None = None,
     ) -> ToolResult:
-        return dosage_service.calculate_bsa_based_dose(
+        return get_dosage_service().calculate_bsa_based_dose(
             dose_per_m2=dose_per_m2,
             height_cm=height_cm,
             weight_kg=weight_kg,
@@ -157,7 +200,7 @@ def create_server(
         serum_creatinine: float,
         gender: str,
     ) -> ToolResult:
-        return dosage_service.calculate_creatinine_clearance(
+        return get_dosage_service().calculate_creatinine_clearance(
             age_years=age_years,
             weight_kg=weight_kg,
             serum_creatinine=serum_creatinine,
@@ -175,7 +218,7 @@ def create_server(
         child_bsa: float | None = None,
         dose_unit: str = "mg",
     ) -> ToolResult:
-        return dosage_service.calculate_pediatric_dose(
+        return get_dosage_service().calculate_pediatric_dose(
             adult_dose=adult_dose,
             child_weight_kg=child_weight_kg,
             dose_unit=dose_unit,
@@ -191,7 +234,7 @@ def create_server(
         volume_ml: float,
         duration_hours: float,
     ) -> ToolResult:
-        return dosage_service.calculate_infusion_rate(
+        return get_dosage_service().calculate_infusion_rate(
             total_dose=total_dose,
             dose_unit=dose_unit,
             volume_ml=volume_ml,
@@ -200,7 +243,7 @@ def create_server(
 
     @server.tool(description="Convert between dose units (g, mg, mcg, ng).")
     def convert_dose_units(value: float, from_unit: str, to_unit: str) -> ToolResult:
-        return dosage_service.convert_dose_units(
+        return get_dosage_service().convert_dose_units(
             value=value,
             from_unit=from_unit,
             to_unit=to_unit,
@@ -208,8 +251,8 @@ def create_server(
 
     @server.tool(
         description=(
-            "搜尋台灣 TFDA 藥品資料庫。Search Taiwan TFDA drug database for "
-            "drug permits and information."
+            "Search the Taiwan TFDA drug database for permits and product "
+            "information."
         )
     )
     async def search_tfda_drug(
@@ -224,69 +267,61 @@ def create_server(
 
     @server.tool(
         description=(
-            "查詢藥品健保給付狀態。Check if a drug is covered by Taiwan National "
-            "Health Insurance (NHI) and get coverage details."
+            "Check whether a drug is covered by Taiwan National Health Insurance "
+            "(NHI) and return coverage details."
         )
     )
     async def get_nhi_coverage(drug_name: str) -> ToolResult:
         return await _handle_tool("get_nhi_coverage", {"drug_name": drug_name})
 
-    @server.tool(
-        description="查詢健保藥價。Get NHI reimbursement price for a drug by NHI code."
-    )
+    @server.tool(description="Get NHI reimbursement price for a drug by NHI code.")
     async def get_nhi_drug_price(nhi_code: str) -> ToolResult:
         return await _handle_tool("get_nhi_drug_price", {"nhi_code": nhi_code})
 
     @server.tool(
         description=(
-            "藥品名稱中英對照。Translate drug names between English and Chinese "
-            "(Traditional)."
+            "Translate drug names between English and Traditional Chinese where "
+            "local mapping data is available."
         )
     )
     async def translate_drug_name(name: str) -> ToolResult:
         return await _handle_tool("translate_drug_name", {"name": name})
 
-    @server.tool(
-        description="列出需事前審查的健保藥品。List drugs requiring NHI prior authorization."
-    )
+    @server.tool(description="List drugs requiring NHI prior authorization.")
     async def list_prior_authorization_drugs() -> ToolResult:
         return await _handle_tool("list_prior_authorization_drugs", {})
 
     @server.tool(
-        description="列出健保給付規則資料庫。List all NHI coverage rules in the database."
+        description="List all NHI coverage rules available in the local database."
     )
     async def list_nhi_coverage_rules() -> ToolResult:
-        return taiwan_drug_service.list_nhi_coverage_rules()
+        return get_taiwan_drug_service().list_nhi_coverage_rules()
 
-    @server.tool(
-        description="取得院內藥品詳情。Get hospital formulary item details by drug code."
-    )
+    @server.tool(description="Get hospital formulary item details by drug code.")
     def get_formulary_item(drug_code: str) -> ToolResult:
-        item = prescription_service.get_formulary_item(drug_code)
+        item = get_prescription_service().get_formulary_item(drug_code)
         if item:
             return item.to_dict()
         return {"error": f"Drug code {drug_code} not found in formulary"}
 
-    @server.tool(
-        description="搜尋院內藥品檔。Search hospital formulary by drug name or code."
-    )
+    @server.tool(description="Search hospital formulary by drug name or code.")
     def search_formulary(query: str, limit: int = 10) -> ToolResult:
-        items = prescription_service.search_formulary(query=query, limit=limit)
+        items = get_prescription_service().search_formulary(query=query, limit=limit)
         return {"count": len(items), "items": [item.to_dict() for item in items]}
 
     @server.tool(
         description=(
-            "取得腎功能劑量調整建議。Get renal dosing adjustment recommendation "
-            "based on CrCl."
+            "Get renal dosing adjustment recommendation based on creatinine "
+            "clearance (CrCl)."
         )
     )
     def get_renal_adjustment(drug_code: str, crcl: float) -> ToolResult:
-        adjustment = prescription_service.get_renal_adjustment(
+        adjustment = get_prescription_service().get_renal_adjustment(
             drug_code=drug_code, crcl=crcl
         )
         return adjustment.to_dict()
 
-    @server.tool(description="驗證醫囑。Validate a medication order before submission.")
+    @server.tool(description="Validate a medication order before submission.")
     def validate_order(
         drug_code: str,
         dose: float,
@@ -295,7 +330,7 @@ def create_server(
         frequency: str,
         patient_crcl: float | None = None,
     ) -> ToolResult:
-        result = prescription_service.validate_order(
+        result = get_prescription_service().validate_order(
             drug_code=drug_code,
             dose=dose,
             dose_unit=dose_unit,
@@ -305,9 +340,7 @@ def create_server(
         )
         return result.to_dict()
 
-    @server.tool(
-        description="送出醫囑到 HIS。Submit a medication order to the HIS service."
-    )
+    @server.tool(description="Submit a medication order to the HIS service.")
     async def submit_order(
         patient_id: str,
         drug_code: str,
@@ -320,7 +353,7 @@ def create_server(
         override_warnings: bool = False,
         notes: str | None = None,
     ) -> ToolResult:
-        result = await prescription_service.submit_order(
+        result = await get_prescription_service().submit_order(
             patient_id=patient_id,
             drug_code=drug_code,
             dose=dose,
@@ -334,18 +367,20 @@ def create_server(
         )
         return result.to_dict()
 
-    @server.tool(description="停止醫囑。Discontinue an active medication order.")
+    @server.tool(description="Discontinue an active medication order.")
     async def stop_order(order_id: str, reason: str) -> ToolResult:
-        result = await prescription_service.stop_order(order_id=order_id, reason=reason)
+        result = await get_prescription_service().stop_order(
+            order_id=order_id, reason=reason
+        )
         return result.to_dict()
 
     @server.tool(description="List trusted PK/DDI formulas available for simulation.")
     def list_formula_catalog(status: str | None = "trusted") -> ToolResult:
-        return formula_catalog.to_dict(status=status)
+        return get_formula_catalog().to_dict(status=status)
 
     @server.tool(description="Get full metadata for a trusted PK/DDI formula.")
     def get_formula_details(formula_id: str) -> ToolResult:
-        formula = formula_catalog.get_formula(formula_id)
+        formula = get_formula_catalog().get_formula(formula_id)
         if formula is None:
             return {"error": f"Formula {formula_id} not found"}
         return formula.to_dict()
@@ -357,7 +392,7 @@ def create_server(
         )
     )
     def explain_interaction_mechanism(drug1: str, drug2: str) -> ToolResult:
-        return interaction_service.explain_interaction_mechanism(drug1, drug2)
+        return get_interaction_service().explain_interaction_mechanism(drug1, drug2)
 
     @server.tool(
         description=(
@@ -373,7 +408,7 @@ def create_server(
         inhibitor_concentration: float,
         ki: float,
     ) -> ToolResult:
-        return interaction_service.simulate_pk_interaction(
+        return get_interaction_service().simulate_pk_interaction(
             drug1=drug1,
             drug2=drug2,
             cl_total=cl_total,
@@ -389,7 +424,7 @@ def create_server(
         ke: float,
         time: float,
     ) -> ToolResult:
-        return simulation_service.simulate_concentration_time(
+        return get_simulation_service().simulate_concentration_time(
             dose=dose,
             vd=vd,
             ke=ke,
@@ -412,7 +447,7 @@ def create_server(
         mime_type="application/json",
     )
     def trusted_formula_catalog() -> ToolResult:
-        return formula_catalog.to_dict()
+        return get_formula_catalog().to_dict()
 
     @server.resource(
         "pharmacy://formulas/{formula_id}",
@@ -421,9 +456,9 @@ def create_server(
         mime_type="application/json",
     )
     def trusted_formula_details(formula_id: str) -> ToolResult:
-        formula = formula_catalog.get_formula(formula_id)
+        formula = get_formula_catalog().get_formula(formula_id)
         if formula is None:
-            return {"error": f"Formula {formula_id} not found"}
+            raise ValueError(f"Formula {formula_id} not found")
         return formula.to_dict()
 
     @server.resource(
@@ -434,13 +469,13 @@ def create_server(
     )
     def formula_validation_cases() -> ToolResult:
         return {
-            "version": formula_catalog.version,
+            "version": get_formula_catalog().version,
             "formulas": [
                 {
                     "id": formula.id,
                     "validation_cases": list(formula.validation_cases),
                 }
-                for formula in formula_catalog.list_formulas()
+                for formula in get_formula_catalog().list_formulas()
             ],
         }
 
@@ -476,61 +511,139 @@ def create_server(
 async def _handle_tool(name: str, arguments: dict[str, Any]) -> ToolResult:
     """Route tool calls to appropriate service methods."""
     if name == "search_drug":
-        return await drug_search_service.search(
+        return await get_drug_search_service().search(
             query=arguments["query"],
             max_results=arguments.get("max_results", 10),
         )
 
     if name == "get_drug_info":
-        return await drug_info_service.get_full_info(arguments["drug_name"])
+        return await get_drug_info_service().get_full_info(arguments["drug_name"])
 
     if name == "get_drug_dosage":
-        return await drug_info_service.get_dosage_info(arguments["drug_name"])
+        return await get_drug_info_service().get_dosage_info(arguments["drug_name"])
 
     if name == "get_drug_warnings":
-        return await drug_info_service.get_warnings(arguments["drug_name"])
+        return await get_drug_info_service().get_warnings(arguments["drug_name"])
 
     if name == "check_drug_interaction":
-        return await interaction_service.check_drug_drug_interaction(
+        return await get_interaction_service().check_drug_drug_interaction(
             drug1=arguments["drug1"],
             drug2=arguments["drug2"],
         )
 
     if name == "check_multi_drug_interactions":
-        return await interaction_service.check_multi_drug_interactions(
+        return await get_interaction_service().check_multi_drug_interactions(
             arguments["drugs"]
         )
 
     if name == "check_food_drug_interaction":
-        return await interaction_service.check_food_drug_interaction(
+        return await get_interaction_service().check_food_drug_interaction(
             arguments["drug_name"]
         )
 
     if name == "search_tfda_drug":
-        return await taiwan_drug_service.search_tfda_drug(
+        return await get_taiwan_drug_service().search_tfda_drug(
             query=arguments["query"],
             limit=arguments.get("limit", 20),
             search_type=arguments.get("search_type", "name"),
         )
 
     if name == "get_nhi_coverage":
-        return await taiwan_drug_service.get_nhi_coverage(arguments["drug_name"])
+        return await get_taiwan_drug_service().get_nhi_coverage(
+            arguments["drug_name"]
+        )
 
     if name == "get_nhi_drug_price":
-        return await taiwan_drug_service.get_nhi_drug_price(arguments["nhi_code"])
+        return await get_taiwan_drug_service().get_nhi_drug_price(
+            arguments["nhi_code"]
+        )
 
     if name == "translate_drug_name":
-        return taiwan_drug_service.translate_drug_name(arguments["name"])
+        return get_taiwan_drug_service().translate_drug_name(arguments["name"])
 
     if name == "list_prior_authorization_drugs":
-        return await taiwan_drug_service.get_prior_authorization_drugs()
+        return await get_taiwan_drug_service().get_prior_authorization_drugs()
 
     raise ValueError(f"Unknown tool: {name}")
 
 
-def create_streamable_http_app() -> Starlette:
+def create_streamable_http_app(
+    *,
+    host: str | None = None,
+    port: int | None = None,
+    mount_path: str | None = None,
+    streamable_http_path: str | None = None,
+    stateless_http: bool | None = None,
+) -> Starlette:
     """Create an ASGI app for Streamable HTTP deployments."""
-    return create_server().streamable_http_app()
+    server = create_server(
+        host=host,
+        port=port,
+        mount_path=mount_path,
+        streamable_http_path=streamable_http_path,
+        stateless_http=stateless_http,
+    )
+    streamable_app = server.streamable_http_app()
+    configured_mount_path = server.settings.mount_path
+    if configured_mount_path in {"", "/"}:
+        return streamable_app
+
+    def lifespan(_app: Starlette) -> Any:
+        return server.session_manager.run()
+
+    return Starlette(
+        routes=[Mount(configured_mount_path, app=streamable_app)],
+        lifespan=lifespan,
+    )
+
+
+def run_streamable_http_app(
+    *,
+    host: str,
+    port: int,
+    mount_path: str,
+    streamable_http_path: str,
+    stateless_http: bool,
+) -> None:
+    """Run the mounted Streamable HTTP ASGI app via uvicorn."""
+    import uvicorn
+
+    streamable_app = create_streamable_http_app(
+        host=host,
+        port=port,
+        mount_path=mount_path,
+        streamable_http_path=streamable_http_path,
+        stateless_http=stateless_http,
+    )
+    config = uvicorn.Config(
+        streamable_app,
+        host=host,
+        port=port,
+        log_level="info",
+    )
+    uvicorn.Server(config).run()
+
+
+class LazyStreamableHTTPApp:
+    """ASGI wrapper that defers MCP server creation until first request."""
+
+    def __init__(self) -> None:
+        self._app: Starlette | None = None
+
+    @property
+    def app(self) -> Starlette:
+        """Return the initialized Streamable HTTP app."""
+        if self._app is None:
+            self._app = create_streamable_http_app()
+        return self._app
+
+    async def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> None:
+        await self.app(scope, receive, send)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -574,7 +687,19 @@ def create_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> None:
     """Main entry point for stdio and HTTP transports."""
+    logging.basicConfig(level=logging.INFO)
     args = create_parser().parse_args(list(argv) if argv is not None else None)
+    if args.transport == "streamable-http":
+        logger.info("Pharmacy MCP Server starting with transport=%s", args.transport)
+        run_streamable_http_app(
+            host=args.host,
+            port=args.port,
+            mount_path=args.mount_path,
+            streamable_http_path=args.streamable_http_path,
+            stateless_http=args.stateless_http,
+        )
+        return
+
     server = create_server(
         host=args.host,
         port=args.port,
@@ -586,7 +711,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     server.run(transport=args.transport, mount_path=args.mount_path)
 
 
-app = create_streamable_http_app()
+app = LazyStreamableHTTPApp()
 
 
 if __name__ == "__main__":

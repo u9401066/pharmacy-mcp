@@ -39,6 +39,13 @@ htmlcov/
 # Cache
 .cache/
 *.cache
+data/.uv-cache/
+
+# Local runtime data from external MCP / assistant harnesses
+data/exports/
+data/jobs/
+data/tables/
+.github/hooks/_state/
 
 # OS
 .DS_Store

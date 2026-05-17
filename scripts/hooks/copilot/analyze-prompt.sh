@@ -47,7 +47,9 @@ if [ "$INTENT" != "unknown" ]; then IS_RESEARCH=true; fi
 
 # Create tracker if research detected and no existing tracker
 if $IS_RESEARCH && [ ! -f "$TRACKER_FILE" ] && [ -f "$POLICY_FILE" ]; then
-    TOPIC=$(echo "$PROMPT" | head -c 120 | tr -cd '[:print:]')
+    PROMPT_HASH=$(printf '%s' "$PROMPT" | sha256sum | awk '{print $1}')
+    PROMPT_LENGTH=${#PROMPT}
+    TOPIC="sha256:${PROMPT_HASH} length:${PROMPT_LENGTH}"
     jq -n \
         --slurpfile policy "$POLICY_FILE" \
         --arg topic "$TOPIC" \

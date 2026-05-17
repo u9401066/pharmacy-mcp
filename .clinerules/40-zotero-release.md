@@ -1,44 +1,46 @@
 ---
 paths:
-  - "mcp-server/pyproject.toml"
-  - "mcp-server/src/zotero_mcp/__init__.py"
-  - "mcp-server/uv.lock"
-  - "vscode-extension/package.json"
-  - "vscode-extension/package-lock.json"
-  - "vscode-extension/src/pubmedSearchPackage.ts"
-  - "vscode-extension/.vscodeignore"
+  - "pyproject.toml"
+  - "src/pharmacy_mcp/__init__.py"
+  - "uv.lock"
+  - "README.md"
+  - "README.zh-TW.md"
   - "CHANGELOG.md"
-  - "vscode-extension/CHANGELOG.md"
   - ".github/workflows/**"
 ---
 
-# Zotero Release Rules
+# Pharmacy MCP Release Rules
+
+These release rules apply to this Python package repository. Older Zotero
+Keeper VSIX release commands are external-reference only and must not be run
+from this workspace unless the referenced extension repository is open.
 
 ## Version Sources
 
-- Python package metadata: `mcp-server/pyproject.toml`
-- Python runtime fallback: `mcp-server/src/zotero_mcp/__init__.py`
-- VS Code extension: `vscode-extension/package.json` and `vscode-extension/package-lock.json`
-- PubMed Search install pin: `vscode-extension/src/pubmedSearchPackage.ts`
-- Changelogs: `CHANGELOG.md` and `vscode-extension/CHANGELOG.md`
+- Python package metadata: `pyproject.toml`
+- Python runtime fallback: `src/pharmacy_mcp/__init__.py`
+- Changelog: `CHANGELOG.md`
+- Lockfile: `uv.lock`
 
 ## Minimum Verification
 
-- `cd mcp-server && uv run ruff check .`
-- `cd mcp-server && uv run mypy src --ignore-missing-imports`
-- `cd mcp-server && uv run pytest`
-- `cd vscode-extension && npm run sync-assets && npm run compile && npm test`
-- `cd vscode-extension && npm run package`
+- `uv run pytest --cov=src --cov-report=term-missing`
+- `uv run ruff check src tests scripts`
+- `uv run mypy src`
+- `uv run bandit -q -r src`
+- `uv build`
+- `uv run python scripts/audit_release_artifacts.py dist`
 - `git diff --check`
 
-## VSIX Packaging Requirements
+## Packaging Requirements
 
-- Run `npm run sync-assets` before `vsce package`.
-- Confirm the VSIX includes nested assistant assets under `resources/repo-assets/`.
-- If `.vscodeignore` changes, check package contents before publishing.
-- Keep generated `resources/repo-assets/` changes together with source assistant assets.
+- Remove stale `dist/` contents before building a release.
+- Confirm the artifact audit validates package name, version, required data
+  files, archive size, and forbidden local/harness paths.
+- Do not publish source distributions containing `.cache`, `.uv-cache`,
+  assistant runtime state, virtual environments, or generated data exports.
 
 ## Tag Format
 
-- Extension release tags use `vX.Y.Z-ext`.
+- Runtime package release tags use `vX.Y.Z`.
 - Push the release commit before pushing the tag.

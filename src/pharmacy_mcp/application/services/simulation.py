@@ -24,6 +24,9 @@ class SimulationService:
         time: float,
     ) -> dict[str, Any]:
         """Estimate concentration after a bolus dose."""
+        finite_error = self._finite_error(dose=dose, vd=vd, ke=ke, time=time)
+        if finite_error:
+            return self._error(finite_error)
         if dose < 0:
             return self._error("dose cannot be negative")
         if vd <= 0:
@@ -33,7 +36,13 @@ class SimulationService:
         if time < 0:
             return self._error("time cannot be negative")
 
-        concentration = (dose / vd) * math.exp(-ke * time)
+        try:
+            concentration = (dose / vd) * math.exp(-ke * time)
+        except (OverflowError, ZeroDivisionError) as exc:
+            return self._error(f"calculation failed: {exc}")
+        if not math.isfinite(concentration):
+            return self._error("calculation produced a non-finite concentration")
+
         formula = self._require_formula("one_compartment_concentration")
         return self._result(
             formula=formula,
@@ -43,12 +52,26 @@ class SimulationService:
 
     def calculate_accumulation_factor(self, ke: float, tau: float) -> dict[str, Any]:
         """Estimate first-order steady-state accumulation factor."""
+        finite_error = self._finite_error(ke=ke, tau=tau)
+        if finite_error:
+            return self._error(finite_error)
         if ke <= 0:
             return self._error("ke must be positive")
         if tau <= 0:
             return self._error("tau must be positive")
 
-        accumulation_factor = 1 / (1 - math.exp(-ke * tau))
+        try:
+            denominator = 1 - math.exp(-ke * tau)
+            if denominator <= 1e-12:
+                return self._error(
+                    "ke * tau is too small for a stable accumulation estimate"
+                )
+            accumulation_factor = 1 / denominator
+        except (OverflowError, ZeroDivisionError) as exc:
+            return self._error(f"calculation failed: {exc}")
+        if not math.isfinite(accumulation_factor):
+            return self._error("calculation produced a non-finite accumulation factor")
+
         formula = self._require_formula("multiple_dose_accumulation")
         return self._result(
             formula=formula,
@@ -63,6 +86,13 @@ class SimulationService:
         renal_function_ratio: float,
     ) -> dict[str, Any]:
         """Estimate total clearance after renal function adjustment."""
+        finite_error = self._finite_error(
+            cl_nonrenal=cl_nonrenal,
+            cl_renal=cl_renal,
+            renal_function_ratio=renal_function_ratio,
+        )
+        if finite_error:
+            return self._error(finite_error)
         if cl_nonrenal < 0:
             return self._error("cl_nonrenal cannot be negative")
         if cl_renal < 0:
@@ -71,6 +101,9 @@ class SimulationService:
             return self._error("renal_function_ratio cannot be negative")
 
         adjusted_clearance = cl_nonrenal + cl_renal * renal_function_ratio
+        if not math.isfinite(adjusted_clearance):
+            return self._error("calculation produced a non-finite clearance")
+
         formula = self._require_formula("renal_clearance_adjustment")
         return self._result(
             formula=formula,
@@ -92,6 +125,14 @@ class SimulationService:
         ki: float,
     ) -> dict[str, Any]:
         """Estimate clearance and AUC ratio for reversible CYP inhibition."""
+        finite_error = self._finite_error(
+            cl_total=cl_total,
+            fm=fm,
+            inhibitor_concentration=inhibitor_concentration,
+            ki=ki,
+        )
+        if finite_error:
+            return self._error(finite_error)
         if cl_total <= 0:
             return self._error("cl_total must be positive")
         if not 0 <= fm <= 1:
@@ -101,10 +142,18 @@ class SimulationService:
         if ki <= 0:
             return self._error("ki must be positive")
 
-        inhibited_clearance = cl_total * (
-            (1 - fm) + fm / (1 + inhibitor_concentration / ki)
-        )
-        auc_ratio = cl_total / inhibited_clearance
+        try:
+            inhibition_ratio = inhibitor_concentration / ki
+            inhibited_clearance = cl_total * ((1 - fm) + fm / (1 + inhibition_ratio))
+            if inhibited_clearance <= 1e-12:
+                return self._error(
+                    "inhibited clearance is too close to zero for a stable AUC ratio"
+                )
+            auc_ratio = cl_total / inhibited_clearance
+        except (OverflowError, ZeroDivisionError) as exc:
+            return self._error(f"calculation failed: {exc}")
+        if not math.isfinite(inhibited_clearance) or not math.isfinite(auc_ratio):
+            return self._error("calculation produced non-finite CYP inhibition outputs")
 
         cyp_formula = self._require_formula("cyp_reversible_inhibition_clearance")
         auc_formula = self._require_formula("auc_ratio_from_clearance")
@@ -135,10 +184,47 @@ class SimulationService:
             references=references,
         )
         result["formula_ids"] = [cyp_formula.id, auc_formula.id]
+        result["output_formula_ids"] = {
+            "inhibited_clearance": cyp_formula.id,
+            "auc_ratio": auc_formula.id,
+        }
+        result["formula_expressions"] = {
+            cyp_formula.id: cyp_formula.expression,
+            auc_formula.id: auc_formula.expression,
+        }
+        result["output_units"]["auc_ratio"] = auc_formula.outputs["auc_ratio"].unit
         result["interaction_type"] = "cyp_reversible_inhibition"
         result["inputs"]["substrate"] = substrate
         result["inputs"]["inhibitor"] = inhibitor
         return result
+
+    def calculate_auc_ratio_from_clearance(
+        self,
+        cl_baseline: float,
+        cl_altered: float,
+    ) -> dict[str, Any]:
+        """Estimate AUC ratio from baseline and altered clearance."""
+        finite_error = self._finite_error(
+            cl_baseline=cl_baseline,
+            cl_altered=cl_altered,
+        )
+        if finite_error:
+            return self._error(finite_error)
+        if cl_baseline <= 0:
+            return self._error("cl_baseline must be positive")
+        if cl_altered <= 0:
+            return self._error("cl_altered must be positive")
+
+        auc_ratio = cl_baseline / cl_altered
+        if not math.isfinite(auc_ratio):
+            return self._error("calculation produced a non-finite AUC ratio")
+
+        formula = self._require_formula("auc_ratio_from_clearance")
+        return self._result(
+            formula=formula,
+            inputs={"cl_baseline": cl_baseline, "cl_altered": cl_altered},
+            outputs={"auc_ratio": round(auc_ratio, 4)},
+        )
 
     def adjust_elimination_for_temperature(
         self,
@@ -148,12 +234,26 @@ class SimulationService:
         q10: float = 2.0,
     ) -> dict[str, Any]:
         """Estimate elimination rate after Q10 temperature correction."""
+        finite_error = self._finite_error(
+            ke_ref=ke_ref,
+            temperature_c=temperature_c,
+            reference_c=reference_c,
+            q10=q10,
+        )
+        if finite_error:
+            return self._error(finite_error)
         if ke_ref < 0:
             return self._error("ke_ref cannot be negative")
         if q10 <= 0:
             return self._error("q10 must be positive")
 
-        adjusted_ke = ke_ref * q10 ** ((temperature_c - reference_c) / 10)
+        try:
+            adjusted_ke = ke_ref * q10 ** ((temperature_c - reference_c) / 10)
+        except OverflowError as exc:
+            return self._error(f"calculation failed: {exc}")
+        if not math.isfinite(adjusted_ke):
+            return self._error("calculation produced a non-finite elimination rate")
+
         formula = self._require_formula("temperature_corrected_elimination")
         return self._result(
             formula=formula,
@@ -185,10 +285,18 @@ class SimulationService:
     ) -> dict[str, Any]:
         """Build a consistent simulation result."""
         return {
+            "catalog_version": self.formula_catalog.version,
             "formula_id": formula.id,
             "formula_name": formula.name,
+            "formula_expression": formula.expression,
             "inputs": inputs,
+            "input_units": {
+                name: parameter.unit for name, parameter in formula.parameters.items()
+            },
             "outputs": outputs,
+            "output_units": {
+                name: output.unit for name, output in formula.outputs.items()
+            },
             "assumptions": list(assumptions or formula.assumptions),
             "limitations": list(limitations or formula.limitations),
             "references": [
@@ -200,10 +308,18 @@ class SimulationService:
             "not_for_direct_clinical_decision": True,
         }
 
+    def _finite_error(self, **values: float) -> str | None:
+        """Return an error when any numeric input is not finite."""
+        for name, value in values.items():
+            if not math.isfinite(value):
+                return f"{name} must be finite"
+        return None
+
     def _error(self, message: str) -> dict[str, Any]:
         """Build a fail-closed structured error."""
         return {
             "error": message,
+            "simulation_status": "failed",
             "disclaimer": settings.disclaimer,
             "not_for_direct_clinical_decision": True,
         }

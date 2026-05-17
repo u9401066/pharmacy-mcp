@@ -334,12 +334,19 @@ try {
         $suggestion = "Quick search returned $resultCount results - good start. For comprehensive coverage, also run a pipeline search to include more sources and semantic expansion."
     }
 
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $queryBytes = [System.Text.Encoding]::UTF8.GetBytes($query)
+    $queryHash = ([System.BitConverter]::ToString($sha.ComputeHash($queryBytes))).Replace("-", "").ToLowerInvariant()
+    $queryLength = $query.Length
+    $sha.Dispose()
+
     if ($quality -ne "good") {
         Write-Utf8NoBomFile -Path "$stateDir/last_research_eval.json" -Content (@{
             tool_name = $toolName
             tool_group = if ($toolGroup) { $toolGroup } else { "unknown" }
             evaluation_mode = $evaluationMode
-            query = $query
+            query_hash = $queryHash
+            query_length = $queryLength
             quality = $quality
             result_count = $resultCount
             source_count = $sourceCount
@@ -359,7 +366,8 @@ try {
             timestamp = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
             tool_name = $toolName
             tool_group = if ($toolGroup) { $toolGroup } else { "unknown" }
-            query = $query
+            query_hash = $queryHash
+            query_length = $queryLength
             quality = $quality
             result_count = $resultCount
             source_count = $sourceCount

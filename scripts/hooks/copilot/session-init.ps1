@@ -27,6 +27,7 @@ try {
     Remove-Item "$stateDir/last_research_eval.json" -Force -ErrorAction SilentlyContinue
     Remove-Item "$stateDir/pending_complexity.json" -Force -ErrorAction SilentlyContinue
     Remove-Item "$stateDir/workflow_tracker.json" -Force -ErrorAction SilentlyContinue
+    Remove-Item "$stateDir/search_audit.jsonl" -Force -ErrorAction SilentlyContinue
 
     # Log session start
     try {

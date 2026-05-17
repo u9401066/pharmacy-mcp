@@ -23,6 +23,7 @@ rm -f "$STATE_DIR/last_search_eval.json" 2>/dev/null
 rm -f "$STATE_DIR/last_research_eval.json" 2>/dev/null
 rm -f "$STATE_DIR/pending_complexity.json" 2>/dev/null
 rm -f "$STATE_DIR/workflow_tracker.json" 2>/dev/null
+rm -f "$STATE_DIR/search_audit.jsonl" 2>/dev/null
 
 # Log session start
 jq -n \

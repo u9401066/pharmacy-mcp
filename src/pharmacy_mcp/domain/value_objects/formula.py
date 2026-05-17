@@ -14,6 +14,7 @@ class FormulaParameter:
     unit: str
     description: str
     required: bool = True
+    default: Any | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> FormulaParameter:
@@ -23,6 +24,7 @@ class FormulaParameter:
             unit=str(data["unit"]),
             description=str(data.get("description", "")),
             required=bool(data.get("required", True)),
+            default=data.get("default"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -32,6 +34,7 @@ class FormulaParameter:
             "unit": self.unit,
             "description": self.description,
             "required": self.required,
+            "default": self.default,
         }
 
 

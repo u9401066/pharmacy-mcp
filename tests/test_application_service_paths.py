@@ -206,15 +206,103 @@ async def test_interaction_service_checks_local_fda_food_and_all_paths():
 
     assert ddi["has_interaction"] is True
     assert ddi["fda_mentions_interaction"] is True
-    assert ddi["fda_context"] == [
-        "Aspirin may increase bleeding risk with warfarin."
-    ]
+    assert ddi["not_for_direct_clinical_decision"] is True
+    assert "recommendation" not in ddi["interactions"][0]
+    assert "Reduce" not in ddi["interactions"][0]["management_consideration"]
+    assert ddi["source_label_excerpts"][0]["section"] == "drug_interactions"
+    assert ddi["source_label_excerpts"][0]["source"] == "FDA label"
     assert cached_ddi == ddi
     assert too_few["error"] == "Need at least 2 drugs"
     assert multi["pairs_checked"] == 3
     assert multi["total_interactions"] >= 2
     assert food["has_food_interactions"] is True
     assert food["food_interactions"][0]["food"] == "Grapefruit"
+    assert "recommendation" not in food["food_interactions"][0]
+    assert food["source_label_excerpts"][0]["section"] == "drug_interactions"
     assert all_interactions["drug_interactions"]
-    assert all_interactions["contraindications"] == ["Active pathological bleeding"]
+    assert "recommendation" not in all_interactions["drug_interactions"][0]
+    assert "Reduce" not in all_interactions["drug_interactions"][0][
+        "management_consideration"
+    ]
+    assert "contraindications" not in all_interactions
+    assert any(
+        excerpt["section"] == "contraindications"
+        for excerpt in all_interactions["source_label_excerpts"]
+    )
     assert cached_all == all_interactions
+
+
+async def test_interaction_service_ignores_legacy_cache_without_safety_contract():
+    """Old cache namespaces must not bypass the sanitized interaction schema."""
+    cache = MemoryCache()
+    service = InteractionService(
+        fda_client=FakeFDAClient(),
+        cache=cache,
+    )
+    old_ddi_key = service._cache_key("ddi", *sorted(["warfarin", "aspirin"]))
+    old_all_key = service._cache_key("all_interactions", "warfarin")
+    cache.set(
+        old_ddi_key,
+        {
+            "has_interaction": True,
+            "interactions": [{"recommendation": "Reduce dose immediately"}],
+        },
+    )
+    cache.set(
+        old_all_key,
+        {
+            "drug_interactions": [{"recommendation": "Avoid combination"}],
+        },
+    )
+
+    ddi = await service.check_drug_drug_interaction("warfarin", "aspirin")
+    all_interactions = await service.get_all_interactions("warfarin")
+
+    assert ddi["not_for_direct_clinical_decision"] is True
+    assert "recommendation" not in ddi["interactions"][0]
+    assert "recommendation" not in all_interactions["drug_interactions"][0]
+
+
+async def test_interaction_service_rejects_blank_drug_names():
+    """Blank drug names should not match every local interaction row."""
+    service = InteractionService(
+        fda_client=FakeFDAClient(),
+        cache=MemoryCache(),
+    )
+
+    ddi = await service.check_drug_drug_interaction("   ", "aspirin")
+    multi = await service.check_multi_drug_interactions(["warfarin", "   "])
+    food = await service.check_food_drug_interaction("   ")
+    all_interactions = await service.get_all_interactions("   ")
+
+    assert ddi["has_interaction"] is False
+    assert ddi["error"] == "Drug names cannot be blank"
+    assert multi["error"] == "Drug names cannot be blank"
+    assert food["has_food_interactions"] is False
+    assert food["error"] == "Drug name cannot be blank"
+    assert all_interactions["error"] == "Drug name cannot be blank"
+
+
+async def test_multi_drug_interactions_handles_fda_only_hit_without_local_severity():
+    """FDA-only interaction hits should not crash severity sorting."""
+    service = InteractionService(
+        fda_client=FakeFDAClient(
+            interactions={
+                "drug_interactions": [
+                    "Unknown-b may increase exposure to unknown-a in label text."
+                ],
+                "precautions": [],
+                "contraindications": [],
+                "warnings": [],
+            }
+        ),
+        cache=MemoryCache(),
+    )
+
+    result = await service.check_multi_drug_interactions(["unknown-a", "unknown-b"])
+
+    assert result["total_interactions"] == 1
+    assert result["interactions"][0]["interactions"] == []
+    assert result["interactions"][0]["fda_mentions_interaction"] is True
+    assert result["interactions"][0]["source_label_excerpts"][0]["source"] == "FDA label"
+    assert result["not_for_direct_clinical_decision"] is True

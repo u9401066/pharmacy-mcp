@@ -1,37 +1,17 @@
----
-paths:
-  - "pyproject.toml"
-  - "src/__init__.py"
-  - "uv.lock"
-  - "Dockerfile"
-  - "vscode-extension/package.json"
-  - "vscode-extension/package-lock.json"
-  - "CHANGELOG.md"
-  - ".github/workflows/release.yml"
----
+# Pharmacy MCP Release Rules
 
-# Release Rules
+This repository releases a Python package, not a VS Code extension.
 
-## Version Sources (must stay in sync)
-- Python: `pyproject.toml`, `src/__init__.py`
-- Docker label: `Dockerfile`
-- VS Code extension: `vscode-extension/package.json` + `package-lock.json`
-- Lockfile: `uv.lock` (regenerate with `uv lock` when needed)
-- Changelog: `CHANGELOG.md` (add a dated section)
+Release gates:
 
-## Minimum Pre-Tag Verification
-- `uv run ruff check .`
-- `uv run ruff format --check .`
-- `uv run mypy src --ignore-missing-imports`
-- `uv run pytest`
-- `(cd vscode-extension && npm run test:ci)` (includes VSIX package-contents guard)
-- VSIX install smoke test (recommended; required in CI): `npm run test:install-smoke` (Linux activation: `xvfb-run -a npm run test:install-smoke -- --require-activation`)
-- Docker smoke import: `docker build ...` + `python -c "import src.presentation.server"`
+- `uv run pytest --cov=src --cov-report=term-missing`
+- `uv run ruff check src tests scripts`
+- `uv run mypy src`
+- `uv run bandit -q -r src`
 - `uv build`
+- `uv run python scripts/audit_release_artifacts.py dist`
 - `git diff --check`
 
-## Tag Format
-- Annotated tags: `vX.Y.Z`
-- Push commit first, then push the tag.
-
-Tip: use the workflow `/release-publish.md` in `.clinerules/workflows/` for a guided release.
+Release artifacts must be built from a clean `dist/` directory and audited for
+package name, version, size, required data files, and forbidden cache/harness
+paths.

@@ -337,12 +337,16 @@
         {
           "name": "reference_c",
           "unit": "degC",
-          "description": "Reference temperature"
+          "description": "Reference temperature",
+          "required": false,
+          "default": 37.0
         },
         {
           "name": "q10",
           "unit": "ratio",
-          "description": "Q10 temperature coefficient"
+          "description": "Q10 temperature coefficient",
+          "required": false,
+          "default": 2.0
         }
       ],
       "outputs": [

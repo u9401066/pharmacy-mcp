@@ -29,9 +29,16 @@ articles into Zotero without losing provenance or overwriting user choices.
 ## Repository Work
 
 - Treat `.codex/skills`, `.claude/skills`, `.cline/skills`, and `.clinerules` as bundled assistant harness assets.
-- Run `npm run sync-assets` before packaging the VSIX.
-- Keep `vscode-extension/resources/repo-assets/**` synchronized with its source files.
-- Preserve custom user `AGENTS.md`, Copilot instructions, and Cline settings during extension install/update flows.
+- This repository is a Python package, not the Zotero Keeper VS Code extension.
+- Do not run VSIX, `npm run sync-assets`, or `vscode-extension/**` release steps unless an external extension repository is explicitly opened.
+- For this repository, release gates are:
+  - `uv run pytest --cov=src --cov-report=term-missing`
+  - `uv run ruff check src tests scripts`
+  - `uv run mypy src`
+  - `uv run bandit -q -r src`
+  - `uv build`
+  - `uv run python scripts/audit_release_artifacts.py dist`
+- Preserve custom user `AGENTS.md`, Copilot instructions, and Cline settings during assistant harness updates.
 
 ## Guardrails
 

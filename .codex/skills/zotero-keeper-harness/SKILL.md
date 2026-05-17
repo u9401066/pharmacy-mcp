@@ -1,12 +1,14 @@
 ---
 name: zotero-keeper-harness
-description: "Codex harness for Zotero Keeper and the bundled VS Code extension. Triggers: zotero keeper, zotero mcp, full check, release checklist, workflow, vsix, Codex."
+description: "Codex harness for Zotero/PubMed assistant workflows bundled with Pharmacy MCP. Triggers: zotero keeper, zotero mcp, full check, release checklist, workflow, Codex."
 ---
 
 # Zotero Keeper: Codex Harness Skill
 
-Use this skill when working with Codex on Zotero Keeper, the VS Code extension,
-or the installed Zotero + PubMed MCP workspace harness.
+Use this skill when working with Codex on the installed Zotero + PubMed MCP
+workspace harness. In this repository, treat extension-specific Zotero Keeper
+commands as legacy reference material unless an external extension repository is
+explicitly opened.
 
 ## What To Read First
 
@@ -15,17 +17,20 @@ or the installed Zotero + PubMed MCP workspace harness.
 - `.clinerules/` for repo and release guardrails that also apply to Codex.
 - `.claude/skills/pubmed-*` for user-facing research skills.
 
-## Canonical Commands
+## Pharmacy MCP Canonical Commands
 
-- Keeper Python package: `cd mcp-server && uv run pytest`
-- Keeper lint/type smoke: `cd mcp-server && uv run ruff check . && uv run mypy src --ignore-missing-imports`
-- Extension: `cd vscode-extension && npm run sync-assets && npm run compile && npm test`
-- VSIX package smoke: `cd vscode-extension && npm run package`
-- VSIX contents: `cd vscode-extension && powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/check-vsix-contents.ps1`
+- Tests: `uv run pytest --cov=src --cov-report=term-missing`
+- Lint: `uv run ruff check src tests scripts`
+- Type check: `uv run mypy src`
+- Security scan: `uv run bandit -q -r src`
+- Build: `uv build`
+- Artifact audit: `uv run python scripts/audit_release_artifacts.py dist`
 
 ## Product Guardrails
 
 - Keep Zotero local-library behavior separate from PubMed literature-search behavior.
 - Use `import_articles` as the preferred bridge from PubMed results/RIS into Zotero.
 - Do not bypass NCBI email policy; use explicit settings or git email fallback.
-- Treat VSIX install/update as a first-class path: bundled repo assets must be synced before package.
+- Do not run `npm`, VSIX, `mcp-server/`, `vscode-extension/`, or
+  `external/pubmed-search-mcp/` commands from this repository unless those paths
+  exist in the active workspace.

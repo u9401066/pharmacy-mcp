@@ -15,7 +15,7 @@ class TestInteractionSimulation:
 
     def test_explain_known_cyp_interaction_mechanism(self, service: InteractionService):
         """Known local DDI pairs expose mechanism and simulation readiness."""
-        result = service.explain_interaction_mechanism("warfarin", "fluconazole")
+        result = service.explain_interaction_mechanism(" warfarin ", "fluconazole")
 
         assert result["has_mechanism"] is True
         assert result["mechanism"]["pathway"] == "CYP2C9"
@@ -52,6 +52,28 @@ class TestInteractionSimulation:
             2.14, abs=0.01
         )
         assert result["simulation"]["interaction_type"] == "cyp_reversible_inhibition"
+        assert result["simulation_status"] == "completed"
+
+    def test_simulate_known_mechanism_invalid_parameters_fail_top_level(
+        self,
+        service: InteractionService,
+    ):
+        """Invalid PK parameters fail at the top-level contract, not only nested."""
+        result = service.simulate_pk_interaction(
+            drug1="warfarin",
+            drug2="fluconazole",
+            cl_total=10,
+            fm=1.2,
+            inhibitor_concentration=2,
+            ki=1,
+        )
+
+        assert result["has_mechanism"] is True
+        assert result["simulation_status"] == "failed"
+        assert result["error"] == "fm must be between 0 and 1"
+        assert result["simulation"]["simulation_status"] == "failed"
+        assert "outputs" not in result["simulation"]
+        assert result["not_for_direct_clinical_decision"] is True
 
     def test_simulate_unknown_pair_requires_known_mechanism(
         self, service: InteractionService
@@ -70,3 +92,4 @@ class TestInteractionSimulation:
             result["error"] == "No supported simulation mechanism found for this pair"
         )
         assert result["has_mechanism"] is False
+        assert result["simulation_status"] == "failed"

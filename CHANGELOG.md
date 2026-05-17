@@ -18,6 +18,27 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ---
 
+## [0.9.1] - 2026-05-17
+
+### Added
+- Added release artifact auditing for wheel/sdist contents, size limits, and bundled runtime data files.
+- Added packaged-wheel smoke testing in CI.
+
+### Changed
+- Hardened interaction outputs with non-prescriptive safety language and explicit clinical-decision disclaimers.
+- Made MCP server services and the Streamable HTTP ASGI export lazy to avoid import-time runtime cache creation.
+- Tightened trusted formula catalog validation for duplicate IDs, provenance, validation cases, and supported implementation keys.
+- Added bounded runtime dependency ranges and pinned the build backend major version.
+
+### Fixed
+- Fixed multi-drug interaction sorting for FDA-only interaction hits.
+- Fixed PK simulation fail-closed handling for NaN, infinity, unstable denominators, and nested simulation errors.
+- Fixed Streamable HTTP ASGI helper mounting so non-root `mount_path` prefixes are honored.
+- Excluded local caches, assistant harness assets, and generated runtime folders from source distributions.
+- Removed a Taiwan drug service singleton that created `.cache` during `python -m pharmacy_mcp --help`.
+
+---
+
 ## [0.9.0] - 2026-05-17
 
 ### Added

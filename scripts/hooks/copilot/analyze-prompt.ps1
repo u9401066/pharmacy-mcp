@@ -96,8 +96,11 @@ try {
     # Create tracker for research intents
     $isResearch = $intent -ne "unknown"
     if ($isResearch -and -not $tracker -and $policy -and $policy.workflowSteps) {
-        $topicLen = [Math]::Min(120, $prompt.Length)
-        $cleanTopic = ($prompt.Substring(0, $topicLen)) -replace '[^\x20-\x7E]', '?'
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        $promptBytes = [System.Text.Encoding]::UTF8.GetBytes($prompt)
+        $promptHash = ([System.BitConverter]::ToString($sha.ComputeHash($promptBytes))).Replace("-", "").ToLowerInvariant()
+        $sha.Dispose()
+        $cleanTopic = "sha256:$promptHash length:$($prompt.Length)"
         $stepStates = [ordered]@{}
         foreach ($step in $policy.workflowSteps.PSObject.Properties) {
             $stepStates[$step.Name] = "not-started"

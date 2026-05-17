@@ -1,8 +1,13 @@
 """Tests for MCP server."""
 
 import json
+import subprocess
+import sys
 
+import pytest
 from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.testclient import TestClient
 
 from pharmacy_mcp.config import settings
 from pharmacy_mcp.presentation import server as server_module
@@ -207,6 +212,9 @@ class TestMCPServer:
         detail = json.loads(detail_content[0].content)
         assert detail["id"] == "one_compartment_concentration"
 
+        with pytest.raises(ValueError, match="Formula missing not found"):
+            await server.read_resource("pharmacy://formulas/missing")
+
     async def test_server_exposes_workflow_prompts(self):
         """Test FastMCP exposes prompt templates for DDI workflows."""
         server = create_server()
@@ -228,14 +236,48 @@ class TestMCPServer:
         streamable_app = create_streamable_http_app()
 
         assert isinstance(streamable_app, Starlette)
-        assert isinstance(app, Starlette)
+        assert callable(app)
+        assert app._app is None
         assert any(
             route.path == settings.streamable_http_path
             for route in streamable_app.routes
         )
 
-    def test_main_uses_cli_transport_options(self, monkeypatch):
-        """Test CLI options are forwarded to the server factory and runner."""
+    def test_create_server_preserves_explicit_falsy_options(self):
+        """Test server factory does not replace intentional falsy overrides."""
+        server = create_server(port=0, mount_path="", streamable_http_path="/mcp")
+
+        assert server.settings.port == 0
+        assert server.settings.mount_path == ""
+        assert server.settings.streamable_http_path == "/mcp"
+
+    def test_streamable_http_app_honors_mount_path(self):
+        """Test ASGI helper mounts Streamable HTTP under the configured prefix."""
+        streamable_app = create_streamable_http_app(
+            mount_path="/clinic",
+            streamable_http_path="/api/mcp",
+        )
+
+        mount = next(route for route in streamable_app.routes if route.path == "/clinic")
+
+        assert isinstance(mount, Mount)
+        assert isinstance(mount.app, Starlette)
+        assert any(route.path == "/api/mcp" for route in mount.app.routes)
+
+    def test_mounted_streamable_http_app_runs_session_lifespan(self):
+        """Mounted ASGI helper must start the FastMCP streamable session manager."""
+        streamable_app = create_streamable_http_app(
+            mount_path="/clinic",
+            streamable_http_path="/api/mcp",
+        )
+
+        with TestClient(streamable_app, raise_server_exceptions=False) as client:
+            response = client.get("/clinic/api/mcp")
+
+        assert response.status_code < 500
+
+    def test_main_uses_cli_sse_transport_options(self, monkeypatch):
+        """Test CLI SSE options are forwarded to the server factory and runner."""
         captured: dict[str, object] = {}
 
         class FakeServer:
@@ -250,6 +292,45 @@ class TestMCPServer:
             return fake_server
 
         monkeypatch.setattr(server_module, "create_server", fake_create_server)
+
+        server_module.main(
+            [
+                "--transport",
+                "sse",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "9000",
+                "--mount-path",
+                "/clinic",
+                "--streamable-http-path",
+                "/api/mcp",
+                "--stateless-http",
+            ]
+        )
+
+        assert captured["kwargs"] == {
+            "host": "0.0.0.0",
+            "port": 9000,
+            "mount_path": "/clinic",
+            "streamable_http_path": "/api/mcp",
+            "stateless_http": True,
+        }
+        assert captured["transport"] == "sse"
+        assert captured["mount_path"] == "/clinic"
+
+    def test_main_runs_streamable_http_through_mounted_asgi_helper(self, monkeypatch):
+        """Streamable HTTP CLI path uses the ASGI helper so mount_path is honored."""
+        captured: dict[str, object] = {}
+
+        def fake_run_streamable_http_app(**kwargs: object) -> None:
+            captured["kwargs"] = kwargs
+
+        monkeypatch.setattr(
+            server_module,
+            "run_streamable_http_app",
+            fake_run_streamable_http_app,
+        )
 
         server_module.main(
             [
@@ -274,5 +355,16 @@ class TestMCPServer:
             "streamable_http_path": "/api/mcp",
             "stateless_http": True,
         }
-        assert captured["transport"] == "streamable-http"
-        assert captured["mount_path"] == "/clinic"
+
+    def test_help_does_not_initialize_runtime_cache(self, tmp_path):
+        """CLI help should not create cache or service state in the working dir."""
+        result = subprocess.run(
+            [sys.executable, "-m", "pharmacy_mcp", "--help"],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        assert "Run the Pharmacy MCP server." in result.stdout
+        assert not (tmp_path / ".cache").exists()

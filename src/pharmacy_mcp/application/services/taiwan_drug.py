@@ -253,7 +253,3 @@ class TaiwanDrugService:
             "coverage_types": ["一般給付", "限特定條件給付", "事前審查"],
             "note": "健保給付規則僅供參考，實際給付請依健保署公告為準",
         }
-
-
-# Singleton instance
-taiwan_drug_service = TaiwanDrugService()
