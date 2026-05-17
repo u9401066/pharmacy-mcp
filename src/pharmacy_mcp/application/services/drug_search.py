@@ -3,15 +3,15 @@
 import hashlib
 from typing import Any
 
-from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
-from pharmacy_mcp.infrastructure.api.fda import FDAClient
-from pharmacy_mcp.infrastructure.cache.disk_cache import CacheService
 from pharmacy_mcp.domain.entities.drug import DrugConcept
+from pharmacy_mcp.infrastructure.api.fda import FDAClient
+from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
+from pharmacy_mcp.infrastructure.cache.disk_cache import CacheService
 
 
 class DrugSearchService:
     """Service for searching drugs across multiple sources."""
-    
+
     def __init__(
         self,
         rxnorm_client: RxNormClient | None = None,
@@ -21,7 +21,7 @@ class DrugSearchService:
         self.rxnorm = rxnorm_client or RxNormClient()
         self.fda = fda_client or FDAClient()
         self.cache = cache or CacheService()
-    
+
     async def search(
         self,
         query: str,
@@ -29,11 +29,11 @@ class DrugSearchService:
     ) -> dict[str, Any]:
         """
         Search for drugs by name.
-        
+
         Args:
             query: Search query (drug name)
             max_results: Maximum results to return
-            
+
         Returns:
             Search results from multiple sources
         """
@@ -41,13 +41,13 @@ class DrugSearchService:
         cached = self.cache.get(cache_key)
         if cached:
             return cached
-        
+
         # Search RxNorm
         rxnorm_results = await self.rxnorm.search_by_name(query, max_results)
-        
+
         # Search FDA
         fda_results = await self.fda.search_drug_labels(query, max_results)
-        
+
         result = {
             "query": query,
             "rxnorm": [
@@ -69,17 +69,17 @@ class DrugSearchService:
             ],
             "total_count": len(rxnorm_results) + len(fda_results),
         }
-        
+
         self.cache.set(cache_key, result)
         return result
-    
+
     async def search_by_rxcui(self, rxcui: str) -> dict[str, Any] | None:
         """
         Get drug details by RxCUI.
-        
+
         Args:
             rxcui: RxNorm Concept Unique Identifier
-            
+
         Returns:
             Drug details or None
         """
@@ -87,11 +87,11 @@ class DrugSearchService:
         cached = self.cache.get(cache_key)
         if cached:
             return cached
-        
+
         drug = await self.rxnorm.get_by_rxcui(rxcui)
         if not drug:
             return None
-        
+
         result = {
             "rxcui": drug.rxcui,
             "name": drug.name,
@@ -99,29 +99,27 @@ class DrugSearchService:
             "drug_classes": drug.drug_classes,
             "atc_codes": drug.atc_codes,
         }
-        
+
         self.cache.set(cache_key, result)
         return result
-    
+
     async def autocomplete(
-        self,
-        prefix: str,
-        max_results: int = 5
+        self, prefix: str, max_results: int = 5
     ) -> list[DrugConcept]:
         """
         Autocomplete drug names.
-        
+
         Args:
             prefix: Start of drug name
             max_results: Maximum suggestions
-            
+
         Returns:
             List of drug suggestions
         """
         # Use RxNorm approximate term search for autocomplete
         return await self.rxnorm.search_by_name(prefix, max_results)
-    
+
     def _cache_key(self, *args) -> str:
         """Generate cache key from arguments."""
         key_str = ":".join(str(a) for a in args)
-        return hashlib.md5(key_str.encode()).hexdigest()
+        return hashlib.sha256(key_str.encode()).hexdigest()

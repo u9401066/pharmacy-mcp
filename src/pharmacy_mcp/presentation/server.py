@@ -15,8 +15,10 @@ from pharmacy_mcp.application.services.drug_info import DrugInfoService
 from pharmacy_mcp.application.services.drug_search import DrugSearchService
 from pharmacy_mcp.application.services.interaction import InteractionService
 from pharmacy_mcp.application.services.prescription import PrescriptionService
+from pharmacy_mcp.application.services.simulation import SimulationService
 from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
 from pharmacy_mcp.config import settings
+from pharmacy_mcp.infrastructure.knowledge.formula_catalog import FormulaCatalog
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,7 +33,9 @@ SERVER_WEBSITE_URL = "https://github.com/u9401066/pharmacy-mcp"
 # Initialize services once and reuse them across transports.
 drug_search_service = DrugSearchService()
 drug_info_service = DrugInfoService()
-interaction_service = InteractionService()
+formula_catalog = FormulaCatalog()
+simulation_service = SimulationService(formula_catalog=formula_catalog)
+interaction_service = InteractionService(simulation_service=simulation_service)
 dosage_service = DosageService()
 taiwan_drug_service = TaiwanDrugService()
 prescription_service = PrescriptionService()
@@ -58,14 +62,14 @@ def create_server(
         mount_path=mount_path or settings.mount_path,
         streamable_http_path=streamable_http_path or settings.streamable_http_path,
         stateless_http=(
-            settings.stateless_http
-            if stateless_http is None
-            else stateless_http
+            settings.stateless_http if stateless_http is None else stateless_http
         ),
         log_level="INFO",
     )
 
-    @server.tool(description="Search for drugs by name. Returns results from RxNorm and FDA databases.")
+    @server.tool(
+        description="Search for drugs by name. Returns results from RxNorm and FDA databases."
+    )
     async def search_drug(query: str, max_results: int = 10) -> ToolResult:
         return await _handle_tool(
             "search_drug",
@@ -93,7 +97,9 @@ def create_server(
 
     @server.tool(description="Check for interactions between two drugs.")
     async def check_drug_interaction(drug1: str, drug2: str) -> ToolResult:
-        return await _handle_tool("check_drug_interaction", {"drug1": drug1, "drug2": drug2})
+        return await _handle_tool(
+            "check_drug_interaction", {"drug1": drug1, "drug2": drug2}
+        )
 
     @server.tool(
         description="Check for interactions among multiple drugs (medication list review)."
@@ -103,7 +109,9 @@ def create_server(
 
     @server.tool(description="Check for food-drug interactions for a specific drug.")
     async def check_food_drug_interaction(drug_name: str) -> ToolResult:
-        return await _handle_tool("check_food_drug_interaction", {"drug_name": drug_name})
+        return await _handle_tool(
+            "check_food_drug_interaction", {"drug_name": drug_name}
+        )
 
     @server.tool(description="Calculate weight-based dosage (mg/kg).")
     def calculate_dose_by_weight(
@@ -223,7 +231,9 @@ def create_server(
     async def get_nhi_coverage(drug_name: str) -> ToolResult:
         return await _handle_tool("get_nhi_coverage", {"drug_name": drug_name})
 
-    @server.tool(description="查詢健保藥價。Get NHI reimbursement price for a drug by NHI code.")
+    @server.tool(
+        description="查詢健保藥價。Get NHI reimbursement price for a drug by NHI code."
+    )
     async def get_nhi_drug_price(nhi_code: str) -> ToolResult:
         return await _handle_tool("get_nhi_drug_price", {"nhi_code": nhi_code})
 
@@ -257,7 +267,9 @@ def create_server(
             return item.to_dict()
         return {"error": f"Drug code {drug_code} not found in formulary"}
 
-    @server.tool(description="搜尋院內藥品檔。Search hospital formulary by drug name or code.")
+    @server.tool(
+        description="搜尋院內藥品檔。Search hospital formulary by drug name or code."
+    )
     def search_formulary(query: str, limit: int = 10) -> ToolResult:
         items = prescription_service.search_formulary(query=query, limit=limit)
         return {"count": len(items), "items": [item.to_dict() for item in items]}
@@ -269,7 +281,9 @@ def create_server(
         )
     )
     def get_renal_adjustment(drug_code: str, crcl: float) -> ToolResult:
-        adjustment = prescription_service.get_renal_adjustment(drug_code=drug_code, crcl=crcl)
+        adjustment = prescription_service.get_renal_adjustment(
+            drug_code=drug_code, crcl=crcl
+        )
         return adjustment.to_dict()
 
     @server.tool(description="驗證醫囑。Validate a medication order before submission.")
@@ -291,7 +305,9 @@ def create_server(
         )
         return result.to_dict()
 
-    @server.tool(description="送出醫囑到 HIS。Submit a medication order to the HIS service.")
+    @server.tool(
+        description="送出醫囑到 HIS。Submit a medication order to the HIS service."
+    )
     async def submit_order(
         patient_id: str,
         drug_code: str,
@@ -323,6 +339,137 @@ def create_server(
         result = await prescription_service.stop_order(order_id=order_id, reason=reason)
         return result.to_dict()
 
+    @server.tool(description="List trusted PK/DDI formulas available for simulation.")
+    def list_formula_catalog(status: str | None = "trusted") -> ToolResult:
+        return formula_catalog.to_dict(status=status)
+
+    @server.tool(description="Get full metadata for a trusted PK/DDI formula.")
+    def get_formula_details(formula_id: str) -> ToolResult:
+        formula = formula_catalog.get_formula(formula_id)
+        if formula is None:
+            return {"error": f"Formula {formula_id} not found"}
+        return formula.to_dict()
+
+    @server.tool(
+        description=(
+            "Explain the supported mechanistic DDI pathway for a drug pair, "
+            "including required simulation parameters."
+        )
+    )
+    def explain_interaction_mechanism(drug1: str, drug2: str) -> ToolResult:
+        return interaction_service.explain_interaction_mechanism(drug1, drug2)
+
+    @server.tool(
+        description=(
+            "Run a PBPK-lite CYP reversible inhibition exposure estimate for a "
+            "supported drug pair using explicit user-supplied parameters."
+        )
+    )
+    def simulate_pk_interaction(
+        drug1: str,
+        drug2: str,
+        cl_total: float,
+        fm: float,
+        inhibitor_concentration: float,
+        ki: float,
+    ) -> ToolResult:
+        return interaction_service.simulate_pk_interaction(
+            drug1=drug1,
+            drug2=drug2,
+            cl_total=cl_total,
+            fm=fm,
+            inhibitor_concentration=inhibitor_concentration,
+            ki=ki,
+        )
+
+    @server.tool(description="Run a one-compartment concentration-time estimate.")
+    def simulate_concentration_time(
+        dose: float,
+        vd: float,
+        ke: float,
+        time: float,
+    ) -> ToolResult:
+        return simulation_service.simulate_concentration_time(
+            dose=dose,
+            vd=vd,
+            ke=ke,
+            time=time,
+        )
+
+    @server.resource(
+        "pharmacy://server/disclaimer",
+        name="server_disclaimer",
+        description="Pharmacy MCP medical disclaimer.",
+        mime_type="text/plain",
+    )
+    def server_disclaimer() -> str:
+        return settings.disclaimer
+
+    @server.resource(
+        "pharmacy://formulas",
+        name="trusted_formula_catalog",
+        description="Trusted PK/DDI formula catalog metadata.",
+        mime_type="application/json",
+    )
+    def trusted_formula_catalog() -> ToolResult:
+        return formula_catalog.to_dict()
+
+    @server.resource(
+        "pharmacy://formulas/{formula_id}",
+        name="trusted_formula_details",
+        description="Trusted PK/DDI formula metadata by formula ID.",
+        mime_type="application/json",
+    )
+    def trusted_formula_details(formula_id: str) -> ToolResult:
+        formula = formula_catalog.get_formula(formula_id)
+        if formula is None:
+            return {"error": f"Formula {formula_id} not found"}
+        return formula.to_dict()
+
+    @server.resource(
+        "pharmacy://validation/formulas",
+        name="formula_validation_cases",
+        description="Validation fixtures for trusted PK/DDI formulas.",
+        mime_type="application/json",
+    )
+    def formula_validation_cases() -> ToolResult:
+        return {
+            "version": formula_catalog.version,
+            "formulas": [
+                {
+                    "id": formula.id,
+                    "validation_cases": list(formula.validation_cases),
+                }
+                for formula in formula_catalog.list_formulas()
+            ],
+        }
+
+    @server.prompt(
+        name="ddi_analysis_workflow",
+        description="Prompt template for evidence-backed DDI analysis.",
+    )
+    def ddi_analysis_workflow(drug1: str, drug2: str) -> str:
+        return (
+            f"Analyze the potential interaction between {drug1} and {drug2}. "
+            "First call explain_interaction_mechanism. If the mechanism is supported "
+            "and explicit parameters are available, call simulate_pk_interaction. "
+            "Report evidence, assumptions, limitations, and data gaps. "
+            f"Always include this disclaimer: {settings.disclaimer}"
+        )
+
+    @server.prompt(
+        name="formula_review_checklist",
+        description="Prompt template for reviewing draft formulas before trust promotion.",
+    )
+    def formula_review_checklist(formula_id: str = "draft_formula") -> str:
+        return (
+            f"Review {formula_id} before adding it to the trusted catalog. Confirm "
+            "the expression, parameter units, assumptions, limitations, source "
+            "references, validation cases, fail-closed behavior, and whether the "
+            "formula is only a screening approximation. Draft or external formulas "
+            "must not be used for clinical decisions until committed and tested."
+        )
+
     return server
 
 
@@ -350,10 +497,14 @@ async def _handle_tool(name: str, arguments: dict[str, Any]) -> ToolResult:
         )
 
     if name == "check_multi_drug_interactions":
-        return await interaction_service.check_multi_drug_interactions(arguments["drugs"])
+        return await interaction_service.check_multi_drug_interactions(
+            arguments["drugs"]
+        )
 
     if name == "check_food_drug_interaction":
-        return await interaction_service.check_food_drug_interaction(arguments["drug_name"])
+        return await interaction_service.check_food_drug_interaction(
+            arguments["drug_name"]
+        )
 
     if name == "search_tfda_drug":
         return await taiwan_drug_service.search_tfda_drug(

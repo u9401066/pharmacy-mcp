@@ -1,0 +1,387 @@
+{
+  "version": "0.9.0",
+  "updated": "2026-05-17",
+  "formulas": [
+    {
+      "id": "one_compartment_concentration",
+      "name": "One-compartment concentration-time estimate",
+      "version": "1.0.0",
+      "status": "trusted",
+      "implementation_key": "one_compartment_concentration",
+      "summary": "Estimates concentration after a bolus dose using a one-compartment first-order elimination model.",
+      "expression": "C(t) = dose / Vd * exp(-ke * t)",
+      "parameters": [
+        {
+          "name": "dose",
+          "unit": "mg",
+          "description": "Administered dose"
+        },
+        {
+          "name": "vd",
+          "unit": "L",
+          "description": "Apparent volume of distribution"
+        },
+        {
+          "name": "ke",
+          "unit": "1/hr",
+          "description": "First-order elimination rate constant"
+        },
+        {
+          "name": "time",
+          "unit": "hr",
+          "description": "Time after dose"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "concentration",
+          "unit": "mg/L",
+          "description": "Estimated plasma concentration"
+        }
+      ],
+      "assumptions": [
+        "Linear pharmacokinetics",
+        "Single well-mixed compartment",
+        "Instantaneous distribution after bolus input"
+      ],
+      "limitations": [
+        "Not a full PBPK model",
+        "Does not account for absorption, distribution phases, active metabolites, or nonlinear kinetics",
+        "Not for direct clinical dosing decisions"
+      ],
+      "references": [
+        {
+          "label": "Basic one-compartment pharmacokinetic model",
+          "type": "pharmacokinetics_textbook",
+          "citation": "Standard clinical pharmacokinetics relationship"
+        }
+      ],
+      "validation_cases": [
+        {
+          "inputs": {
+            "dose": 500,
+            "vd": 50,
+            "ke": 0.1,
+            "time": 6
+          },
+          "expected": {
+            "concentration": 5.49
+          },
+          "tolerance": 0.01
+        }
+      ]
+    },
+    {
+      "id": "multiple_dose_accumulation",
+      "name": "Multiple-dose accumulation factor",
+      "version": "1.0.0",
+      "status": "trusted",
+      "implementation_key": "multiple_dose_accumulation",
+      "summary": "Estimates accumulation at steady state for first-order elimination and fixed dosing interval.",
+      "expression": "R = 1 / (1 - exp(-ke * tau))",
+      "parameters": [
+        {
+          "name": "ke",
+          "unit": "1/hr",
+          "description": "First-order elimination rate constant"
+        },
+        {
+          "name": "tau",
+          "unit": "hr",
+          "description": "Dosing interval"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "accumulation_factor",
+          "unit": "ratio",
+          "description": "Steady-state accumulation factor"
+        }
+      ],
+      "assumptions": [
+        "Linear pharmacokinetics",
+        "Constant dosing interval",
+        "First-order elimination"
+      ],
+      "limitations": [
+        "Does not handle time-varying clearance",
+        "Does not model loading doses or missed doses",
+        "Not for direct clinical dosing decisions"
+      ],
+      "references": [
+        {
+          "label": "Steady-state accumulation factor",
+          "type": "pharmacokinetics_textbook",
+          "citation": "Standard multiple-dose pharmacokinetics relationship"
+        }
+      ],
+      "validation_cases": [
+        {
+          "inputs": {
+            "ke": 0.1,
+            "tau": 12
+          },
+          "expected": {
+            "accumulation_factor": 1.43
+          },
+          "tolerance": 0.01
+        }
+      ]
+    },
+    {
+      "id": "renal_clearance_adjustment",
+      "name": "Renal clearance adjustment",
+      "version": "1.0.0",
+      "status": "trusted",
+      "implementation_key": "renal_clearance_adjustment",
+      "summary": "Estimates adjusted total clearance when renal clearance changes proportionally to renal function.",
+      "expression": "CL_adjusted = CL_nonrenal + CL_renal * renal_function_ratio",
+      "parameters": [
+        {
+          "name": "cl_nonrenal",
+          "unit": "L/hr",
+          "description": "Nonrenal clearance component"
+        },
+        {
+          "name": "cl_renal",
+          "unit": "L/hr",
+          "description": "Renal clearance component at baseline renal function"
+        },
+        {
+          "name": "renal_function_ratio",
+          "unit": "fraction",
+          "description": "Patient renal function relative to baseline"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "adjusted_clearance",
+          "unit": "L/hr",
+          "description": "Estimated total clearance after renal adjustment"
+        }
+      ],
+      "assumptions": [
+        "Renal clearance scales linearly with renal function ratio",
+        "Nonrenal clearance is unchanged"
+      ],
+      "limitations": [
+        "Does not model active secretion saturation",
+        "Requires a reliable renal fraction split",
+        "Not for direct clinical dosing decisions"
+      ],
+      "references": [
+        {
+          "label": "Renal clearance proportional adjustment",
+          "type": "pharmacokinetics_textbook",
+          "citation": "Standard renal clearance partition relationship"
+        }
+      ],
+      "validation_cases": [
+        {
+          "inputs": {
+            "cl_nonrenal": 2,
+            "cl_renal": 8,
+            "renal_function_ratio": 0.25
+          },
+          "expected": {
+            "adjusted_clearance": 4
+          },
+          "tolerance": 0.01
+        }
+      ]
+    },
+    {
+      "id": "cyp_reversible_inhibition_clearance",
+      "name": "CYP reversible inhibition clearance estimate",
+      "version": "1.0.0",
+      "status": "trusted",
+      "implementation_key": "cyp_reversible_inhibition_clearance",
+      "summary": "Estimates total clearance after reversible inhibition of a metabolic pathway.",
+      "expression": "CL_inhibited = CL_total * ((1 - fm) + fm / (1 + I / Ki))",
+      "parameters": [
+        {
+          "name": "cl_total",
+          "unit": "L/hr",
+          "description": "Baseline total clearance"
+        },
+        {
+          "name": "fm",
+          "unit": "fraction",
+          "description": "Fraction metabolized by the inhibited pathway"
+        },
+        {
+          "name": "inhibitor_concentration",
+          "unit": "same_as_ki",
+          "description": "Inhibitor concentration at the enzyme site or a justified proxy"
+        },
+        {
+          "name": "ki",
+          "unit": "same_as_inhibitor_concentration",
+          "description": "Reversible inhibition constant"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "inhibited_clearance",
+          "unit": "L/hr",
+          "description": "Estimated clearance after inhibition"
+        }
+      ],
+      "assumptions": [
+        "Reversible competitive inhibition approximation",
+        "Known fraction metabolized by the inhibited pathway",
+        "Inhibitor concentration and Ki use compatible units"
+      ],
+      "limitations": [
+        "Does not model time-dependent inhibition or induction",
+        "Does not account for transporter effects or active metabolites",
+        "Not for direct clinical dosing decisions"
+      ],
+      "references": [
+        {
+          "label": "FDA drug interaction and PBPK guidance concepts",
+          "type": "regulatory_guidance",
+          "url": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/physiologically-based-pharmacokinetic-analyses-format-and-content-guidance-industry"
+        }
+      ],
+      "validation_cases": [
+        {
+          "inputs": {
+            "cl_total": 10,
+            "fm": 0.8,
+            "inhibitor_concentration": 2,
+            "ki": 1
+          },
+          "expected": {
+            "inhibited_clearance": 4.67
+          },
+          "tolerance": 0.01
+        }
+      ]
+    },
+    {
+      "id": "auc_ratio_from_clearance",
+      "name": "AUC ratio from clearance change",
+      "version": "1.0.0",
+      "status": "trusted",
+      "implementation_key": "auc_ratio_from_clearance",
+      "summary": "Estimates exposure change from baseline and altered clearance.",
+      "expression": "AUC_ratio = CL_baseline / CL_altered",
+      "parameters": [
+        {
+          "name": "cl_baseline",
+          "unit": "L/hr",
+          "description": "Baseline clearance"
+        },
+        {
+          "name": "cl_altered",
+          "unit": "L/hr",
+          "description": "Clearance after interaction or physiological change"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "auc_ratio",
+          "unit": "ratio",
+          "description": "Estimated exposure ratio"
+        }
+      ],
+      "assumptions": [
+        "Dose and bioavailability are unchanged",
+        "AUC is inversely proportional to clearance"
+      ],
+      "limitations": [
+        "Does not account for absorption or bioavailability changes",
+        "Does not model nonlinear kinetics",
+        "Not for direct clinical dosing decisions"
+      ],
+      "references": [
+        {
+          "label": "AUC and clearance relationship",
+          "type": "pharmacokinetics_textbook",
+          "citation": "AUC = Dose / CL for fixed bioavailability"
+        }
+      ],
+      "validation_cases": [
+        {
+          "inputs": {
+            "cl_baseline": 10,
+            "cl_altered": 4.67
+          },
+          "expected": {
+            "auc_ratio": 2.14
+          },
+          "tolerance": 0.01
+        }
+      ]
+    },
+    {
+      "id": "temperature_corrected_elimination",
+      "name": "Temperature-corrected elimination rate",
+      "version": "1.0.0",
+      "status": "trusted",
+      "implementation_key": "temperature_corrected_elimination",
+      "summary": "Estimates elimination rate change using a Q10 temperature correction.",
+      "expression": "ke_adjusted = ke_ref * q10 ** ((temperature_c - reference_c) / 10)",
+      "parameters": [
+        {
+          "name": "ke_ref",
+          "unit": "1/hr",
+          "description": "Reference elimination rate constant"
+        },
+        {
+          "name": "temperature_c",
+          "unit": "degC",
+          "description": "Target temperature"
+        },
+        {
+          "name": "reference_c",
+          "unit": "degC",
+          "description": "Reference temperature"
+        },
+        {
+          "name": "q10",
+          "unit": "ratio",
+          "description": "Q10 temperature coefficient"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "adjusted_ke",
+          "unit": "1/hr",
+          "description": "Temperature-adjusted elimination rate constant"
+        }
+      ],
+      "assumptions": [
+        "Q10 relationship is appropriate over the temperature range",
+        "Other physiological effects are not changing clearance"
+      ],
+      "limitations": [
+        "Screening approximation only",
+        "Not validated for all drugs or disease states",
+        "Not for direct clinical dosing decisions"
+      ],
+      "references": [
+        {
+          "label": "Q10 temperature correction relationship",
+          "type": "physiology_model",
+          "citation": "General Q10 rate correction model"
+        }
+      ],
+      "validation_cases": [
+        {
+          "inputs": {
+            "ke_ref": 0.1,
+            "temperature_c": 39,
+            "reference_c": 37,
+            "q10": 2
+          },
+          "expected": {
+            "adjusted_ke": 0.1149
+          },
+          "tolerance": 0.0001
+        }
+      ]
+    }
+  ]
+}

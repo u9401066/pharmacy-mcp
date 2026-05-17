@@ -1,77 +1,55 @@
-# 💊 藥品資訊 MCP Server
+# Pharmacy MCP Server
 
-> 完整藥品資訊 MCP Server - 藥品查詢、資訊取得、劑量計算、交互作用檢查、食品藥品衝突
+Pharmacy MCP 是一個 Python MCP server，提供藥物查詢、標籤摘要、劑量計算、
+台灣 TFDA/NHI 查詢、院內處方輔助，以及 0.9.0 新增的可信任 PK/DDI
+公式庫與 PBPK-lite 模擬工具。
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![MCP](https://img.shields.io/badge/MCP-1.0-green.svg)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-1.27+-green.svg)](https://modelcontextprotocol.io/)
 
-🌐 [English](README.md)
+English: [README.md](README.md)
 
-## ✨ 功能特色
+## 0.9.0 重點
 
-- 🔍 **藥品查詢** - 依名稱、ATC 碼、適應症搜尋
-- 📋 **藥品資訊** - 完整藥品資訊、仿單、藥理學資料
-- 🧮 **劑量計算** - 小兒劑量、腎功能調整、體重劑量
-- ⚠️ **交互作用** - 藥物-藥物交互作用檢查
-- 🍎 **食品衝突** - 食品、酒精、保健品與藥物衝突
-- 🇹🇼 **台灣健保整合** - TFDA 藥品查詢、健保給付、中英藥名對照
+- 內建可信任 PK/DDI 公式庫：`src/pharmacy_mcp/data/formulas/`。
+- 可重現的模擬服務：單室模型濃度、重複給藥累積、腎清除率調整、CYP 可逆抑制、AUC ratio、溫度校正消除速率。
+- 對支援的 CYP 抑制案例提供機轉解釋與暴露量估算，例如 warfarin/fluconazole、statin/clarithromycin。
+- 現代 MCP 介面：tools、read-only resources、resource templates、prompts、Streamable HTTP、structured output。
+- 發布驗證：pytest coverage、ruff、mypy、bandit、wheel build。
 
-## 📦 資料來源
+模擬輸出只作為篩檢與教育估算，不是臨床處置建議。所有模擬輸出都會包含
+專案 disclaimer 與 `not_for_direct_clinical_decision: true`。
 
-| 來源 | 提供者 | 資料類型 |
-|------|--------|----------|
-| [RxNorm API](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html) | NIH/NLM | 藥品命名標準化 |
-| [openFDA](https://open.fda.gov/apis/) | FDA | 不良反應、藥品標籤 |
-| [DailyMed](https://dailymed.nlm.nih.gov/dailymed/) | NLM | 藥品仿單 |
-| [RxClass](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxClassAPIs.html) | NIH/NLM | 藥品分類 |
-| [TFDA 開放資料](https://data.fda.gov.tw/) | 台灣 TFDA | 台灣藥品許可證 |
-| [NHI 開放資料](https://data.nhi.gov.tw/) | 台灣健保署 | 健保給付、藥價 |
-
-## 🚀 快速開始
-
-### 安裝
+## 安裝
 
 ```bash
-# Clone 專案
-git clone https://github.com/your-org/pharmacy-mcp.git
+git clone https://github.com/u9401066/pharmacy-mcp.git
 cd pharmacy-mcp
-
-# 使用 uv 建立虛擬環境
-uv venv
-source .venv/bin/activate  # Linux/macOS
-# 或 .venv\Scripts\activate  # Windows
-
-# 安裝依賴
 uv sync --all-extras
 ```
 
-### 執行伺服器
+## 執行
 
 ```bash
-# 以 stdio 啟動（預設，適合 Claude Desktop 與本地 MCP client）
-pharmacy-mcp
+# 給本機 MCP client 使用的 stdio transport
+uv run pharmacy-mcp
 
-# 或使用 Python
-python -m pharmacy_mcp
-```
+# 明確指定 stdio
+uv run pharmacy-mcp --transport stdio
 
-### Streamable HTTP 部署
+# Streamable HTTP
+uv run pharmacy-mcp --transport streamable-http --host 0.0.0.0 --port 8000
 
-```bash
-# 啟動新的 Streamable HTTP transport
-pharmacy-mcp --transport streamable-http --host 0.0.0.0 --port 8000
-
-# 或直接用 uvicorn 部署 ASGI app
+# ASGI app
 uv run uvicorn pharmacy_mcp.presentation.server:app --host 0.0.0.0 --port 8000
 ```
 
-也支援 `PHARMACY_MCP_` 前綴的環境變數，例如 `MCP_TRANSPORT`、`MCP_HOST`、
-`MCP_PORT`、`MCP_MOUNT_PATH`、`MCP_STREAMABLE_HTTP_PATH`、`MCP_STATELESS_HTTP`。
+環境變數使用 `PHARMACY_MCP_` 前綴，例如 `MCP_TRANSPORT`、`MCP_HOST`、
+`MCP_PORT`、`MCP_MOUNT_PATH`、`MCP_STREAMABLE_HTTP_PATH`、
+`MCP_STATELESS_HTTP`。
 
-### Claude Desktop 設定
-
-將以下內容加入 `claude_desktop_config.json`：
+## Claude Desktop 設定範例
 
 ```json
 {
@@ -85,100 +63,115 @@ uv run uvicorn pharmacy_mcp.presentation.server:app --host 0.0.0.0 --port 8000
 }
 ```
 
-## 🛠️ 可用工具
+## MCP Tools
 
-### 藥品查詢
-| 工具 | 說明 |
-|------|------|
-| `search_drug_by_name` | 依名稱搜尋藥品 |
-| `search_drug_by_atc` | 依 ATC 碼搜尋 |
-| `search_drug_by_indication` | 依適應症搜尋 |
-| `get_drug_alternatives` | 取得替代藥品 |
+藥物資料：
 
-### 藥品資訊
-| 工具 | 說明 |
-|------|------|
-| `get_drug_details` | 完整藥品資訊 |
-| `get_drug_label` | FDA 核准標籤 |
-| `get_pharmacokinetics` | 藥物動力學資訊 |
-| `get_contraindications` | 禁忌症清單 |
-| `get_side_effects` | 不良反應 |
+- `search_drug`
+- `get_drug_info`
+- `get_drug_dosage`
+- `get_drug_warnings`
+- `check_drug_interaction`
+- `check_multi_drug_interactions`
+- `check_food_drug_interaction`
 
-### 劑量計算
-| 工具 | 說明 |
-|------|------|
-| `calculate_pediatric_dose` | 小兒劑量計算 |
-| `calculate_renal_dose` | 腎功能調整劑量 |
-| `calculate_weight_dose` | 體重劑量計算 |
-| `calculate_bsa_dose` | 體表面積劑量 |
+劑量計算：
 
-### 交互作用檢查
-| 工具 | 說明 |
-|------|------|
-| `check_drug_interaction` | 檢查兩藥物交互 |
-| `check_multiple_drugs` | 多重藥物檢查 |
-| `get_interaction_severity` | 取得嚴重等級 |
-| `get_interaction_mechanism` | 取得機轉說明 |
+- `calculate_dose_by_weight`
+- `calculate_dose_by_bsa`
+- `calculate_creatinine_clearance`
+- `calculate_pediatric_dose`
+- `calculate_infusion_rate`
+- `convert_dose_units`
 
-### 食品藥品衝突
-| 工具 | 說明 |
-|------|------|
-| `check_food_interaction` | 食品藥物交互 |
-| `check_alcohol_interaction` | 酒精交互作用 |
-| `check_supplement_interaction` | 保健品交互作用 |
-| `get_dietary_restrictions` | 飲食限制建議 |
+台灣 TFDA/NHI：
 
-### 台灣健保整合 🇹🇼
-| 工具 | 說明 |
-|------|------|
-| `search_tfda_drug` | 搜尋台灣 TFDA 藥品資料庫 |
-| `get_nhi_coverage` | 查詢健保給付狀態 |
-| `get_nhi_drug_price` | 查詢健保藥價 |
-| `translate_drug_name` | 藥品名稱中英對照 |
-| `list_prior_authorization_drugs` | 列出需事前審查藥品 |
-| `list_nhi_coverage_rules` | 列出健保給付規則 |
+- `search_tfda_drug`
+- `get_nhi_coverage`
+- `get_nhi_drug_price`
+- `translate_drug_name`
+- `list_prior_authorization_drugs`
+- `list_nhi_coverage_rules`
 
-## 🏗️ 專案架構
+院內處方流程：
 
-```
+- `get_formulary_item`
+- `search_formulary`
+- `get_renal_adjustment`
+- `validate_order`
+- `submit_order`
+- `stop_order`
+
+可信公式與模擬：
+
+- `list_formula_catalog`
+- `get_formula_details`
+- `explain_interaction_mechanism`
+- `simulate_pk_interaction`
+- `simulate_concentration_time`
+
+## MCP Resources 與 Prompts
+
+Resources：
+
+- `pharmacy://server/disclaimer`
+- `pharmacy://formulas`
+- `pharmacy://formulas/{formula_id}`
+- `pharmacy://validation/formulas`
+
+Prompts：
+
+- `ddi_analysis_workflow`
+- `formula_review_checklist`
+
+## Trusted Formula 模型
+
+公式庫採資料優先設計，公式 metadata 會被提交到 repo，但不執行任意 runtime
+程式碼。每個可信公式都有 ID、expression、參數、單位、假設、限制、參考來源、
+驗證案例。實際運算由 Python simulation service 依公式 ID dispatch 到已審核的實作。
+
+NSForge 這類外部公式產生器可以當作 companion authoring tool，但 0.9.0
+不把 NSForge vendoring 或 submodule 化。任何外部生成公式都必須先經人工審核、
+提交到 trusted catalog、補上測試，才能被 production simulation tools 使用。
+
+## 資料來源
+
+| 來源 | 提供者 | 資料 |
+| --- | --- | --- |
+| RxNorm API | NIH/NLM | 藥名與概念 |
+| openFDA | FDA | 藥品標籤與警語 |
+| DailyMed | NLM | 標籤段落 |
+| TFDA Open Data | 台灣 TFDA | 藥品許可與藥名 |
+| NHI Open Data | 台灣健保署 | 給付規則與價格 |
+| Local catalog | Pharmacy MCP | 可信 PK/DDI 公式與院內 mock data |
+
+## 架構
+
+```text
 src/pharmacy_mcp/
-├── domain/              # 核心領域
-│   ├── entities/        # 藥品、交互作用實體
-│   └── value_objects/   # 劑量、嚴重等級
-├── application/         # 應用層
-│   ├── search/          # 搜尋服務
-│   ├── info/            # 資訊服務
-│   ├── dosage/          # 劑量計算器
-│   └── interaction/     # 交互作用檢查器
-├── infrastructure/      # 基礎設施
-│   ├── api/             # API 客戶端 (RxNorm, FDA)
-│   └── cache/           # 快取層
-└── presentation/        # 呈現層
-    └── tools/           # MCP Tool 定義
+  domain/                  Entity 與 value object
+  application/services/    Use-case service 與 simulation orchestration
+  infrastructure/api/      外部 API clients
+  infrastructure/cache/    Disk cache adapter
+  infrastructure/knowledge/Local formulary 與 trusted formula catalog
+  presentation/            FastMCP server、tools、resources、prompts
 ```
 
-## 🧪 測試
+## 驗證
 
 ```bash
-# 執行所有測試
-uv run pytest
-
-# 只驗證 server 相關測試
-uv run pytest tests/test_server.py -v
-
-# 靜態分析（目前 repository 仍有既存 ruff/mypy 問題）
+uv run pytest --cov=src --cov-report=term-missing
 uv run ruff check src tests
 uv run mypy src
+uv run bandit -q -r src
+uv build
 ```
 
-## ⚠️ 免責聲明
+## Disclaimer
 
-> **本資訊僅供參考，不構成醫療建議。請諮詢專業醫療人員。**
+本專案只提供參考、教育與工作流程輔助，不提供醫療建議，也不能作為臨床決策的唯一依據。
+臨床照護請以合格醫療人員與已驗證臨床系統為準。
 
-## 📄 授權
+## 授權
 
 [Apache License 2.0](LICENSE)
-
----
-
-*為醫療專業人員和開發者用心打造 ❤️*

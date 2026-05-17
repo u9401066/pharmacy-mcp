@@ -1,11 +1,11 @@
 """Test configuration and fixtures."""
 
-import pytest
-import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock
 
-from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
+import pytest
+
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
+from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
 from pharmacy_mcp.infrastructure.cache.disk_cache import CacheService
 
 

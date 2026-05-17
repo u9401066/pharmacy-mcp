@@ -1,17 +1,17 @@
 """處方功能測試"""
 
 import pytest
+
+from pharmacy_mcp.application.services.prescription import PrescriptionService
 from pharmacy_mcp.domain.entities.order import Order, OrderStatus
 from pharmacy_mcp.domain.value_objects.order_result import (
-    ValidationResult,
     OrderResult,
-    StopResult,
-    FormularyItem,
     RenalAdjustment,
+    StopResult,
+    ValidationResult,
 )
 from pharmacy_mcp.infrastructure.knowledge.formulary import FormularyKnowledge
 from pharmacy_mcp.infrastructure.knowledge.renal_dosing import RenalDosingKnowledge
-from pharmacy_mcp.application.services.prescription import PrescriptionService
 
 
 class TestOrderEntity:

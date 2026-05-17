@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Optional
 
 from pharmacy_mcp.domain.value_objects.order_result import FormularyItem
 
@@ -13,7 +12,7 @@ class FormularyKnowledge:
     從 JSON 檔案載入院內藥品資料，提供查詢功能。
     """
 
-    def __init__(self, data_path: Optional[Path] = None):
+    def __init__(self, data_path: Path | None = None):
         """初始化藥品檔
 
         Args:
@@ -30,7 +29,7 @@ class FormularyKnowledge:
         if not data_path.exists():
             raise FileNotFoundError(f"Formulary data file not found: {data_path}")
 
-        with open(data_path, "r", encoding="utf-8") as f:
+        with open(data_path, encoding="utf-8") as f:
             data = json.load(f)
 
         for item_data in data.get("items", []):
@@ -54,7 +53,7 @@ class FormularyKnowledge:
             )
             self._items[item.drug_code] = item
 
-    def get_item(self, drug_code: str) -> Optional[FormularyItem]:
+    def get_item(self, drug_code: str) -> FormularyItem | None:
         """取得藥品項目
 
         Args:

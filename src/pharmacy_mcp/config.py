@@ -33,10 +33,7 @@ class Settings(BaseSettings):
     stateless_http: bool = False  # Enable stateless Streamable HTTP sessions
 
     # Disclaimer
-    disclaimer: str = (
-        "⚠️ 免責聲明：本資訊僅供參考，不構成醫療建議。"
-        "請諮詢專業醫療人員。"
-    )
+    disclaimer: str = "⚠️ 免責聲明：本資訊僅供參考，不構成醫療建議。請諮詢專業醫療人員。"
 
 
 settings = Settings()

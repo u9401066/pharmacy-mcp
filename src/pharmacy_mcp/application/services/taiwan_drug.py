@@ -22,10 +22,7 @@ class TaiwanDrugService:
         self._nhi_client = NHIClient()
 
     async def search_tfda_drug(
-        self,
-        query: str,
-        limit: int = 20,
-        search_type: str = "name"
+        self, query: str, limit: int = 20, search_type: str = "name"
     ) -> dict[str, Any]:
         """
         Search Taiwan TFDA drug database.
@@ -45,13 +42,13 @@ class TaiwanDrugService:
                     "query": query,
                     "search_type": search_type,
                     "result_count": 1,
-                    "results": [result]
+                    "results": [result],
                 }
             return {
                 "query": query,
                 "search_type": search_type,
                 "result_count": 0,
-                "results": []
+                "results": [],
             }
 
         elif search_type == "ingredient":
@@ -67,13 +64,10 @@ class TaiwanDrugService:
             "query": query,
             "search_type": search_type,
             "result_count": len(results),
-            "results": results
+            "results": results,
         }
 
-    async def get_nhi_coverage(
-        self,
-        drug_name: str
-    ) -> dict[str, Any]:
+    async def get_nhi_coverage(self, drug_name: str) -> dict[str, Any]:
         """
         Get NHI coverage information for a drug.
 
@@ -91,7 +85,7 @@ class TaiwanDrugService:
                 "drug_name": drug_name,
                 "found": True,
                 "coverage": coverage_info,
-                "source": "NHI Coverage Rules Database"
+                "source": "NHI Coverage Rules Database",
             }
 
         # Try to check via NHI client
@@ -101,13 +95,10 @@ class TaiwanDrugService:
             "drug_name": drug_name,
             "found": coverage_check.get("is_covered", False),
             "coverage": coverage_check,
-            "source": "NHI Query"
+            "source": "NHI Query",
         }
 
-    async def get_nhi_drug_price(
-        self,
-        nhi_code: str
-    ) -> dict[str, Any]:
+    async def get_nhi_drug_price(self, nhi_code: str) -> dict[str, Any]:
         """
         Get NHI reimbursement price for a drug.
 
@@ -124,14 +115,14 @@ class TaiwanDrugService:
                 "nhi_code": nhi_code,
                 "found": True,
                 "price_info": price_info,
-                "note": "價格為健保支付點數，實際金額依健保署公告為準"
+                "note": "價格為健保支付點數，實際金額依健保署公告為準",
             }
 
         return {
             "nhi_code": nhi_code,
             "found": False,
             "price_info": None,
-            "note": "未找到此健保代碼，請確認代碼正確性"
+            "note": "未找到此健保代碼，請確認代碼正確性",
         }
 
     def translate_drug_name(
@@ -157,7 +148,7 @@ class TaiwanDrugService:
                 "input": name,
                 "found": True,
                 "translation": result,
-                "note": "藥名對照資料來自常用藥品對照表"
+                "note": "藥名對照資料來自常用藥品對照表",
             }
 
         return {
@@ -168,8 +159,8 @@ class TaiwanDrugService:
             "suggestions": [
                 "嘗試使用英文學名",
                 "嘗試使用中文商品名",
-                "使用 TFDA 藥品查詢功能"
-            ]
+                "使用 TFDA 藥品查詢功能",
+            ],
         }
 
     async def get_prior_authorization_drugs(self) -> dict[str, Any]:
@@ -186,7 +177,7 @@ class TaiwanDrugService:
             {
                 "drug_name": info["drug_name"],
                 "indications": info["indications"],
-                "restrictions": info.get("restrictions", "")
+                "restrictions": info.get("restrictions", ""),
             }
             for key, info in NHI_COVERAGE_RULES.items()
             if info.get("prior_authorization", False)
@@ -195,7 +186,7 @@ class TaiwanDrugService:
         return {
             "categories": pa_drugs,
             "specific_drugs": pa_from_rules,
-            "note": "事前審查藥品需依健保署規定提出申請，並檢附相關文件"
+            "note": "事前審查藥品需依健保署規定提出申請，並檢附相關文件",
         }
 
     async def get_tfda_statistics(self) -> dict[str, Any]:
@@ -210,7 +201,7 @@ class TaiwanDrugService:
         return {
             "statistics": stats,
             "source": "TFDA Open Data",
-            "note": "資料來自政府開放資料平台，每週更新"
+            "note": "資料來自政府開放資料平台，每週更新",
         }
 
     def list_available_translations(self) -> dict[str, Any]:
@@ -222,17 +213,19 @@ class TaiwanDrugService:
         """
         translations: list[dict[str, Any]] = []
         for eng_name, info in DRUG_NAME_MAPPING.items():
-            translations.append({
-                "english": info.get("english", eng_name),
-                "chinese_generic": info.get("chinese_generic", ""),
-                "chinese_brands": info.get("chinese_brand", []),
-                "category": info.get("category", "")
-            })
+            translations.append(
+                {
+                    "english": info.get("english", eng_name),
+                    "chinese_generic": info.get("chinese_generic", ""),
+                    "chinese_brands": info.get("chinese_brand", []),
+                    "category": info.get("category", ""),
+                }
+            )
 
         return {
             "count": len(translations),
             "translations": sorted(translations, key=lambda x: x["english"]),
-            "note": "此為內建對照表，如需查詢更多藥品請使用 TFDA 搜尋功能"
+            "note": "此為內建對照表，如需查詢更多藥品請使用 TFDA 搜尋功能",
         }
 
     def list_nhi_coverage_rules(self) -> dict[str, Any]:
@@ -244,19 +237,21 @@ class TaiwanDrugService:
         """
         rules = []
         for key, info in NHI_COVERAGE_RULES.items():
-            rules.append({
-                "drug_key": key,
-                "drug_name": info["drug_name"],
-                "is_covered": info["is_covered"],
-                "coverage_type": info["coverage_type"],
-                "prior_authorization": info.get("prior_authorization", False)
-            })
+            rules.append(
+                {
+                    "drug_key": key,
+                    "drug_name": info["drug_name"],
+                    "is_covered": info["is_covered"],
+                    "coverage_type": info["coverage_type"],
+                    "prior_authorization": info.get("prior_authorization", False),
+                }
+            )
 
         return {
             "count": len(rules),
             "rules": sorted(rules, key=lambda x: x["drug_name"]),
             "coverage_types": ["一般給付", "限特定條件給付", "事前審查"],
-            "note": "健保給付規則僅供參考，實際給付請依健保署公告為準"
+            "note": "健保給付規則僅供參考，實際給付請依健保署公告為準",
         }
 
 

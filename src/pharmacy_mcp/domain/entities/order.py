@@ -3,7 +3,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 
 class OrderStatus(str, Enum):
@@ -89,9 +88,9 @@ class Order:
     physician_id: str
     status: OrderStatus = OrderStatus.PENDING
     created_at: datetime = field(default_factory=datetime.now)
-    discontinued_at: Optional[datetime] = None
-    discontinue_reason: Optional[str] = None
-    notes: Optional[str] = None
+    discontinued_at: datetime | None = None
+    discontinue_reason: str | None = None
+    notes: str | None = None
 
     def discontinue(self, reason: str) -> None:
         """停止醫囑

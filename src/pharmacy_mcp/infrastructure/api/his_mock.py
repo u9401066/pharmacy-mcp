@@ -7,7 +7,6 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -15,9 +14,9 @@ class HISOrderResponse:
     """HIS 醫囑回應"""
 
     success: bool
-    order_id: Optional[str] = None
+    order_id: str | None = None
     message: str = ""
-    error_code: Optional[str] = None
+    error_code: str | None = None
 
 
 @dataclass
@@ -90,7 +89,7 @@ class HISMockClient:
         frequency: str,
         duration_days: int,
         physician_id: str,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> HISOrderResponse:
         """建立醫囑
 
@@ -117,7 +116,9 @@ class HISMockClient:
             )
 
         # 產生訂單 ID
-        order_id = f"ORD-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+        order_id = (
+            f"ORD-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
+        )
 
         # 儲存訂單
         self._orders[order_id] = {
@@ -182,7 +183,7 @@ class HISMockClient:
             message="醫囑已停止",
         )
 
-    async def get_order(self, order_id: str) -> Optional[dict]:
+    async def get_order(self, order_id: str) -> dict | None:
         """取得醫囑資料
 
         Args:
@@ -193,7 +194,7 @@ class HISMockClient:
         """
         return self._orders.get(order_id)
 
-    async def get_patient(self, patient_id: str) -> Optional[HISPatient]:
+    async def get_patient(self, patient_id: str) -> HISPatient | None:
         """取得病人資料
 
         Args:

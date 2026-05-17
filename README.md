@@ -1,76 +1,56 @@
-# 💊 Pharmacy MCP Server
+# Pharmacy MCP Server
 
-> 完整藥品資訊 MCP Server - 藥品查詢、資訊取得、劑量計算、交互作用檢查、食品藥品衝突
+Pharmacy MCP is a Python MCP server for medication reference workflows. It
+combines drug search, label summaries, dosing calculators, Taiwan TFDA/NHI
+lookups, hospital prescription helpers, and a trusted PBPK-lite formula catalog
+for educational PK/DDI simulation.
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![MCP](https://img.shields.io/badge/MCP-1.0-green.svg)](https://modelcontextprotocol.io/)
+[![MCP](https://img.shields.io/badge/MCP-1.27+-green.svg)](https://modelcontextprotocol.io/)
 
-🌐 [繁體中文](README.zh-TW.md)
+Traditional Chinese: [README.zh-TW.md](README.zh-TW.md)
 
-## ✨ Features
+## What Is New In 0.9.0
 
-- 🔍 **Drug Search** - 藥品名稱、ATC 碼、適應症搜尋
-- 📋 **Drug Information** - 完整藥品資訊、仿單、藥理學
-- 🧮 **Dosage Calculator** - 小兒、腎功能、體重劑量計算
-- ⚠️ **Interaction Checker** - 藥物-藥物交互作用檢查
-- 🍎 **Food-Drug Interactions** - 食品、酒精、保健品衝突
-- 🇹🇼 **Taiwan NHI Integration** - 台灣健保給付、TFDA 藥品、中英藥名對照
+- Built-in trusted PK/DDI formula catalog under `src/pharmacy_mcp/data/formulas/`.
+- Deterministic simulation service for one-compartment concentration, repeated-dose accumulation, renal clearance adjustment, CYP reversible inhibition, AUC ratio, and temperature-corrected elimination.
+- Mechanism-aware DDI tools for supported CYP inhibition examples such as warfarin/fluconazole and statin/clarithromycin.
+- Modern MCP surfaces: tools, read-only resources, resource templates, prompts, Streamable HTTP deployment helpers, and structured outputs.
+- Release gates for pytest coverage, ruff, mypy, bandit, and wheel build.
 
-## 📦 Data Sources
+Simulation outputs are screening estimates only. They always include the project
+disclaimer and `not_for_direct_clinical_decision: true`.
 
-| Source | Provider | Data Type |
-|--------|----------|-----------|
-| [RxNorm API](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html) | NIH/NLM | Drug naming, concepts |
-| [openFDA](https://open.fda.gov/apis/) | FDA | Adverse events, labels |
-| [DailyMed](https://dailymed.nlm.nih.gov/dailymed/) | NLM | Drug labels |
-| [RxClass](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxClassAPIs.html) | NIH/NLM | Drug classification || [TFDA Open Data](https://data.fda.gov.tw/) | 台灣 TFDA | Taiwan drug permits |
-| [NHI Open Data](https://data.nhi.gov.tw/) | 台灣健保署 | NHI coverage, pricing |
-## 🚀 Quick Start
-
-### Installation
+## Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/pharmacy-mcp.git
+git clone https://github.com/u9401066/pharmacy-mcp.git
 cd pharmacy-mcp
-
-# Create virtual environment with uv
-uv venv
-source .venv/bin/activate  # Linux/macOS
-# or .venv\Scripts\activate  # Windows
-
-# Install dependencies
 uv sync --all-extras
 ```
 
-### Running the Server
+## Run
 
 ```bash
-# Run MCP over stdio (default, for Claude Desktop and local MCP clients)
-pharmacy-mcp
+# stdio transport for local MCP clients
+uv run pharmacy-mcp
 
-# Or with Python
-python -m pharmacy_mcp
-```
+# explicit stdio
+uv run pharmacy-mcp --transport stdio
 
-### Streamable HTTP Deployment
+# Streamable HTTP
+uv run pharmacy-mcp --transport streamable-http --host 0.0.0.0 --port 8000
 
-```bash
-# Run the new Streamable HTTP transport locally
-pharmacy-mcp --transport streamable-http --host 0.0.0.0 --port 8000
-
-# Serve the ASGI app with uvicorn
+# ASGI app
 uv run uvicorn pharmacy_mcp.presentation.server:app --host 0.0.0.0 --port 8000
 ```
 
-Environment variables are also supported via the `PHARMACY_MCP_` prefix, including
-`MCP_TRANSPORT`, `MCP_HOST`, `MCP_PORT`, `MCP_MOUNT_PATH`, `MCP_STREAMABLE_HTTP_PATH`,
-and `MCP_STATELESS_HTTP`.
+Environment variables use the `PHARMACY_MCP_` prefix. Supported settings include
+`MCP_TRANSPORT`, `MCP_HOST`, `MCP_PORT`, `MCP_MOUNT_PATH`,
+`MCP_STREAMABLE_HTTP_PATH`, and `MCP_STATELESS_HTTP`.
 
-### Claude Desktop Configuration
-
-Add to your `claude_desktop_config.json`:
+## Claude Desktop Example
 
 ```json
 {
@@ -84,100 +64,119 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-## 🛠️ Available Tools
+## MCP Tools
 
-### Drug Search
-| Tool | Description |
-|------|-------------|
-| `search_drug_by_name` | Search drugs by name |
-| `search_drug_by_atc` | Search by ATC code |
-| `search_drug_by_indication` | Search by indication |
-| `get_drug_alternatives` | Get therapeutic alternatives |
+Drug reference:
 
-### Drug Information
-| Tool | Description |
-|------|-------------|
-| `get_drug_details` | Complete drug information |
-| `get_drug_label` | FDA-approved labeling |
-| `get_pharmacokinetics` | PK/PD information |
-| `get_contraindications` | Contraindications list |
-| `get_side_effects` | Adverse reactions |
+- `search_drug`
+- `get_drug_info`
+- `get_drug_dosage`
+- `get_drug_warnings`
+- `check_drug_interaction`
+- `check_multi_drug_interactions`
+- `check_food_drug_interaction`
 
-### Dosage Calculator
-| Tool | Description |
-|------|-------------|
-| `calculate_pediatric_dose` | Pediatric dosing |
-| `calculate_renal_dose` | Renal adjustment |
-| `calculate_weight_dose` | Weight-based dosing |
-| `calculate_bsa_dose` | BSA-based dosing |
+Dosing calculators:
 
-### Interaction Checker
-| Tool | Description |
-|------|-------------|
-| `check_drug_interaction` | Check two drugs |
-| `check_multiple_drugs` | Check drug list |
-| `get_interaction_severity` | Get severity level |
-| `get_interaction_mechanism` | Get mechanism |
+- `calculate_dose_by_weight`
+- `calculate_dose_by_bsa`
+- `calculate_creatinine_clearance`
+- `calculate_pediatric_dose`
+- `calculate_infusion_rate`
+- `convert_dose_units`
 
-### Food-Drug Interactions
-| Tool | Description |
-|------|-------------|
-| `check_food_interaction` | Food-drug interaction |
-| `check_alcohol_interaction` | Alcohol interaction |
-| `check_supplement_interaction` | Supplement interaction |
-| `get_dietary_restrictions` | Dietary restrictions |
+Taiwan TFDA/NHI:
 
-### Taiwan NHI Integration 🇹🇼
-| Tool | Description |
-|------|-------------|
-| `search_tfda_drug` | Search Taiwan TFDA drug database |
-| `get_nhi_coverage` | Check NHI coverage status |
-| `get_nhi_drug_price` | Get NHI reimbursement price |
-| `translate_drug_name` | Translate drug names (EN↔TW) |
-| `list_prior_authorization_drugs` | List drugs requiring prior auth |
-| `list_nhi_coverage_rules` | List NHI coverage rules |
+- `search_tfda_drug`
+- `get_nhi_coverage`
+- `get_nhi_drug_price`
+- `translate_drug_name`
+- `list_prior_authorization_drugs`
+- `list_nhi_coverage_rules`
 
-## 🏗️ Architecture
+Hospital prescription workflow:
 
-```
+- `get_formulary_item`
+- `search_formulary`
+- `get_renal_adjustment`
+- `validate_order`
+- `submit_order`
+- `stop_order`
+
+Trusted formula and simulation:
+
+- `list_formula_catalog`
+- `get_formula_details`
+- `explain_interaction_mechanism`
+- `simulate_pk_interaction`
+- `simulate_concentration_time`
+
+## MCP Resources And Prompts
+
+Resources:
+
+- `pharmacy://server/disclaimer`
+- `pharmacy://formulas`
+- `pharmacy://formulas/{formula_id}`
+- `pharmacy://validation/formulas`
+
+Prompts:
+
+- `ddi_analysis_workflow`
+- `formula_review_checklist`
+
+## Trusted Formula Model
+
+Formula metadata is committed as data, not executed as arbitrary runtime code.
+Each trusted formula has an ID, expression, parameters, units, assumptions,
+limitations, references, and validation cases. The Python simulation service
+dispatches by formula ID to reviewed implementations.
+
+External formula generators such as NSForge can be used as companion authoring
+tools, but Pharmacy MCP does not vendor NSForge in 0.9.0. Generated formulas
+must be reviewed, committed to the trusted catalog, and covered by tests before
+production tools can use them.
+
+## Data Sources
+
+| Source | Provider | Data |
+| --- | --- | --- |
+| RxNorm API | NIH/NLM | Drug names and concepts |
+| openFDA | FDA | Drug labels and warnings |
+| DailyMed | NLM | Label sections |
+| TFDA Open Data | Taiwan TFDA | Taiwan permits and drug names |
+| NHI Open Data | Taiwan NHI | Coverage rules and reimbursement data |
+| Local catalog | Pharmacy MCP | Trusted PK/DDI formulas and hospital mock data |
+
+## Architecture
+
+```text
 src/pharmacy_mcp/
-├── domain/              # Core domain models
-│   ├── entities/        # Drug, Interaction entities
-│   └── value_objects/   # Dosage, Severity
-├── application/         # Use cases
-│   ├── search/          # Search services
-│   ├── info/            # Information services
-│   ├── dosage/          # Dosage calculators
-│   └── interaction/     # Interaction checkers
-├── infrastructure/      # External services
-│   ├── api/             # API clients (RxNorm, FDA)
-│   └── cache/           # Caching layer
-└── presentation/        # MCP Tools
-    └── tools/           # Tool definitions
+  domain/                  Entities and value objects
+  application/services/    Use-case services and simulation orchestration
+  infrastructure/api/      External API clients
+  infrastructure/cache/    Disk cache adapter
+  infrastructure/knowledge/Local formularies and trusted formula catalog
+  presentation/            FastMCP server, tools, resources, prompts
 ```
 
-## 🧪 Testing
+## Verification
 
 ```bash
-# Run all tests
-uv run pytest
-
-# Run focused server tests
-uv run pytest tests/test_server.py -v
-
-# Static analysis (repository currently has pre-existing ruff/mypy issues)
+uv run pytest --cov=src --cov-report=term-missing
 uv run ruff check src tests
 uv run mypy src
+uv run bandit -q -r src
+uv build
 ```
 
-## ⚠️ Disclaimer
+## Disclaimer
 
-> **This information is for reference only and does not constitute medical advice. Please consult a healthcare professional.**
+This project is for reference, education, and workflow support only. It does not
+provide medical advice and must not be used as the sole basis for clinical
+decisions. Consult qualified healthcare professionals and validated clinical
+systems for patient care.
 
-## 📄 License
+## License
 
 [Apache License 2.0](LICENSE)
-
----
-
-*Built with ❤️ for healthcare professionals and developers*

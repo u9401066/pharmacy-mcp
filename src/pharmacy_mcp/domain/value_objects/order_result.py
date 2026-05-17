@@ -1,7 +1,6 @@
 """醫囑結果值物件"""
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -20,15 +19,15 @@ class ValidationResult:
     valid: bool
     errors: tuple[str, ...] = field(default_factory=tuple)
     warnings: tuple[str, ...] = field(default_factory=tuple)
-    suggested_adjustments: Optional[dict] = None
+    suggested_adjustments: dict | None = None
 
     @classmethod
     def success(cls, warnings: list[str] | None = None) -> "ValidationResult":
         """建立成功的驗證結果"""
         return cls(
             valid=True,
-            errors=tuple(),
-            warnings=tuple(warnings) if warnings else tuple(),
+            errors=(),
+            warnings=tuple(warnings) if warnings else (),
         )
 
     @classmethod
@@ -39,7 +38,7 @@ class ValidationResult:
         return cls(
             valid=False,
             errors=tuple(errors),
-            warnings=tuple(warnings) if warnings else tuple(),
+            warnings=tuple(warnings) if warnings else (),
         )
 
     @classmethod
@@ -51,7 +50,7 @@ class ValidationResult:
         """建立需要調整的驗證結果"""
         return cls(
             valid=True,
-            errors=tuple(),
+            errors=(),
             warnings=tuple(warnings),
             suggested_adjustments=adjustments,
         )
@@ -80,7 +79,7 @@ class OrderResult:
     """
 
     success: bool
-    order_id: Optional[str] = None
+    order_id: str | None = None
     message: str = ""
     errors: tuple[str, ...] = field(default_factory=tuple)
 
@@ -169,8 +168,8 @@ class FormularyItem:
     min_dose: float
     max_dose: float
     default_frequency: str
-    nhi_code: Optional[str] = None
-    atc_code: Optional[str] = None
+    nhi_code: str | None = None
+    atc_code: str | None = None
     requires_renal_adjustment: bool = False
     high_alert: bool = False
 
@@ -214,8 +213,8 @@ class RenalAdjustment:
     crcl_range: str
     needs_adjustment: bool
     recommendation: str
-    suggested_dose: Optional[float] = None
-    suggested_frequency: Optional[str] = None
+    suggested_dose: float | None = None
+    suggested_frequency: str | None = None
     contraindicated: bool = False
 
     def to_dict(self) -> dict:
