@@ -218,7 +218,7 @@
 
 ### DEC-022: 官方來源漂移採每週 live probe 並保留安全下載格式
 **日期**: 2026-07-20
-**決策**: GitHub Actions 每週檢查 14 個公共來源 surface；大型 TFDA/NHI 資料只驗證 stream status
+**決策**: GitHub Actions 初始檢查 14 個公共來源 surface；大型 TFDA/NHI 資料只驗證 stream status。擴充後的 18-surface 規則由 DEC-024 接續。
 **原因**:
 - mock tests 無法發現 endpoint redirect、格式或欄位漂移
 - 首次執行即發現 TFDA 舊 URL 轉向明文 HTTP 且新格式改為 ZIP
@@ -238,6 +238,25 @@
 - MCP schema、直接 Python call 與網路 transport 使用同一份行為
 - 可同時保留 main 的 simulation/HTTP 現代化及 gateway 的 agent constraint
 - tool validation 前移，執行結果一律保留 status/provenance/warnings/errors
+
+### DEC-024: 藥品 API 全面性以知識面與可執行證據管理
+**日期**: 2026-07-20
+**決策**: 在既有標籤、法規、化學、病人教育來源之外，加入 PubMed、
+ClinicalTrials.gov、ChEMBL 與 Open Targets；以 `literature`、
+`clinical_trial`、`indication`、`target`、`bioactivity` capability 明確路由。
+**路由與負載界線**:
+- 四個 discovery provider 不宣告通用 `search`，避免每次藥名查詢無條件扇出
+- 明確 capability 或 source 才啟動，ChEMBL/Open Targets 詳情筆數有上限
+- 所有回應使用 bounded projection 並保留 PMID/NCT/ChEMBL/target/disease IDs
+**「全面」的可驗證定義**:
+- 沒有固定且封閉的全球藥品 API 清單，因此以 identity、label/dosing、
+  surveillance、literature、trial、target/bioactivity、indication、Taiwan、
+  FHIR/inventory 與 organization knowledge 等 surface 建立 evidence matrix
+- `ready` 必須同時具備 executable adapter、capability、provenance、mock contract、
+  live probe 與文件；DrugBank/FDB/Micromedex 維持 `license_required`
+**驗證**:
+- 195 tests / 82.97% branch coverage，Ruff、strict mypy、Bandit、docs、package gates 全綠
+- 18/18 live probes 成功，四來源 compound CLI query 經 QueryResponse v1.0 回傳
 
 ---
 *Last updated: 2026-07-20*

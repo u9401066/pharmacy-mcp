@@ -65,12 +65,61 @@ code-based Spanish queries are also supported by the client.
 
 Official documentation: <https://medlineplus.gov/medlineplus-connect/web-service/>
 
+## NCBI PubMed E-utilities
+
+`pubmed` performs a bounded ESearch followed by ESummary and returns citation
+metadata: PMID, title, journal, publication date/type, authors, DOI, and the
+canonical PubMed URL. It deliberately does not copy abstracts or full text into
+the provider payload. Ask for the `literature` capability to route to it.
+
+NCBI permits three requests per second without an API key. Operators can set
+`PHARMACY_MCP_NCBI_API_KEY` and `PHARMACY_MCP_NCBI_EMAIL`; the gateway also
+identifies itself with `tool=pharmacy_mcp`.
+
+Official documentation: <https://www.ncbi.nlm.nih.gov/books/NBK25497/>
+
+## ClinicalTrials.gov API v2
+
+`clinical-trials-gov` searches the intervention field rather than treating all
+study text as a medication match. It projects NCT ID, titles, recruitment
+status, dates, type, phases, conditions, intervention metadata, sponsor,
+results availability, and a canonical study link. Use `clinical_trial` or
+`indication` capability routing.
+
+Official documentation: <https://clinicaltrials.gov/data-api/api>
+
+## EMBL-EBI ChEMBL REST
+
+`chembl` resolves a term to ChEMBL molecule IDs and bounded chemical identity.
+For explicit `target` requests it adds mechanism records for at most the first
+three molecules; `bioactivity` adds a bounded assay/activity sample. This keeps
+large experimental datasets out of the agent context while preserving target,
+assay, measurement, and validity fields.
+
+Official documentation: <https://www.ebi.ac.uk/chembl/api/data/docs>
+
+## Open Targets Platform GraphQL
+
+`open-targets` searches drug entities and loads bounded details for at most five
+top ChEMBL hits. It preserves mechanisms of action, target IDs/symbols, disease
+IDs/names, trade names, and maximum clinical stage. Use `target` or `indication`
+capability routing.
+
+Official documentation:
+<https://platform-docs.opentargets.org/data-access/graphql-api>
+
+The discovery providers above intentionally do not claim the generic `search`
+capability. They are enabled but queried only when the caller asks for their
+specialized capability or explicitly names the source. This prevents a basic
+drug-name lookup from making four unrelated upstream calls.
+
 ## Example compound query
 
 ```json
 {
   "query": "warfarin",
-  "sources": ["rxnorm", "openfda", "dailymed", "pubchem", "medlineplus-connect"],
+  "capabilities": ["identity", "label", "literature", "clinical_trial", "target", "bioactivity", "indication"],
+  "sources": ["rxnorm", "openfda", "dailymed", "pubchem", "medlineplus-connect", "pubmed", "clinical-trials-gov", "chembl", "open-targets"],
   "limit": 3,
   "output_format": "json"
 }
@@ -78,5 +127,6 @@ Official documentation: <https://medlineplus.gov/medlineplus-connect/web-service
 
 A live smoke test on 2026-07-20 returned DailyMed SPL publication metadata,
 PubChem CID `54678486`, and MedlinePlus patient education in one `ok` response.
-The scheduled source-health workflow also checks RxNorm/RxClass, every openFDA
-drug endpoint, both Taiwan download surfaces, and these three sources weekly.
+The scheduled source-health workflow checks RxNorm/RxClass, every openFDA drug
+endpoint, both Taiwan download surfaces, and all nine public knowledge adapters
+weekly (18 independent surfaces in total).

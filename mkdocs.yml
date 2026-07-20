@@ -45,6 +45,7 @@ nav:
       - QueryResponse 契約: architecture/response-contract.md
   - 資料整合:
       - 資料來源總覽: data-sources.md
+      - 覆蓋與驗證矩陣: coverage-matrix.md
       - 公共藥品 API: public-apis.md
       - 台灣健保複合查詢: taiwan-nhi.md
       - FHIR 與院內庫存: fhir.md

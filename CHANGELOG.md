@@ -13,10 +13,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added `query_pharmacy`, `list_knowledge_sources`, `get_nhi_data_status`, the
   Python harness/CLI, and the `pharmacy-query-contract` prompt.
 - Added capability-routed providers for RxNorm/RxClass, all seven openFDA drug
-  endpoints, DailyMed, PubChem, MedlinePlus Connect, TFDA/NHI, FHIR R4/R5,
-  local files, SQLite, vector gateways, and fixed HTTPS documents.
+  endpoints, DailyMed, PubChem, MedlinePlus Connect, PubMed,
+  ClinicalTrials.gov, ChEMBL, Open Targets, TFDA/NHI, FHIR R4/R5, local files,
+  SQLite, vector gateways, and fixed HTTPS documents.
 - Added an atomic official NHI CSV index and compound TFDA/NHI coverage queries.
-- Added MkDocs/GitHub Pages deployment and a weekly 14-surface source probe.
+- Added MkDocs/GitHub Pages deployment and a weekly 18-surface source probe.
 
 ### Changed
 - Integrated the 0.9.1 FastMCP transports and trusted PK/DDI simulation catalog

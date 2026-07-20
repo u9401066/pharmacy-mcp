@@ -19,11 +19,12 @@ uv build
 
 `.github/workflows/source-health.yml` runs every Monday and can also be started
 manually. It executes `scripts/check_source_health.py`, which concurrently
-probes 14 surfaces:
+probes 18 surfaces:
 
 - RxNorm and RxClass
 - all seven openFDA drug endpoints
 - DailyMed, PubChem, and MedlinePlus Connect
+- PubMed, ClinicalTrials.gov, ChEMBL, and Open Targets
 - TFDA and NHI official dataset download endpoints
 
 The TFDA and NHI checks validate the response stream without consuming their

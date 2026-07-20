@@ -21,7 +21,8 @@ segmented release history.
 - `query_pharmacy` routes public APIs, Taiwan sources, FHIR, SQL, vector,
   files, and fixed web sources with timeout and partial-failure isolation.
 - Public sources include RxNorm/RxClass, all seven openFDA drug endpoints,
-  DailyMed, PubChem, and MedlinePlus Connect.
+  DailyMed, PubChem, MedlinePlus Connect, PubMed, ClinicalTrials.gov, ChEMBL,
+  and Open Targets.
 - Taiwan queries combine TFDA permits, the official NHI monthly item index,
   price/ATC/effective dates, and coverage-rule metadata.
 - FHIR R4/R5 supports medication/formulary, explicit patient order/dispense
@@ -35,13 +36,16 @@ segmented release history.
 
 ## Validation and release state
 
-- Final integration audit passes 187 tests and 82.25% branch coverage, including
+- Final integration audit passes 195 tests and 82.97% branch coverage, including
   ResourceWarning/PytestUnraisableExceptionWarning-as-error.
 - Ruff format/check, repo-wide strict mypy, Bandit, strict MkDocs, lockfile,
   sdist/wheel, release-artifact audit, and isolated wheel CLI all pass.
 - Installed-wheel MCP stdio passes with 33 tools, three prompts, compound query,
   and trusted simulation. A real Streamable HTTP client session also passes.
-- All 14 official public API/dataset probes passed on 2026-07-20.
+- All 18 official public API/dataset probes passed on 2026-07-20. A live
+  four-provider compound query also returned PubMed literature, intervention
+  studies, ChEMBL bioactivity, and Open Targets mechanisms/indications through
+  `QueryResponse` v1.0.
 - Draft PR #2 targets `main` from
   `agent/modernize-unified-pharmacy-gateway`.
 - Remote `main` advanced through 0.9.1 while this work was in progress. Its

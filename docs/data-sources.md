@@ -10,6 +10,10 @@ catalog status and whether an executable adapter is actually registered.
 | `dailymed` | [DailyMed SPL v2](https://dailymed.nlm.nih.gov/dailymed/app-support-web-services.cfm) | current structured labels | ready |
 | `pubchem` | [PubChem PUG REST](https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest) | compound identity and chemistry | ready |
 | `medlineplus-connect` | [MedlinePlus Connect](https://medlineplus.gov/medlineplus-connect/web-service/) | patient education by RxCUI/NDC/name | ready |
+| `pubmed` | [NCBI PubMed E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25497/) | literature citation discovery | ready |
+| `clinical-trials-gov` | [ClinicalTrials.gov API v2](https://clinicaltrials.gov/data-api/api) | intervention studies, phases, status and indications | ready |
+| `chembl` | [EMBL-EBI ChEMBL REST](https://www.ebi.ac.uk/chembl/api/data/docs) | molecule identity, chemistry, mechanisms, targets and bioactivity | ready |
+| `open-targets` | [Open Targets GraphQL](https://platform-docs.opentargets.org/data-access/graphql-api) | drug targets, mechanisms and indications | ready |
 | `tw-tfda` | [TFDA open data](https://data.gov.tw/dataset/9122) | permits, ingredients, product identity | ready |
 | `tw-nhi` | [NHI drug-item dataset](https://info.nhi.gov.tw/IODE0000/IODE0000S09?id=111) | reimbursement item and coverage metadata | ready |
 | `fhir` | [HL7 FHIR](https://hl7.org/fhir/) | hospital medications, formulary, orders, dispense and inventory | ready; endpoint required |
@@ -29,6 +33,8 @@ without an organization's credentials and data license.
 See [organization knowledge connectors](connectors.md) for file formats,
 environment settings, vector request shape, and the SQL/web security boundary.
 See [operations and source health](operations.md) for the scheduled live probes.
+The [coverage and evidence matrix](coverage-matrix.md) maps each requested
+knowledge surface to executable code, tests, and its safety boundary.
 
 ## Compound query behavior
 

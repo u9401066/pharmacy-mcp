@@ -30,7 +30,7 @@ search, files, fixed web documents, and a trusted PK/DDI simulation catalog.
 - **Hospital-ready boundaries:** FHIR is read-only; file, SQL, vector, and web
   connectors are configured by operators instead of accepting arbitrary agent
   paths, SQL, endpoints, or URLs.
-- **Drift detection:** a scheduled health workflow probes 14 official API and
+- **Drift detection:** a scheduled health workflow probes 18 official API and
   dataset surfaces every week without downloading the large Taiwan datasets.
 - **Deployable FastMCP:** use stdio locally or mount the same tool catalog over
   SSE/Streamable HTTP; service creation and the ASGI export remain lazy.
@@ -98,7 +98,7 @@ The Python API exposes the same contract through
 
 | Area | Shipped adapters |
 |---|---|
-| Public drug knowledge | RxNorm/RxClass; all seven openFDA drug endpoints; DailyMed; PubChem; MedlinePlus Connect |
+| Public drug knowledge | RxNorm/RxClass; all seven openFDA drug endpoints; DailyMed; PubChem; MedlinePlus Connect; PubMed; ClinicalTrials.gov; ChEMBL; Open Targets |
 | Taiwan | TFDA permits, official NHI monthly drug items, coverage rules and terminology |
 | Hospital | FHIR R4/R5 medication, order, dispense, inventory and supply; bundled formulary |
 | Organization data | PDF, DOC/DOCX, CSV, XLS/XLSX, Markdown, text, read-only SQLite, vector gateway, fixed HTTPS pages |

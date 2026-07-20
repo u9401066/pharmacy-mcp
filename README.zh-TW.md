@@ -27,7 +27,7 @@ PK/DDI 模擬整合成一個可追溯的藥品查詢入口。
   來源失敗時，其餘成功資料以 `partial` 回傳。
 - **預設能接醫院：** FHIR 只讀；file/SQL/vector/web 都由管理者設定邊界，
   agent 不能自行指定路徑、SQL、endpoint 或 URL。
-- **主動偵測來源漂移：** 每週排程檢查 14 個官方 API/資料集入口，且不下載
+- **主動偵測來源漂移：** 每週排程檢查 18 個官方 API/資料集入口，且不下載
   台灣的大型資料檔。
 - **FastMCP 可部署：** 本機可用 stdio，也可把同一份工具目錄掛載成
   SSE/Streamable HTTP；service 與 ASGI app 都採 lazy initialization。
@@ -94,7 +94,7 @@ Python 可直接匯入 `pharmacy_mcp.application.harness.PharmacyHarness`。
 
 | 範圍 | 隨附 adapters |
 |---|---|
-| 公共藥品知識 | RxNorm/RxClass、openFDA 全七個藥品端點、DailyMed、PubChem、MedlinePlus Connect |
+| 公共藥品知識 | RxNorm/RxClass、openFDA 全七個藥品端點、DailyMed、PubChem、MedlinePlus Connect、PubMed、ClinicalTrials.gov、ChEMBL、Open Targets |
 | 台灣 | TFDA 許可證、健保署官方每月藥品項目、給付規則、藥名對照 |
 | 醫院 | FHIR R4/R5 藥品、醫囑、調劑、庫存/供應，以及 bundled formulary |
 | 組織資料 | PDF、DOC/DOCX、CSV、XLS/XLSX、Markdown、text、唯讀 SQLite、vector gateway、固定 HTTPS 文件 |

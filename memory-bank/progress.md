@@ -73,6 +73,10 @@
 - ✅ DailyMed SPL v2 adapter + live smoke test
 - ✅ PubChem PUG REST chemical identity adapter + live smoke test
 - ✅ MedlinePlus Connect patient education adapter + live smoke test
+- ✅ PubMed E-utilities literature citation adapter + live smoke test
+- ✅ ClinicalTrials.gov API v2 intervention-study adapter + live smoke test
+- ✅ ChEMBL molecule/target/bioactivity adapter + live smoke test
+- ✅ Open Targets drug/target/indication GraphQL adapter + live smoke test
 - ✅ FHIR R4/R5 medication + explicit patient query adapter
 - ✅ FHIR R5 InventoryItem/InventoryReport + R4 SupplyDelivery fallback
 - ✅ Bearer secret boundary、resource allowlist、unsupported resource isolation
@@ -92,7 +96,7 @@
 - ✅ repo-wide Ruff format/check baseline
 - ✅ repo-wide strict mypy baseline
 - ✅ CI quality gate（format/lint/type）
-- ✅ 187 tests / 82.25% branch coverage（gate 70%）
+- ✅ 195 tests / 82.97% branch coverage（gate 70%）
 - ✅ SQLite/Cache resources explicit lifecycle，ResourceWarning-as-error 通過
 - ✅ Bandit security baseline in CI；legacy cache key 改 SHA-256
 - ✅ MkDocs strict build、sdist/wheel build
@@ -103,7 +107,8 @@
 - ✅ bounded openFDA label/regulatory projections
 - ✅ provider partial status 正確傳遞到統一回應
 - ✅ TFDA current HTTPS ZIP ingestion + plain JSON compatibility
-- ✅ 每週 14-source live health workflow；2026-07-20 全數通過
+- ✅ 每週 18-surface live health workflow；2026-07-20 全數通過
+- ✅ 藥品知識 coverage/evidence matrix（可執行來源、capability、測試與界線）
 - ✅ 新增能力後完整 release audit 全綠（quality/security/docs/package/CLI/MCP）
 - ✅ 20 個分段 commits 已發布到 `agent/modernize-unified-pharmacy-gateway`
 - ✅ two-parent integration 已發佈；PR #2 mergeable 且 CI run 29741488853 成功
