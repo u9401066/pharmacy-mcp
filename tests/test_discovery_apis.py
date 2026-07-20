@@ -6,11 +6,13 @@ from typing import Any
 import httpx
 import pytest
 
-from pharmacy_mcp.domain.models.provider import QueryCapability
+from pharmacy_mcp.domain.models.provider import ProviderQuery, QueryCapability
+from pharmacy_mcp.domain.models.response import ResponseStatus
 from pharmacy_mcp.infrastructure.api.chembl import ChEMBLClient
 from pharmacy_mcp.infrastructure.api.clinical_trials import ClinicalTrialsClient
 from pharmacy_mcp.infrastructure.api.open_targets import OpenTargetsClient
 from pharmacy_mcp.infrastructure.api.pubmed import PubMedClient
+from pharmacy_mcp.infrastructure.providers.builtin import ChEMBLKnowledgeProvider
 from pharmacy_mcp.infrastructure.providers.registry import build_default_registry
 
 
@@ -331,3 +333,42 @@ def test_discovery_providers_are_registered_and_capability_routed() -> None:
 
     assert not expected.keys() & search_ids
     assert "pubmed" in literature_ids
+
+
+@pytest.mark.asyncio
+async def test_chembl_provider_keeps_mechanisms_when_activity_fails() -> None:
+    class FakeClient:
+        async def search_molecules(
+            self, query: str, limit: int
+        ) -> list[dict[str, Any]]:
+            assert query == "warfarin"
+            assert limit == 2
+            return [{"chembl_id": "CHEMBL1464"}]
+
+        async def get_mechanisms(
+            self, chembl_id: str, limit: int
+        ) -> list[dict[str, Any]]:
+            assert chembl_id == "CHEMBL1464"
+            assert limit == 2
+            return [{"action_type": "INHIBITOR"}]
+
+        async def get_activities(
+            self, chembl_id: str, limit: int
+        ) -> list[dict[str, Any]]:
+            assert chembl_id == "CHEMBL1464"
+            assert limit == 2
+            raise RuntimeError("activity endpoint unavailable")
+
+    provider = ChEMBLKnowledgeProvider(FakeClient())  # type: ignore[arg-type]
+    result = await provider.query(
+        ProviderQuery(
+            text="warfarin",
+            capabilities=(QueryCapability.TARGET, QueryCapability.BIOACTIVITY),
+            limit=2,
+        )
+    )
+
+    assert result.status is ResponseStatus.PARTIAL
+    assert result.data["mechanisms"]["CHEMBL1464"] == [{"action_type": "INHIBITOR"}]
+    assert "activities" not in result.data
+    assert result.warnings == ["ChEMBL activities lookup failed for CHEMBL1464"]
