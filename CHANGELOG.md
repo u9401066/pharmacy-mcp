@@ -8,13 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- (none)
+- `QueryResponse` v1.0 shared by every MCP tool, Python harness, and CLI
+- `query_pharmacy`, `list_knowledge_sources`, and `get_nhi_data_status` MCP tools
+- `pharmacy-query-contract` MCP prompt and deterministic output renderers
+- Provider registry with capability routing, concurrency, timeout isolation,
+  provenance, and partial-failure aggregation
+- DailyMed, PubChem, and MedlinePlus Connect public API adapters
+- Official Taiwan NHI monthly CSV to atomic, versioned SQLite index
+- Taiwan TFDA + NHI item + coverage-rule compound query
+- Read-only FHIR R4/R5 medication, patient order/dispense, inventory, and supply
+- Secure file, read-only SQLite, vector gateway, and fixed HTTPS connectors
+- Python `PharmacyHarness` and `pharmacy-query` CLI
+- MkDocs Material site, GitHub Pages deployment, and multi-version CI workflows
 
 ### Changed
-- (none)
+- Package prerelease version is now `0.9.0a1`
+- `pharmacy-mcp` console entry point now targets the actual server module
+- Documentation and architecture now describe the unified gateway
 
 ### Fixed
-- (none)
+- Taiwan ROC six-digit dates are compared numerically so historical items are
+  not misclassified as currently reimbursed
 
 ---
 

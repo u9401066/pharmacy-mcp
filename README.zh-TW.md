@@ -1,64 +1,45 @@
-# 💊 藥品資訊 MCP Server
+# Pharmacy MCP 藥品知識閘道
 
-> 完整藥品資訊 MCP Server - 藥品查詢、資訊取得、劑量計算、交互作用檢查、食品藥品衝突
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-00695C.svg)](https://modelcontextprotocol.io/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-GitHub_Pages-00897B.svg)](https://u9401066.github.io/pharmacy-mcp/)
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![MCP](https://img.shields.io/badge/MCP-1.0-green.svg)](https://modelcontextprotocol.io/)
+這是一個 **MCP server + agent harness**，把公共藥品 API、台灣 TFDA/NHI、
+醫院 FHIR/庫存、院內資料庫、向量搜尋、檔案與固定 Web 文件整合成一個可追溯
+的藥品查詢入口。
 
-🌐 [English](README.md)
+[English](README.md) · [說明網站](https://u9401066.github.io/pharmacy-mcp/) · [架構](ARCHITECTURE.md)
 
-## ✨ 功能特色
+> 目前為 alpha。所有內容只供參考，不構成醫療建議，也不能取代藥師、醫師或
+> 經驗證的臨床決策支援系統。
 
-- 🔍 **藥品查詢** - 依名稱、ATC 碼、適應症搜尋
-- 📋 **藥品資訊** - 完整藥品資訊、仿單、藥理學資料
-- 🧮 **劑量計算** - 小兒劑量、腎功能調整、體重劑量
-- ⚠️ **交互作用** - 藥物-藥物交互作用檢查
-- 🍎 **食品衝突** - 食品、酒精、保健品與藥物衝突
-- 🇹🇼 **台灣健保整合** - TFDA 藥品查詢、健保給付、中英藥名對照
+## 為什麼需要這個入口
 
-## 📦 資料來源
+- **Agent 只需一個入口：** `query_pharmacy` 依 capability 或明確來源路由，
+  並隔離 provider timeout 和錯誤。
+- **輸出可以被穩定解析：** 所有 MCP tools 共用 `QueryResponse` v1.0 JSON
+  Schema；文字可選 `json`、`json_compact` 或 `markdown`，但
+  `structuredContent` 永遠是唯一真實來源。
+- **直接約束 Agent：** 每個 tool 都附 forwarding 規則，MCP client 也能載入
+  `pharmacy-query-contract` prompt。
+- **複合結果仍可追溯：** provider payload、來源、警告與錯誤分開保留；某一
+  來源失敗時，其餘成功資料以 `partial` 回傳。
+- **預設能接醫院：** FHIR 只讀；file/SQL/vector/web 都由管理者設定邊界，
+  agent 不能自行指定路徑、SQL、endpoint 或 URL。
 
-| 來源 | 提供者 | 資料類型 |
-|------|--------|----------|
-| [RxNorm API](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html) | NIH/NLM | 藥品命名標準化 |
-| [openFDA](https://open.fda.gov/apis/) | FDA | 不良反應、藥品標籤 |
-| [DailyMed](https://dailymed.nlm.nih.gov/dailymed/) | NLM | 藥品仿單 |
-| [RxClass](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxClassAPIs.html) | NIH/NLM | 藥品分類 |
-| [TFDA 開放資料](https://data.fda.gov.tw/) | 台灣 TFDA | 台灣藥品許可證 |
-| [NHI 開放資料](https://data.nhi.gov.tw/) | 台灣健保署 | 健保給付、藥價 |
+## 快速開始
 
-## 🚀 快速開始
-
-### 安裝
+需要 Python 3.11+ 與 [uv](https://docs.astral.sh/uv/)。
 
 ```bash
-# Clone 專案
-git clone https://github.com/your-org/pharmacy-mcp.git
+git clone https://github.com/u9401066/pharmacy-mcp.git
 cd pharmacy-mcp
-
-# 使用 uv 建立虛擬環境
-uv venv
-source .venv/bin/activate  # Linux/macOS
-# 或 .venv\Scripts\activate  # Windows
-
-# 安裝依賴
 uv sync --all-extras
+uv run pharmacy-mcp
 ```
 
-### 執行伺服器
-
-```bash
-# 執行 MCP server
-pharmacy-mcp
-
-# 或使用 Python
-python -m pharmacy_mcp.server
-```
-
-### Claude Desktop 設定
-
-將以下內容加入 `claude_desktop_config.json`：
+MCP client 設定：
 
 ```json
 {
@@ -66,109 +47,87 @@ python -m pharmacy_mcp.server
     "pharmacy": {
       "command": "uv",
       "args": ["run", "pharmacy-mcp"],
-      "cwd": "/path/to/pharmacy-mcp"
+      "cwd": "/absolute/path/to/pharmacy-mcp"
     }
   }
 }
 ```
 
-## 🛠️ 可用工具
+建議查詢：
 
-### 藥品查詢
-| 工具 | 說明 |
-|------|------|
-| `search_drug_by_name` | 依名稱搜尋藥品 |
-| `search_drug_by_atc` | 依 ATC 碼搜尋 |
-| `search_drug_by_indication` | 依適應症搜尋 |
-| `get_drug_alternatives` | 取得替代藥品 |
-
-### 藥品資訊
-| 工具 | 說明 |
-|------|------|
-| `get_drug_details` | 完整藥品資訊 |
-| `get_drug_label` | FDA 核准標籤 |
-| `get_pharmacokinetics` | 藥物動力學資訊 |
-| `get_contraindications` | 禁忌症清單 |
-| `get_side_effects` | 不良反應 |
-
-### 劑量計算
-| 工具 | 說明 |
-|------|------|
-| `calculate_pediatric_dose` | 小兒劑量計算 |
-| `calculate_renal_dose` | 腎功能調整劑量 |
-| `calculate_weight_dose` | 體重劑量計算 |
-| `calculate_bsa_dose` | 體表面積劑量 |
-
-### 交互作用檢查
-| 工具 | 說明 |
-|------|------|
-| `check_drug_interaction` | 檢查兩藥物交互 |
-| `check_multiple_drugs` | 多重藥物檢查 |
-| `get_interaction_severity` | 取得嚴重等級 |
-| `get_interaction_mechanism` | 取得機轉說明 |
-
-### 食品藥品衝突
-| 工具 | 說明 |
-|------|------|
-| `check_food_interaction` | 食品藥物交互 |
-| `check_alcohol_interaction` | 酒精交互作用 |
-| `check_supplement_interaction` | 保健品交互作用 |
-| `get_dietary_restrictions` | 飲食限制建議 |
-
-### 台灣健保整合 🇹🇼
-| 工具 | 說明 |
-|------|------|
-| `search_tfda_drug` | 搜尋台灣 TFDA 藥品資料庫 |
-| `get_nhi_coverage` | 查詢健保給付狀態 |
-| `get_nhi_drug_price` | 查詢健保藥價 |
-| `translate_drug_name` | 藥品名稱中英對照 |
-| `list_prior_authorization_drugs` | 列出需事前審查藥品 |
-| `list_nhi_coverage_rules` | 列出健保給付規則 |
-
-## 🏗️ 專案架構
-
-```
-src/pharmacy_mcp/
-├── domain/              # 核心領域
-│   ├── entities/        # 藥品、交互作用實體
-│   └── value_objects/   # 劑量、嚴重等級
-├── application/         # 應用層
-│   ├── search/          # 搜尋服務
-│   ├── info/            # 資訊服務
-│   ├── dosage/          # 劑量計算器
-│   └── interaction/     # 交互作用檢查器
-├── infrastructure/      # 基礎設施
-│   ├── api/             # API 客戶端 (RxNorm, FDA)
-│   └── cache/           # 快取層
-└── presentation/        # 呈現層
-    └── tools/           # MCP Tool 定義
+```json
+{
+  "query": "warfarin",
+  "capabilities": ["identity", "label", "reimbursement", "formulary"],
+  "sources": ["rxnorm", "dailymed", "tw-tfda", "tw-nhi", "local-formulary"],
+  "limit": 10,
+  "output_format": "json_compact",
+  "locale": "zh-TW"
+}
 ```
 
-## 🧪 測試
+非 MCP workflow 可以使用同一份契約：
 
 ```bash
-# 執行所有測試
-pytest
-
-# 含覆蓋率報告
-pytest --cov=src --cov-report=html
-
-# 只執行單元測試
-pytest -m unit
-
-# 靜態分析
-ruff check src tests
-mypy src
+uv run pharmacy-query warfarin \
+  --source local-formulary \
+  --capability formulary \
+  --format json_compact
 ```
 
-## ⚠️ 免責聲明
+Python 可直接匯入 `pharmacy_mcp.application.harness.PharmacyHarness`。
 
-> **本資訊僅供參考，不構成醫療建議。請諮詢專業醫療人員。**
+## 已整合的知識
 
-## 📄 授權
+| 範圍 | 隨附 adapters |
+|---|---|
+| 公共藥品知識 | RxNorm/RxClass、openFDA、DailyMed、PubChem、MedlinePlus Connect |
+| 台灣 | TFDA 許可證、健保署官方每月藥品項目、給付規則、藥名對照 |
+| 醫院 | FHIR R4/R5 藥品、醫囑、調劑、庫存/供應，以及 bundled formulary |
+| 組織資料 | PDF、DOC/DOCX、CSV、XLS/XLSX、Markdown、text、唯讀 SQLite、vector gateway、固定 HTTPS 文件 |
+| 商業資料 catalog | DrugBank、FDB、Micromedex；沒有授權時不抓取也不假裝啟用 |
 
-[Apache License 2.0](LICENSE)
+`list_knowledge_sources` 是 runtime 真實狀態：會列出 capability、實作狀態、
+credential 需求與 adapter 是否已註冊。完整內容見[資料來源總覽](docs/data-sources.md)。
 
----
+## 台灣健保與院內設定
 
-*為醫療專業人員和開發者用心打造 ❤️*
+NHI provider 會按需下載官方月 CSV，再以 atomic replace 建立版本化 SQLite
+索引。同一查詢可合併健保碼、支付價、ATC、有效日期、TFDA 與給付規則。詳見
+[台灣健保複合查詢](docs/taiwan-nhi.md)。
+
+設定 `PHARMACY_MCP_FHIR_BASE_URL` 後才會註冊醫院 adapter。Bearer token 由
+`SecretStr` 設定讀取；只有授權呼叫方明確傳入 `context.patient_id` 時才會查
+病人資源。院內資料連接器也採同樣的 allowlist 原則。請從 [.env.example](.env.example)、
+[FHIR 與庫存](docs/fhir.md)及[組織資料連接器](docs/connectors.md)開始。
+
+## 輸出與 Agent 規則
+
+固定的 top-level fields：
+
+```text
+schema_version · status · data · sources · warnings · errors · meta
+```
+
+未知欄位會被拒絕。Agent 必須保留七個欄位、不得自行補足缺失的臨床事實，
+也不得把多來源扁平化成一個虛構的權威來源。詳見 [Agent harness](docs/agent-harness.md)
+與 [response contract](docs/architecture/response-contract.md)。
+
+## 開發
+
+```bash
+uv sync --all-extras
+uv run pytest
+uv run ruff check src tests examples
+uv run mypy src
+uv run mkdocs build --strict
+```
+
+本 repo 使用分段 Conventional Commits、持續更新 Memory Bank、多 Python 版本
+CI 和 GitHub Pages 文件部署。詳見 [CONTRIBUTING.md](CONTRIBUTING.md) 與
+[SECURITY.md](SECURITY.md)。
+
+## 授權
+
+程式碼採 Apache License 2.0。外部資料集與商業知識庫仍各自適用其授權、
+attribution 與臨床使用限制。

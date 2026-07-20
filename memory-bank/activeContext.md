@@ -35,7 +35,10 @@
 - file root/symlink/size/count、web redirect/size、secret 等安全界線均有測試
 - 已完成 Python `PharmacyHarness` 與 `pharmacy-query` CLI 單一入口
 - MCP 新增 `pharmacy-query-contract` prompt，明確約束 agent 保留固定 envelope/provenance/failures
-- 下一批：GitHub Pages/CI、repo-wide quality baseline 與總文件翻新
+- 已完成 MkDocs Material 說明網站與 GitHub Pages artifact/deploy workflow
+- 已完成 Python 3.11/3.12/3.13 CI、雙語 README、架構、安全、貢獻與 changelog 翻新
+- `mkdocs build --strict` 已通過；待 push 後於 repo Settings 將 Pages source 設為 GitHub Actions
+- 下一批：repo-wide Ruff/mypy quality baseline、最終驗證與 push
 
 ## 📝 最近完成的變更（v0.8.5）
 

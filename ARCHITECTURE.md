@@ -1,141 +1,102 @@
 # Architecture
 
-## 概述
+## System boundary
 
-藥品資訊 MCP Server 採用分層架構（DDD），將藥品領域邏輯與基礎設施分離。
-
-v0.9 起，主要入口是 MCP `query_pharmacy`：它把查詢正規化成
-`ProviderQuery`，由 registry 依 capability/source 選擇 adapters，並行執行後
-以 `QueryResponse` v1.0 回傳。既有原子 tools 保留給確定性 workflow 使用。
+Pharmacy MCP is a read-mostly pharmaceutical knowledge gateway with one
+versioned agent-facing response. MCP, Python, and CLI are transports over the
+same application service; they are not independent implementations.
 
 ```text
-Agent / MCP client
-        │
-        ▼
-query_pharmacy ── outputSchema / formatter
-        │
-        ▼
-UnifiedQueryService ── ProviderRegistry
-        │
-        ├── public APIs (RxNorm, openFDA, ...)
-        ├── Taiwan TFDA + NHI
-        ├── hospital FHIR / formulary / inventory
-        └── SQL / vector / files / allowlisted web
+MCP client             Python agent              shell/job
+    │                       │                         │
+    └─────────────── PharmacyHarness / tools ────────┘
+                            │
+                    UnifiedQueryService
+                            │
+                      ProviderRegistry
+          ┌─────────────────┼──────────────────┐
+          │                 │                  │
+     public/Taiwan      FHIR/hospital      organization data
+       APIs/data       meds + inventory   file/SQL/vector/web
+          └─────────────────┼──────────────────┘
+                            │
+                    QueryResponse v1.0
 ```
 
-## 架構圖
+## Layers
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     MCP Client (Claude)                         │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                            │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌────────────┐ │
-│  │ Search Tools│ │ Info Tools  │ │Dosage Tools │ │Interaction │ │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Application Layer                             │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌────────────┐ │
-│  │SearchService│ │ InfoService │ │DosageCalc   │ │Interaction │ │
-│  │             │ │             │ │             │ │Checker     │ │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Domain Layer                                │
-│  ┌─────────────────────────┐  ┌─────────────────────────────┐  │
-│  │        Entities         │  │      Value Objects          │  │
-│  │ - Drug                  │  │ - Dosage                    │  │
-│  │ - Interaction           │  │ - Severity                  │  │
-│  │ - DrugClass             │  │ - InteractionType           │  │
-│  └─────────────────────────┘  └─────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Infrastructure Layer                           │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌────────────┐ │
-│  │RxNorm Client│ │ FDA Client  │ │DailyMed     │ │   Cache    │ │
-│  │             │ │             │ │Client       │ │            │ │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      External APIs                               │
-│  ┌──────────┐ ┌────────────┐ ┌───────────┐ ┌─────────────────┐ │
-│  │ RxNorm   │ │  openFDA   │ │ DailyMed  │ │    RxClass      │ │
-│  └──────────┘ └────────────┘ └───────────┘ └─────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-```
+- `domain/` defines the provider port, capabilities, response contract, drug
+  entities, and value objects. It does not perform I/O.
+- `application/` owns use cases. `UnifiedQueryService` normalizes a query,
+  chooses providers, runs them concurrently, enforces per-provider timeouts,
+  and aggregates traceable partial results. `PharmacyHarness` adds the common
+  transport envelope.
+- `infrastructure/` contains API/FHIR clients, the NHI index, local knowledge,
+  parsers, and provider adapters. Every executable source implements
+  `KnowledgeProvider.query(ProviderQuery)`.
+- `presentation/` exposes MCP tools/prompts and the CLI. It validates and
+  deterministically renders results; it does not own source-specific logic.
 
-## 分層說明
+Dependencies point inward. Infrastructure implements domain ports, application
+orchestrates those ports, and presentation calls application services.
 
-### 1. Presentation Layer (`presentation/`)
-MCP Tool 定義層，負責：
-- 定義 Tool 參數和回傳格式
-- 輸入驗證
-- 格式化輸出（附帶免責聲明）
+## Query lifecycle
 
-### 2. Application Layer (`application/`)
-應用服務層，負責：
-- 組合多個 Domain 服務
-- 實現用例（Use Cases）
-- 協調 Infrastructure 呼叫
+1. A caller supplies text, required capabilities, optional explicit sources,
+   limit, and authorized provider context.
+2. `ProviderRegistry` resolves configured adapters. Missing explicit providers
+   become `provider_unavailable` errors.
+3. Providers execute concurrently with isolated timeouts and exceptions.
+4. Successful provider payloads remain keyed by provider ID. Provenance is
+   deduplicated without merging source authority.
+5. The service selects `ok`, `partial`, or `error` and returns `ServiceResult`.
+6. The transport wraps it in JSON-Schema-validated `QueryResponse` v1.0 and
+   produces the requested text view.
 
-### 3. Domain Layer (`domain/`)
-核心領域層，負責：
-- 定義藥品實體（Drug, Interaction）
-- 定義值物件（Dosage, Severity）
-- 純業務邏輯，無外部依賴
+## Source model
 
-### 4. Infrastructure Layer (`infrastructure/`)
-基礎設施層，負責：
-- 外部 API 客戶端
-- 快取管理
-- 資料轉換
+The catalog describes every known integration; the registry describes what can
+execute now. These states are intentionally separate:
 
-## 資料流
+- `ready`: adapter code ships with the repository;
+- `license_required`: integration requires organization licensing and remains
+  unregistered by default;
+- `registered`: the required runtime configuration is present.
 
-```
-User Request
-    │
-    ▼
-MCP Tool (Presentation)
-    │
-    ▼
-Application Service
-    │
-    ├── Domain Logic
-    │
-    └── Infrastructure (API Call)
-            │
-            ▼
-        External API
-            │
-            ▼
-        Cache (Optional)
-            │
-            ▼
-        Response
-```
+Adapters are selected by normalized capabilities such as `identity`, `label`,
+`safety`, `reimbursement`, `formulary`, `inventory`, `document`, and
+`chemistry`. Callers may specify source IDs for reproducibility.
 
-## 快取策略
+## Storage and refresh
 
-| 資料類型 | TTL | 說明 |
-|----------|-----|------|
-| Drug Info | 24h | 藥品基本資訊穩定 |
-| Interactions | 24h | 交互作用資訊穩定 |
-| Search Results | 1h | 搜尋結果可能變動 |
-| Labels | 7d | FDA 標籤較少更新 |
+- Public API responses use bounded projections so large upstream payloads do
+  not flood agent context.
+- The official Taiwan NHI monthly CSV is streamed into a temporary, versioned
+  SQLite database and atomically replaces the active index after validation.
+- The bundled formulary and renal-dose data remain small versioned assets.
+- Operator databases are opened read-only and expose only validated table and
+  column mappings.
+- File extraction is bounded by root, extension, symlink, byte, and file-count
+  policy.
 
----
+## Security and privacy
 
-*Updated: 2025-12-22*
+- Credentials come from server settings and never from MCP arguments.
+- FHIR is read-only. Patient resources require explicit `context.patient_id`;
+  authentication, SMART token rotation, consent, audit, and authorization stay
+  with the hospital environment.
+- Vector forwarding includes only query, limit, and explicit `vector_filters`.
+- Fixed web retrieval accepts only operator-configured, credential-free HTTPS
+  URLs, does not follow redirects, and enforces byte limits.
+- The gateway does not claim that public/open data is clinical decision support.
+
+See [SECURITY.md](SECURITY.md), [docs/fhir.md](docs/fhir.md), and
+[docs/connectors.md](docs/connectors.md).
+
+## Compatibility policy
+
+Adding provider payload fields is normally backward compatible. Changing the
+top-level envelope, field meaning, or required fields requires a new
+`schema_version`. Human renderers may improve without becoming authoritative.
+Existing atomic tools remain available for deterministic legacy workflows while
+new cross-source work should prefer `query_pharmacy`.

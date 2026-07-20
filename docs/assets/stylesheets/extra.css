@@ -1,0 +1,37 @@
+:root {
+  --pharmacy-gradient-a: #00695c;
+  --pharmacy-gradient-b: #00897b;
+}
+
+.pharmacy-hero {
+  margin: 0 0 1.5rem;
+  padding: 1.6rem 1.8rem;
+  border: 1px solid color-mix(in srgb, var(--md-primary-fg-color) 32%, transparent);
+  border-radius: 0.8rem;
+  background:
+    radial-gradient(circle at 92% 12%, rgb(255 255 255 / 18%), transparent 24%),
+    linear-gradient(135deg, var(--pharmacy-gradient-a), var(--pharmacy-gradient-b));
+  color: white;
+  box-shadow: 0 0.6rem 1.8rem rgb(0 0 0 / 14%);
+}
+
+.pharmacy-hero p:first-child {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+
+.pharmacy-hero .md-button {
+  margin: 0.4rem 0.35rem 0.15rem 0;
+  border-color: white;
+  color: white;
+}
+
+.pharmacy-hero .md-button--primary {
+  background: white;
+  color: var(--pharmacy-gradient-a);
+}
+
+.grid.cards > ul > li {
+  border-radius: 0.65rem;
+}
+

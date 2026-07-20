@@ -82,7 +82,11 @@
 - ✅ fixed HTTPS document connector（no redirects / no caller URL）
 - ✅ Python agent harness + deterministic CLI
 - ✅ MCP agent-contract prompt
-- 📋 GitHub Pages 與 CI
+- ✅ MkDocs Material GitHub Pages 說明網站
+- ✅ GitHub Pages official artifact/deploy workflow
+- ✅ Python 3.11/3.12/3.13 test/build CI
+- ✅ 雙語 README、architecture/security/contributing/changelog 現代化
+- 🚧 repo-wide Ruff/mypy quality baseline
 
 ## Next
 

@@ -157,5 +157,16 @@
 - transport 可以不同，但 agent 解析和下游自動化只需維護一種契約
 - prompt + JSON Schema + deterministic renderer 形成互補的格式約束
 
+### DEC-017: 文件站採 MkDocs + GitHub Pages artifact deployment
+**日期**: 2026-07-20
+**決策**: `docs/` 是文件單一來源，MkDocs Material strict build 後透過 GitHub Pages Actions artifact 發布
+**實作**:
+- `mkdocs.yml` 定義導覽、搜尋、淺深色與 responsive landing page
+- CI 驗證 strict docs build；Pages workflow 分離 build/deploy job
+- deploy job 僅給 `pages: write` / `id-token: write`，一般 CI 維持 `contents: read`
+**原因**:
+- 不把產物或 `gh-pages` branch 手動混入主要開發流程
+- 文件變更能在 PR/CI 先驗證，main 更新後自動發布 GitHub.io
+
 ---
 *Last updated: 2025-12-22*

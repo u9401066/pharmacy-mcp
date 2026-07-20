@@ -1,70 +1,48 @@
-# 💊 Pharmacy MCP Server
+# Pharmacy MCP Gateway
 
-> 完整藥品資訊 MCP Server - 藥品查詢、資訊取得、劑量計算、交互作用檢查、食品藥品衝突
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-00695C.svg)](https://modelcontextprotocol.io/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-GitHub_Pages-00897B.svg)](https://u9401066.github.io/pharmacy-mcp/)
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![MCP](https://img.shields.io/badge/MCP-1.0-green.svg)](https://modelcontextprotocol.io/)
+An MCP server and agent harness that makes pharmaceutical knowledge available
+through one traceable query contract. It combines public drug APIs, Taiwan
+TFDA/NHI data, hospital FHIR and inventory, organization databases, vector
+search, files, and fixed web documents.
 
-🌐 [繁體中文](README.zh-TW.md)
+[繁體中文](README.zh-TW.md) · [Documentation](https://u9401066.github.io/pharmacy-mcp/) · [Architecture](ARCHITECTURE.md)
 
-## ✨ Features
+> Alpha software. Reference data only; not medical advice or a replacement for
+> a pharmacist, physician, or validated clinical decision-support system.
 
-- 🧭 **Unified Agent Contract** - every tool returns the same versioned,
-  JSON-Schema-validated envelope
-- 🧱 **Configurable Output** - `json`, `json_compact`, or `markdown` text while
-  `structuredContent` remains stable
-- 🔌 **Single Query Gateway** - `query_pharmacy` fans out across compatible
-  APIs, Taiwan datasets, hospital sources, databases, files, vectors, and web
-- 🧾 **Honest Source Discovery** - `list_knowledge_sources` reports ready,
-  configurable, and license-required integrations plus runtime registration
-- 🔍 **Drug Search** - 藥品名稱、ATC 碼、適應症搜尋
-- 📋 **Drug Information** - 完整藥品資訊、仿單、藥理學
-- 🧮 **Dosage Calculator** - 小兒、腎功能、體重劑量計算
-- ⚠️ **Interaction Checker** - 藥物-藥物交互作用檢查
-- 🍎 **Food-Drug Interactions** - 食品、酒精、保健品衝突
-- 🇹🇼 **Taiwan NHI Integration** - 台灣健保給付、TFDA 藥品、中英藥名對照
+## Why this gateway
 
-## 📦 Data Sources
+- **One agent entry point:** `query_pharmacy` routes by capability or explicit
+  source and isolates provider timeouts and failures.
+- **Stable output:** every MCP tool returns `QueryResponse` v1.0 through a
+  shared JSON Schema. Text is a deterministic `json`, `json_compact`, or
+  `markdown` rendering; MCP `structuredContent` remains authoritative.
+- **Agent constraint:** every tool carries forwarding rules and clients can load
+  the `pharmacy-query-contract` MCP prompt.
+- **Traceable compound results:** provider payloads, provenance, warnings, and
+  errors remain distinct. Successful data survives as `partial` if another
+  source fails.
+- **Hospital-ready boundaries:** FHIR is read-only; file, SQL, vector, and web
+  connectors are configured by operators instead of accepting arbitrary agent
+  paths, SQL, endpoints, or URLs.
 
-| Source | Provider | Data Type |
-|--------|----------|-----------|
-| [RxNorm API](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html) | NIH/NLM | Drug naming, concepts |
-| [openFDA](https://open.fda.gov/apis/) | FDA | Adverse events, labels |
-| [DailyMed](https://dailymed.nlm.nih.gov/dailymed/) | NLM | Drug labels |
-| [RxClass](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxClassAPIs.html) | NIH/NLM | Drug classification || [TFDA Open Data](https://data.fda.gov.tw/) | 台灣 TFDA | Taiwan drug permits |
-| [NHI Open Data](https://data.nhi.gov.tw/) | 台灣健保署 | NHI coverage, pricing |
-## 🚀 Quick Start
+## Quick start
 
-### Installation
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/pharmacy-mcp.git
+git clone https://github.com/u9401066/pharmacy-mcp.git
 cd pharmacy-mcp
-
-# Create virtual environment with uv
-uv venv
-source .venv/bin/activate  # Linux/macOS
-# or .venv\Scripts\activate  # Windows
-
-# Install dependencies
 uv sync --all-extras
+uv run pharmacy-mcp
 ```
 
-### Running the Server
-
-```bash
-# Run MCP server
-pharmacy-mcp
-
-# Or with Python
-python -m pharmacy_mcp.server
-```
-
-### Claude Desktop Configuration
-
-Add to your `claude_desktop_config.json`:
+MCP client configuration:
 
 ```json
 {
@@ -72,58 +50,26 @@ Add to your `claude_desktop_config.json`:
     "pharmacy": {
       "command": "uv",
       "args": ["run", "pharmacy-mcp"],
-      "cwd": "/path/to/pharmacy-mcp"
+      "cwd": "/absolute/path/to/pharmacy-mcp"
     }
   }
 }
 ```
 
-## 🛠️ Available Tools
-
-Every tool accepts the optional `output_format` and `locale` arguments. Agents
-must use MCP `structuredContent` as the source of truth. See the
-[response contract](docs/architecture/response-contract.md).
-
-### Recommended agent entry points
-
-| Tool | Purpose |
-|---|---|
-| `query_pharmacy` | Concurrent compound query with source selection and partial-failure handling |
-| `list_knowledge_sources` | Discover source capabilities, readiness, credentials, and registration |
+Recommended tool call:
 
 ```json
 {
   "query": "warfarin",
-  "capabilities": ["search", "reimbursement", "formulary"],
-  "sources": ["rxnorm", "tw-tfda", "tw-nhi", "local-formulary"],
+  "capabilities": ["identity", "label", "reimbursement", "formulary"],
+  "sources": ["rxnorm", "dailymed", "tw-tfda", "tw-nhi", "local-formulary"],
   "limit": 10,
   "output_format": "json_compact",
   "locale": "zh-TW"
 }
 ```
 
-See the complete [data-source catalog](docs/data-sources.md).
-Implementation notes for RxNorm/RxClass, openFDA, DailyMed, PubChem, and
-MedlinePlus are in [public pharmaceutical APIs](docs/public-apis.md).
-
-Taiwan NHI queries use an on-demand SQLite index of the official monthly CSV
-(224,455 rows in the 2026-07-20 smoke test). See [Taiwan NHI compound queries](docs/taiwan-nhi.md)
-for refresh, offline, and provenance settings.
-
-Hospital integration is enabled by setting `PHARMACY_MCP_FHIR_BASE_URL` and a
-short-lived bearer token. The shipped FHIR adapter covers R4/R5 medication,
-patient order/dispense, and inventory/supply resources; see
-[FHIR and inventory](docs/fhir.md) and [.env.example](.env.example).
-
-Organization-owned PDF/DOC/DOCX/CSV/XLS/XLSX/Markdown/text files, read-only
-SQLite projections, an internal vector gateway, and fixed HTTPS documents can
-join the same compound query. See [organization knowledge connectors](docs/connectors.md)
-for configuration and security boundaries.
-
-The same contract is available outside MCP through the Python
-`PharmacyHarness` and `pharmacy-query` CLI. MCP clients can load the
-`pharmacy-query-contract` prompt to constrain downstream agent output. See the
-[agent harness guide](docs/agent-harness.md).
+For a shell or non-MCP workflow:
 
 ```bash
 uv run pharmacy-query warfarin \
@@ -132,101 +78,64 @@ uv run pharmacy-query warfarin \
   --format json_compact
 ```
 
-### Drug Search
-| Tool | Description |
-|------|-------------|
-| `search_drug_by_name` | Search drugs by name |
-| `search_drug_by_atc` | Search by ATC code |
-| `search_drug_by_indication` | Search by indication |
-| `get_drug_alternatives` | Get therapeutic alternatives |
+The Python API exposes the same contract through
+`pharmacy_mcp.application.harness.PharmacyHarness`.
 
-### Drug Information
-| Tool | Description |
-|------|-------------|
-| `get_drug_details` | Complete drug information |
-| `get_drug_label` | FDA-approved labeling |
-| `get_pharmacokinetics` | PK/PD information |
-| `get_contraindications` | Contraindications list |
-| `get_side_effects` | Adverse reactions |
+## Integrated knowledge
 
-### Dosage Calculator
-| Tool | Description |
-|------|-------------|
-| `calculate_pediatric_dose` | Pediatric dosing |
-| `calculate_renal_dose` | Renal adjustment |
-| `calculate_weight_dose` | Weight-based dosing |
-| `calculate_bsa_dose` | BSA-based dosing |
+| Area | Shipped adapters |
+|---|---|
+| Public drug knowledge | RxNorm/RxClass, openFDA, DailyMed, PubChem, MedlinePlus Connect |
+| Taiwan | TFDA permits, official NHI monthly drug items, coverage rules and terminology |
+| Hospital | FHIR R4/R5 medication, order, dispense, inventory and supply; bundled formulary |
+| Organization data | PDF, DOC/DOCX, CSV, XLS/XLSX, Markdown, text, read-only SQLite, vector gateway, fixed HTTPS pages |
+| Licensed catalog | DrugBank, FDB and Micromedex are discoverable but never scraped or presented as enabled without a license |
 
-### Interaction Checker
-| Tool | Description |
-|------|-------------|
-| `check_drug_interaction` | Check two drugs |
-| `check_multiple_drugs` | Check drug list |
-| `get_interaction_severity` | Get severity level |
-| `get_interaction_mechanism` | Get mechanism |
+Call `list_knowledge_sources` for the runtime source of truth: capabilities,
+implementation state, credential needs, and whether an adapter is registered.
+See the [complete data-source catalog](docs/data-sources.md).
 
-### Food-Drug Interactions
-| Tool | Description |
-|------|-------------|
-| `check_food_interaction` | Food-drug interaction |
-| `check_alcohol_interaction` | Alcohol interaction |
-| `check_supplement_interaction` | Supplement interaction |
-| `get_dietary_restrictions` | Dietary restrictions |
+## Taiwan NHI and hospital setup
 
-### Taiwan NHI Integration 🇹🇼
-| Tool | Description |
-|------|-------------|
-| `search_tfda_drug` | Search Taiwan TFDA drug database |
-| `get_nhi_coverage` | Check NHI coverage status |
-| `get_nhi_drug_price` | Get NHI reimbursement price |
-| `translate_drug_name` | Translate drug names (EN↔TW) |
-| `list_prior_authorization_drugs` | List drugs requiring prior auth |
-| `list_nhi_coverage_rules` | List NHI coverage rules |
+The NHI provider downloads the official monthly CSV on demand and atomically
+builds a versioned SQLite index. It can combine reimbursement code, price, ATC,
+effective dates, TFDA results, and coverage-rule metadata in one query. See
+[Taiwan NHI compound queries](docs/taiwan-nhi.md).
 
-## 🏗️ Architecture
+Set `PHARMACY_MCP_FHIR_BASE_URL` to register the hospital adapter. Bearer tokens
+are read from `SecretStr` settings, and patient resources are queried only when
+an authorized caller explicitly supplies `context.patient_id`. Organization
+connectors use similarly explicit allowlists. Start with [.env.example](.env.example),
+[FHIR and inventory](docs/fhir.md), and [organization connectors](docs/connectors.md).
 
-```
-src/pharmacy_mcp/
-├── domain/              # Core domain models
-│   ├── entities/        # Drug, Interaction entities
-│   └── value_objects/   # Dosage, Severity
-├── application/         # Use cases
-│   ├── search/          # Search services
-│   ├── info/            # Information services
-│   ├── dosage/          # Dosage calculators
-│   └── interaction/     # Interaction checkers
-├── infrastructure/      # External services
-│   ├── api/             # API clients (RxNorm, FDA)
-│   └── cache/           # Caching layer
-└── presentation/        # MCP Tools
-    └── tools/           # Tool definitions
+## Output and agent rules
+
+The canonical top-level fields are:
+
+```text
+schema_version · status · data · sources · warnings · errors · meta
 ```
 
-## 🧪 Testing
+Unknown top-level fields are rejected. Agents must preserve all seven fields,
+must not infer absent clinical facts, and must not flatten multiple providers
+into one implied authority. See the [agent harness guide](docs/agent-harness.md)
+and [response contract](docs/architecture/response-contract.md).
+
+## Development
 
 ```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src --cov-report=html
-
-# Run only unit tests
-pytest -m unit
-
-# Static analysis
-ruff check src tests
-mypy src
+uv sync --all-extras
+uv run pytest
+uv run ruff check src tests examples
+uv run mypy src
+uv run mkdocs build --strict
 ```
 
-## ⚠️ Disclaimer
+The repository uses segmented Conventional Commits, an updated Memory Bank, CI
+across supported Python versions, and a GitHub Pages documentation workflow.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
-> **This information is for reference only and does not constitute medical advice. Please consult a healthcare professional.**
+## License
 
-## 📄 License
-
-[Apache License 2.0](LICENSE)
-
----
-
-*Built with ❤️ for healthcare professionals and developers*
+Apache License 2.0. Upstream datasets and commercial knowledge bases retain
+their own terms, attribution requirements, and clinical-use restrictions.
