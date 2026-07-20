@@ -133,6 +133,23 @@ class FakeOpenFDAClient:
         self.calls.append("approvals")
         return [{"application_number": "NDA001", "sponsor_name": drug_name}][:limit]
 
+    async def search_orange_book(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        self.calls.append("therapeutic_equivalence")
+        return [
+            {
+                "approval_date": "19970326",
+                "products": [
+                    {
+                        "brand_name": drug_name,
+                        "application_number": "040145",
+                        "reference_standard": False,
+                    }
+                ],
+            }
+        ][:limit]
+
     async def search_shortages(
         self, drug_name: str, limit: int = 10
     ) -> list[dict[str, Any]]:
@@ -240,6 +257,7 @@ async def test_openfda_provider_routes_every_declared_endpoint() -> None:
                 QueryCapability.NDC,
                 QueryCapability.RECALL,
                 QueryCapability.APPROVAL,
+                QueryCapability.THERAPEUTIC_EQUIVALENCE,
                 QueryCapability.SHORTAGE,
             ),
             limit=2,
@@ -253,12 +271,13 @@ async def test_openfda_provider_routes_every_declared_endpoint() -> None:
         "ndc",
         "recalls",
         "approvals",
+        "therapeutic_equivalence",
         "shortages",
     }
     assert result.data["adverse_events"][0]["reactions"] == ["Haemorrhage"]
     assert result.data["ndc"][0]["product_ndc"] == "0001-0001"
     assert set(client.calls) == set(result.data)
-    assert len(result.sources) == 6
+    assert len(result.sources) == 7
 
 
 @pytest.mark.asyncio

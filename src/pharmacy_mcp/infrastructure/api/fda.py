@@ -98,6 +98,21 @@ class FDAClient:
             min(limit, 99),
         )
 
+    async def search_orange_book(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Search Orange Book products and therapeutic-equivalence data."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "orangebook",
+            (
+                f'products.active_ingredients.name:"{term}" OR '
+                f'products.brand_name:"{term}"'
+            ),
+            limit,
+        )
+
     async def search_shortages(
         self, drug_name: str, limit: int = 10
     ) -> list[dict[str, Any]]:

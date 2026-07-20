@@ -27,6 +27,7 @@ class QueryCapability(StrEnum):
     DRUG_CLASS = "drug_class"
     NDC = "ndc"
     APPROVAL = "approval"
+    THERAPEUTIC_EQUIVALENCE = "therapeutic_equivalence"
     REIMBURSEMENT = "reimbursement"
     FORMULARY = "formulary"
     INVENTORY = "inventory"

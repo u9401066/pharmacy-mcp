@@ -146,6 +146,11 @@ async def test_openfda_client_projects_labels_events_and_sections(
             200, json={"results": [{"application_number": "NDA1"}]}
         )
     )
+    respx_mock.get(f"{base_url}/drug/orangebook.json").mock(
+        return_value=httpx.Response(
+            200, json={"results": [{"approval_date": "19970326"}]}
+        )
+    )
     respx_mock.get(f"{base_url}/drug/shortages.json").mock(
         return_value=httpx.Response(200, json={"results": [{"status": "Current"}]})
     )
@@ -160,6 +165,9 @@ async def test_openfda_client_projects_labels_events_and_sections(
     ] == "NDA1"
     assert approval_route.calls.last.request.url.params["limit"] == "99"
     assert '\\"sodium\\"' in approval_route.calls.last.request.url.params["search"]
+    assert (await client.search_orange_book("warfarin"))[0]["approval_date"] == (
+        "19970326"
+    )
     assert (await client.search_shortages("warfarin"))[0]["status"] == "Current"
     assert (await client.get_drug_interactions_from_label("warfarin"))["warnings"] == [
         "bleeding"

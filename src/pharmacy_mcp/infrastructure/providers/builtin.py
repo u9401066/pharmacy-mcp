@@ -143,6 +143,13 @@ class OpenFDAKnowledgeProvider:
                     self.client.search_approvals(request.text, request.limit),
                 )
             )
+        if QueryCapability.THERAPEUTIC_EQUIVALENCE in requested:
+            jobs.append(
+                (
+                    "therapeutic_equivalence",
+                    self.client.search_orange_book(request.text, request.limit),
+                )
+            )
         if QueryCapability.SHORTAGE in requested:
             jobs.append(
                 (
@@ -406,6 +413,7 @@ _OPENFDA_ENDPOINTS = {
     "ndc": "ndc",
     "recalls": "enforcement",
     "approvals": "drugsfda",
+    "therapeutic_equivalence": "orangebook",
     "shortages": "shortages",
 }
 
@@ -417,6 +425,7 @@ def _project_openfda(name: str, records: list[dict[str, Any]]) -> list[dict[str,
         "ndc": _project_ndc,
         "recalls": _project_recall,
         "approvals": _project_approval,
+        "therapeutic_equivalence": _project_orange_book,
         "shortages": _project_shortage,
     }
     return [projectors[name](record) for record in records]
@@ -540,6 +549,30 @@ def _project_approval(record: dict[str, Any]) -> dict[str, Any]:
         ),
         "brand_name": _openfda(record, "brand_name"),
         "generic_name": _openfda(record, "generic_name"),
+    }
+
+
+def _project_orange_book(record: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "approval_date": record.get("approval_date"),
+        "product_number": record.get("product_number"),
+        "products": _bounded_records(
+            record.get("products"),
+            fields=(
+                "brand_name",
+                "active_ingredients",
+                "application_name",
+                "application_full_name",
+                "application_type",
+                "application_number",
+                "reference_listed_drug",
+                "reference_standard",
+                "marketing_status",
+                "dosage_form",
+                "route",
+                "te_code",
+            ),
+        ),
     }
 
 

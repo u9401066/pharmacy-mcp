@@ -43,6 +43,7 @@ PROVIDER_CATALOG: tuple[ProviderDescriptor, ...] = (
             C.ADVERSE_EVENT,
             C.NDC,
             C.APPROVAL,
+            C.THERAPEUTIC_EQUIVALENCE,
             C.RECALL,
             C.SHORTAGE,
         ),
