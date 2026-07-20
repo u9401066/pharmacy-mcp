@@ -8,14 +8,22 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import CallToolResult, TextContent, Tool
 
-from pharmacy_mcp.application.services.drug_search import DrugSearchService
-from pharmacy_mcp.application.services.drug_info import DrugInfoService
-from pharmacy_mcp.application.services.interaction import InteractionService
 from pharmacy_mcp.application.services.dosage import DosageService
-from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
+from pharmacy_mcp.application.services.drug_info import DrugInfoService
+from pharmacy_mcp.application.services.drug_search import DrugSearchService
+from pharmacy_mcp.application.services.interaction import InteractionService
 from pharmacy_mcp.application.services.prescription import PrescriptionService
+from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
+from pharmacy_mcp.application.services.unified_query import UnifiedQueryService
 from pharmacy_mcp.config import settings
-from pharmacy_mcp.domain.models.response import OutputFormat, QueryResponse
+from pharmacy_mcp.domain.models.provider import QueryCapability
+from pharmacy_mcp.domain.models.response import (
+    OutputFormat,
+    QueryResponse,
+    ServiceResult,
+)
+from pharmacy_mcp.infrastructure.providers.catalog import PROVIDER_CATALOG
+from pharmacy_mcp.infrastructure.providers.registry import build_default_registry
 from pharmacy_mcp.presentation.formatting import ResponseFormatter
 
 # Configure logging
@@ -44,6 +52,8 @@ interaction_service = InteractionService()
 dosage_service = DosageService()
 taiwan_drug_service = TaiwanDrugService()
 prescription_service = PrescriptionService()
+provider_registry = build_default_registry()
+unified_query_service = UnifiedQueryService(provider_registry)
 
 
 def create_server() -> Server:
@@ -54,6 +64,89 @@ def create_server() -> Server:
     async def list_tools() -> list[Tool]:
         """List all available pharmacy tools."""
         return _decorate_tools([
+            Tool(
+                name="query_pharmacy",
+                description=(
+                    "Single pharmaceutical knowledge entry point. Queries selected "
+                    "API, Taiwan, hospital, database, document, vector, and web "
+                    "providers concurrently and preserves partial failures."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500,
+                            "description": "Drug, identifier, indication, or question.",
+                        },
+                        "capabilities": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [item.value for item in QueryCapability],
+                            },
+                            "default": ["search"],
+                            "uniqueItems": True,
+                            "description": "Knowledge capabilities required by the query.",
+                        },
+                        "sources": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [item.id for item in PROVIDER_CATALOG],
+                            },
+                            "uniqueItems": True,
+                            "description": (
+                                "Explicit providers. Omit to use enabled compatible sources."
+                            ),
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "default": 10,
+                        },
+                        "context": {
+                            "type": "object",
+                            "description": (
+                                "Optional provider routing context. Do not put secrets here."
+                            ),
+                        },
+                    },
+                    "required": ["query"],
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
+                name="list_knowledge_sources",
+                description=(
+                    "List every cataloged pharmaceutical knowledge source and its "
+                    "capabilities, readiness, credential requirements, and actual "
+                    "runtime registration state."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "ready",
+                                "configurable",
+                                "license_required",
+                                "deprecated",
+                            ],
+                            "description": "Optional readiness filter.",
+                        },
+                        "capability": {
+                            "type": "string",
+                            "enum": [item.value for item in QueryCapability],
+                            "description": "Optional capability filter.",
+                        },
+                    },
+                    "additionalProperties": False,
+                },
+            ),
             Tool(
                 name="search_drug",
                 description="Search for drugs by name. Returns results from RxNorm and FDA databases.",
@@ -590,13 +683,22 @@ def create_server() -> Server:
         }
         try:
             result = await _handle_tool(name, service_arguments)
-            response = QueryResponse.success(
-                tool=name,
-                data=result,
-                output_format=output_format,
-                locale=locale,
-                disclaimer=settings.disclaimer,
-            )
+            if isinstance(result, ServiceResult):
+                response = QueryResponse.from_service(
+                    tool=name,
+                    result=result,
+                    output_format=output_format,
+                    locale=locale,
+                    disclaimer=settings.disclaimer,
+                )
+            else:
+                response = QueryResponse.success(
+                    tool=name,
+                    data=result,
+                    output_format=output_format,
+                    locale=locale,
+                    disclaimer=settings.disclaimer,
+                )
             structured = response.model_dump(mode="json")
             return (
                 [
@@ -655,9 +757,33 @@ def _parse_output_format(value: Any) -> OutputFormat:
     return OutputFormat(value or settings.default_output_format)
 
 
-async def _handle_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+async def _handle_tool(
+    name: str,
+    arguments: dict[str, Any],
+) -> dict[str, Any] | ServiceResult:
     """Route tool calls to appropriate service methods."""
-    
+
+    if name == "query_pharmacy":
+        return await unified_query_service.query(
+            text=arguments["query"],
+            capabilities=arguments.get("capabilities"),
+            sources=arguments.get("sources"),
+            limit=arguments.get("limit", 10),
+            context=arguments.get("context"),
+        )
+
+    if name == "list_knowledge_sources":
+        catalog = provider_registry.catalog()
+        state = arguments.get("state")
+        capability = arguments.get("capability")
+        if state:
+            catalog = [item for item in catalog if item["state"] == state]
+        if capability:
+            catalog = [
+                item for item in catalog if capability in item["capabilities"]
+            ]
+        return {"count": len(catalog), "providers": catalog}
+
     # Drug search tools
     if name == "search_drug":
         return await drug_search_service.search(

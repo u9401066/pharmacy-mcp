@@ -65,7 +65,9 @@
 - ✅ QueryResponse v1.0 穩定輸出契約
 - ✅ 全 MCP tool 共用 outputSchema 與 output_format/locale
 - ✅ 修正 `pharmacy-mcp` CLI entry point
-- 🚧 provider catalog 與 unified query orchestrator
+- ✅ provider catalog 與 unified query orchestrator
+- ✅ `query_pharmacy` / `list_knowledge_sources` MCP tools
+- ✅ provider timeout、partial failure、provenance 聚合
 - 📋 台灣 TFDA/NHI 複合查詢與本地索引
 - 📋 FHIR/庫存、SQL/vector/file/web connectors
 - 📋 agent harness、GitHub Pages 與 CI

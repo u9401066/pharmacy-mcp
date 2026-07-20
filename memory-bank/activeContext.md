@@ -14,6 +14,10 @@
 - 支援 deterministic `json`、`json_compact`、`markdown` renderer
 - 修正套件 CLI entry point
 - 下一批：provider catalog、統一複合查詢與台灣健保真實資料匯入
+- 已新增 `query_pharmacy` 單一入口與 `list_knowledge_sources` 探索工具
+- provider registry 支援 capability/source routing、並行查詢、timeout、partial failure
+- catalog 涵蓋主要公共藥品 API、台灣資料、FHIR、local/SQL/vector/file/web 與需授權來源
+- 下一批：台灣健保真實 CSV 索引、DailyMed/PubChem 與 FHIR/院內庫存 adapters
 
 ## 📝 最近完成的變更（v0.8.5）
 

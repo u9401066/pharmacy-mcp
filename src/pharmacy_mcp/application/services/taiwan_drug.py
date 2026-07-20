@@ -17,7 +17,7 @@ from pharmacy_mcp.infrastructure.api.nhi import (
 class TaiwanDrugService:
     """Service for Taiwan-specific drug information."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self._tfda_client = TFDAClient()
         self._nhi_client = NHIClient()
     

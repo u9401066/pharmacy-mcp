@@ -4,6 +4,25 @@
 
 藥品資訊 MCP Server 採用分層架構（DDD），將藥品領域邏輯與基礎設施分離。
 
+v0.9 起，主要入口是 MCP `query_pharmacy`：它把查詢正規化成
+`ProviderQuery`，由 registry 依 capability/source 選擇 adapters，並行執行後
+以 `QueryResponse` v1.0 回傳。既有原子 tools 保留給確定性 workflow 使用。
+
+```text
+Agent / MCP client
+        │
+        ▼
+query_pharmacy ── outputSchema / formatter
+        │
+        ▼
+UnifiedQueryService ── ProviderRegistry
+        │
+        ├── public APIs (RxNorm, openFDA, ...)
+        ├── Taiwan TFDA + NHI
+        ├── hospital FHIR / formulary / inventory
+        └── SQL / vector / files / allowlisted web
+```
+
 ## 架構圖
 
 ```

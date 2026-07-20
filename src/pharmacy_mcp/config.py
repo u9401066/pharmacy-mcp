@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # API settings
     request_timeout: int = 30
     max_retries: int = 3
+    provider_timeout_seconds: float = 20.0
 
     # Stable agent-facing response contract
     default_output_format: Literal["json", "json_compact", "markdown"] = "json"

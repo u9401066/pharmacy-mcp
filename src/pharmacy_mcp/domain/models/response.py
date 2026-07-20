@@ -148,6 +148,46 @@ class QueryResponse(BaseModel):
             ),
         )
 
+    @classmethod
+    def from_service(
+        cls,
+        *,
+        tool: str,
+        result: ServiceResult,
+        output_format: OutputFormat,
+        locale: str,
+        disclaimer: str,
+    ) -> QueryResponse:
+        """Wrap an application result without discarding partial-failure details."""
+
+        return cls(
+            schema_version=SCHEMA_VERSION,
+            status=result.status,
+            data=result.data,
+            sources=result.sources,
+            warnings=result.warnings,
+            errors=result.errors,
+            meta=ResponseMeta(
+                tool=tool,
+                output_format=output_format,
+                locale=locale,
+                result_count=_infer_result_count(result.data),
+                disclaimer=disclaimer,
+            ),
+        )
+
+
+class ServiceResult(BaseModel):
+    """Transport-neutral result returned by composite application services."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: ResponseStatus
+    data: Any
+    sources: list[SourceReference] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    errors: list[ErrorDetail] = Field(default_factory=list)
+
 
 def _infer_result_count(data: Any) -> int | None:
     """Infer a useful result count without changing provider payloads."""

@@ -14,6 +14,10 @@
   JSON-Schema-validated envelope
 - 🧱 **Configurable Output** - `json`, `json_compact`, or `markdown` text while
   `structuredContent` remains stable
+- 🔌 **Single Query Gateway** - `query_pharmacy` fans out across compatible
+  APIs, Taiwan datasets, hospital sources, databases, files, vectors, and web
+- 🧾 **Honest Source Discovery** - `list_knowledge_sources` reports ready,
+  configurable, and license-required integrations plus runtime registration
 - 🔍 **Drug Search** - 藥品名稱、ATC 碼、適應症搜尋
 - 📋 **Drug Information** - 完整藥品資訊、仿單、藥理學
 - 🧮 **Dosage Calculator** - 小兒、腎功能、體重劑量計算
@@ -79,6 +83,26 @@ Add to your `claude_desktop_config.json`:
 Every tool accepts the optional `output_format` and `locale` arguments. Agents
 must use MCP `structuredContent` as the source of truth. See the
 [response contract](docs/architecture/response-contract.md).
+
+### Recommended agent entry points
+
+| Tool | Purpose |
+|---|---|
+| `query_pharmacy` | Concurrent compound query with source selection and partial-failure handling |
+| `list_knowledge_sources` | Discover source capabilities, readiness, credentials, and registration |
+
+```json
+{
+  "query": "warfarin",
+  "capabilities": ["search", "reimbursement", "formulary"],
+  "sources": ["rxnorm", "tw-tfda", "tw-nhi", "local-formulary"],
+  "limit": 10,
+  "output_format": "json_compact",
+  "locale": "zh-TW"
+}
+```
+
+See the complete [data-source catalog](docs/data-sources.md).
 
 ### Drug Search
 | Tool | Description |

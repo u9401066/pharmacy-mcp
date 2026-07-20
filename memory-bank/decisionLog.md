@@ -94,5 +94,17 @@
 - breaking change 必須提升 `schema_version`
 - agents 必須保留 provenance、warnings、errors、meta，不可補造缺漏資料
 
+### DEC-011: 統一 provider port 與誠實的來源狀態
+**日期**: 2026-07-20
+**決策**: API/FHIR/DB/file/vector/web 共用 `KnowledgeProvider` port，catalog 分開記錄 readiness
+**原因**:
+- agent 只需呼叫 `query_pharmacy`，不必理解每個後端協議
+- provider failure 隔離後仍可回傳 partial result 與 provenance
+- `registered` 與 `state` 分離，避免把 cataloged/需授權來源誤稱為已啟用
+**執行規則**:
+- 未設定或需授權來源回傳 `provider_unavailable`，不得靜默替代
+- public/open data 不得被描述為可直接進行臨床決策
+- 所有複合結果保留個別來源，不把多來源偽裝成單一權威資料
+
 ---
 *Last updated: 2025-12-22*

@@ -6,6 +6,7 @@ from pharmacy_mcp.domain.models.response import (
     QueryResponse,
     ResponseMeta,
     ResponseStatus,
+    ServiceResult,
     SourceReference,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "QueryResponse",
     "ResponseMeta",
     "ResponseStatus",
+    "ServiceResult",
     "SourceReference",
 ]
