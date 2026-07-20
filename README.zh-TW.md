@@ -6,12 +6,12 @@
 [![Documentation](https://img.shields.io/badge/docs-GitHub_Pages-00897B.svg)](https://u9401066.github.io/pharmacy-mcp/)
 
 這是一個 **MCP server + agent harness**，把公共藥品 API、台灣 TFDA/NHI、
-醫院 FHIR/庫存、院內資料庫、向量搜尋、檔案與固定 Web 文件整合成一個可追溯
-的藥品查詢入口。
+醫院 FHIR/庫存、院內資料庫、向量搜尋、檔案、固定 Web 文件與可信任
+PK/DDI 模擬整合成一個可追溯的藥品查詢入口。
 
 [English](README.md) · [說明網站](https://u9401066.github.io/pharmacy-mcp/) · [架構](ARCHITECTURE.md)
 
-> 目前為 alpha。所有內容只供參考，不構成醫療建議，也不能取代藥師、醫師或
+> 目前為 1.0 prerelease。所有內容只供參考，不構成醫療建議，也不能取代藥師、醫師或
 > 經驗證的臨床決策支援系統。
 
 ## 為什麼需要這個入口
@@ -29,6 +29,10 @@
   agent 不能自行指定路徑、SQL、endpoint 或 URL。
 - **主動偵測來源漂移：** 每週排程檢查 14 個官方 API/資料集入口，且不下載
   台灣的大型資料檔。
+- **FastMCP 可部署：** 本機可用 stdio，也可把同一份工具目錄掛載成
+  SSE/Streamable HTTP；service 與 ASGI app 都採 lazy initialization。
+- **可稽核模擬：** 可信任公式包含單位、假設、限制、來源、驗證案例與
+  fail-closed 數值檢查。
 
 ## 快速開始
 
@@ -39,6 +43,13 @@ git clone https://github.com/u9401066/pharmacy-mcp.git
 cd pharmacy-mcp
 uv sync --all-extras
 uv run pharmacy-mcp
+```
+
+Streamable HTTP 與 ASGI 仍使用相同工具及輸出契約：
+
+```bash
+uv run pharmacy-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+uvicorn pharmacy_mcp.presentation.server:app --host 127.0.0.1 --port 8000
 ```
 
 MCP client 設定：
@@ -87,6 +98,7 @@ Python 可直接匯入 `pharmacy_mcp.application.harness.PharmacyHarness`。
 | 台灣 | TFDA 許可證、健保署官方每月藥品項目、給付規則、藥名對照 |
 | 醫院 | FHIR R4/R5 藥品、醫囑、調劑、庫存/供應，以及 bundled formulary |
 | 組織資料 | PDF、DOC/DOCX、CSV、XLS/XLSX、Markdown、text、唯讀 SQLite、vector gateway、固定 HTTPS 文件 |
+| PK/DDI 模擬 | 可信任公式 catalog、濃度時間估算、機轉式 CYP 抑制 screening、公式 resources 與驗證 fixtures |
 | 商業資料 catalog | DrugBank、FDB、Micromedex；沒有授權時不抓取也不假裝啟用 |
 
 `list_knowledge_sources` 是 runtime 真實狀態：會列出 capability、實作狀態、
@@ -111,7 +123,8 @@ NHI provider 會按需下載官方月 CSV，再以 atomic replace 建立版本�
 schema_version · status · data · sources · warnings · errors · meta
 ```
 
-未知欄位會被拒絕。Agent 必須保留七個欄位、不得自行補足缺失的臨床事實，
+未知欄位會被拒絕。目前 33 個工具（包含計算與模擬）全部使用這份 envelope。
+Agent 必須保留七個欄位、不得自行補足缺失的臨床事實，
 也不得把多來源扁平化成一個虛構的權威來源。詳見 [Agent harness](docs/agent-harness.md)
 與 [response contract](docs/architecture/response-contract.md)。
 

@@ -41,6 +41,7 @@ nav:
   - 首頁: index.md
   - Agent 單一入口:
       - Harness 與輸出約束: agent-harness.md
+      - Assistant harness assets: harness-assets.md
       - QueryResponse 契約: architecture/response-contract.md
   - 資料整合:
       - 資料來源總覽: data-sources.md
@@ -48,6 +49,7 @@ nav:
       - 台灣健保複合查詢: taiwan-nhi.md
       - FHIR 與院內庫存: fhir.md
       - 院內資料連接器: connectors.md
+  - 可信任 PK/DDI 模擬: simulation.md
   - 維運與來源健康: operations.md
 
 plugins:

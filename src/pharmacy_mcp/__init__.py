@@ -1,4 +1,4 @@
-"""Pharmacy MCP Server - 完整藥品資訊 MCP Server"""
+"""Pharmacy MCP Server."""
 
-__version__ = "0.9.0a1"
+__version__ = "1.0.0a1"
 __author__ = "Pharmacy MCP Team"

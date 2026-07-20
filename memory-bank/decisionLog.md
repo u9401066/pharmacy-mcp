@@ -228,5 +228,16 @@
 - ZIP 只接受單一 JSON member，限制 uncompressed size，不解壓到檔案系統
 - 保留 plain JSON 相容路徑與七日 cache
 
+### DEC-023: 以 FastMCP 子類在 transport 邊界統一輸出
+**日期**: 2026-07-20
+**決策**: 保留 FastMCP 的 stdio、SSE、Streamable HTTP、resource 與 prompt
+能力，並由 `PharmacyFastMCP` 在 `list_tools` 與 `call_tool` 邊界統一加入
+`output_format`、`locale`、`QueryResponse` schema 及 deterministic rendering。
+**理由**:
+- 不需在 33 個工具函式重複輸出包裝邏輯
+- MCP schema、直接 Python call 與網路 transport 使用同一份行為
+- 可同時保留 main 的 simulation/HTTP 現代化及 gateway 的 agent constraint
+- tool validation 前移，執行結果一律保留 status/provenance/warnings/errors
+
 ---
 *Last updated: 2026-07-20*

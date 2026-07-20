@@ -2,7 +2,7 @@
 
 Updated: 2026-07-20
 
-## v0.9.0a1 — unified pharmacy gateway
+## v1.0.0a1 — unified pharmacy gateway
 
 ### Complete locally
 
@@ -18,6 +18,8 @@ Updated: 2026-07-20
 - [x] PDF/DOC/DOCX/CSV/XLS/XLSX/Markdown/text, SQLite, vector, and web connectors
 - [x] GitHub Pages documentation, multi-version CI, and weekly source-health probes
 - [x] Strict Ruff, mypy, Bandit, branch coverage, package, docs, CLI, and MCP smoke gates
+- [x] FastMCP stdio, SSE, Streamable HTTP, and lazy ASGI deployment
+- [x] Trusted PK/DDI formula catalog, deterministic simulation, and validation resources
 
 ### Release boundary
 
@@ -30,7 +32,7 @@ The branch was published through the installed GitHub connector because the
 machine-local `gh` credential was invalid. Re-authenticate `gh` before the next
 terminal-only push; no credential was written into the repository.
 
-## v0.9.x — production hardening
+## v1.0 prerelease — production hardening
 
 - [ ] Add operator-configured SMART Backend Services token acquisition/rotation
 - [ ] Add PostgreSQL and organization-specific SQL mapping adapters

@@ -4,7 +4,8 @@
 
 Pharmacy MCP 是一個 **MCP server + agent harness**。它把公共藥品 API、台灣
 TFDA/NHI、醫院 FHIR/庫存、SQLite、向量搜尋、文件與固定 Web 資料整合成
-`query_pharmacy` 單一入口，並以可驗證的 `QueryResponse` 回傳。
+`query_pharmacy` 單一入口，另提供可信任 PK/DDI 模擬，並以可驗證的
+`QueryResponse` 回傳。
 
 [5 分鐘開始使用](agent-harness.md){ .md-button .md-button--primary }
 [查看資料來源](data-sources.md){ .md-button }
@@ -110,7 +111,7 @@ MCP client / Python agent / CLI
 - PDF、DOC/DOCX、CSV、XLS/XLSX、Markdown、text
 - read-only SQLite、vendor-neutral vector gateway、固定 HTTPS 文件
 - 原有劑量、交互作用、院內 formulary 與處方 workflow tools
+- 具來源、假設、限制與驗證 fixtures 的 PK/DDI formula/simulation tools
 
 需要商業授權的 DrugBank、FDB 與 Micromedex 只列入 catalog，不會被靜默
 抓取或假裝已啟用。
-

@@ -126,12 +126,10 @@ class PrescriptionService:
         Returns:
             ValidationResult 值物件
         """
+        _ = frequency
         errors: list[str] = []
         warnings: list[str] = []
         suggested: dict[str, Any] | None = None
-
-        if not frequency.strip():
-            errors.append("給藥頻率不得為空白")
 
         # 1. 檢查藥品是否存在
         item = self.formulary.get_item(drug_code)

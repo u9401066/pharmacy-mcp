@@ -4,59 +4,55 @@ Updated: 2026-07-20
 
 ## Current objective
 
-Finish the v0.9.0a1 modernization as an MCP + agent-harness single entry point
-for pharmaceutical knowledge, with stable output, Taiwan compound queries,
-hospital FHIR/inventory, organization connectors, modern CI/docs, segmented
-Git history, and a pushed remote branch.
+Finish the 1.0.0a1 modernization as a FastMCP + agent-harness single entry point
+for pharmaceutical knowledge. Integrate the latest main-branch PK/DDI simulation
+and HTTP deployment work without losing the stable output contract, Taiwan
+compound queries, FHIR/inventory, organization connectors, CI, docs, or the
+segmented release history.
 
-## Local implementation state
+## Integrated implementation state
 
-- `QueryResponse` v1.0 fixes the seven top-level fields and rejects extras.
-- Every MCP tool accepts `output_format`/`locale`, declares one output schema,
-  and treats `structuredContent` as authoritative.
-- `query_pharmacy` routes APIs/FHIR/SQL/vector/files/web through one provider
-  port with concurrency, timeout, provenance, and partial-failure isolation.
-- Public providers execute RxNorm, structured RxClass, all seven openFDA drug
-  endpoints, DailyMed, PubChem, and MedlinePlus Connect.
-- Taiwan compound queries combine TFDA permits, official NHI items/prices/ATC/
-  effective dates, and coverage-rule metadata. The live NHI index contains
-  224,455 source rows from the 2026-07-20 validation run.
-- TFDA follows the current HTTPS ZIP distribution, enforces archive limits,
-  accepts one JSON member, and remains compatible with legacy plain JSON.
-- Read-only FHIR R4/R5 supports medication/formulary, explicit patient order and
-  dispense context, R5 inventory, and R4 supply fallback.
+- `PharmacyFastMCP` wraps all 33 tools in the strict seven-field
+  `QueryResponse` v1.0 schema.
+- Every tool accepts `output_format` and `locale`; deterministic text may be
+  JSON, compact JSON, or Markdown while `structuredContent` is authoritative.
+- The server supports stdio, SSE, Streamable HTTP, mounted ASGI, and lazy
+  service/cache initialization.
+- `query_pharmacy` routes public APIs, Taiwan sources, FHIR, SQL, vector,
+  files, and fixed web sources with timeout and partial-failure isolation.
+- Public sources include RxNorm/RxClass, all seven openFDA drug endpoints,
+  DailyMed, PubChem, and MedlinePlus Connect.
+- Taiwan queries combine TFDA permits, the official NHI monthly item index,
+  price/ATC/effective dates, and coverage-rule metadata.
+- FHIR R4/R5 supports medication/formulary, explicit patient order/dispense
+  context, R5 inventory, and R4 supply fallback.
 - Operator-bounded connectors cover PDF, DOC/DOCX, CSV, XLS/XLSX, Markdown,
   text, read-only SQLite, vector HTTP gateways, and fixed HTTPS documents.
-- Python `PharmacyHarness`, `pharmacy-query`, and MCP use the same contract.
-- MkDocs/GitHub Pages, Python 3.11–3.13 CI, strict quality/security gates, and a
-  weekly 14-surface public-source health workflow are present.
-
-## Latest audit findings resolved
-
-- Replaced the former `rxclass` alias with a real provider that retains class
-  ID/type/relation/source.
-- Replaced the label-only openFDA provider with capability routing for label,
-  event, NDC, enforcement, Drugs@FDA, Orange Book, and shortages.
-- Bounded large label and nested regulatory payloads before agent context.
-- Propagated provider `partial` status through the top-level unified response.
-- A live source-health run detected the retired TFDA redirect; the new ZIP
-  ingestion fixed it, and all 14 live probes then passed.
+- Trusted PK/DDI formulas, resources, validation fixtures, mechanism
+  explanations, and fail-closed deterministic simulations are integrated.
+- MkDocs/GitHub Pages, Python 3.11-3.13 CI, source-health checks, and release
+  artifact audits are part of the release gate.
 
 ## Validation and release state
 
-- Final audit: 120 tests, 79.94% branch coverage, Ruff, strict mypy, Bandit,
-  ResourceWarning-as-error, strict MkDocs, sdist/wheel, isolated CLI, and MCP
-  stdio smoke all passed.
-- Live official checks passed for all 14 health probes, all seven openFDA drug
-  endpoints, structured RxClass, and the compound TFDA + NHI provider.
-- Work is published to `agent/modernize-unified-pharmacy-gateway` as segmented
-  commits. The remote and local final tree SHA are identical.
-- The machine-local `gh` credential for `u9401066` remains invalid. Publication
-  used the installed GitHub connector without exposing or storing a token.
-- After push/merge, repository Settings → Pages must use **GitHub Actions**.
+- Final integration audit passes 187 tests and 82.25% branch coverage, including
+  ResourceWarning/PytestUnraisableExceptionWarning-as-error.
+- Ruff format/check, repo-wide strict mypy, Bandit, strict MkDocs, lockfile,
+  sdist/wheel, release-artifact audit, and isolated wheel CLI all pass.
+- Installed-wheel MCP stdio passes with 33 tools, three prompts, compound query,
+  and trusted simulation. A real Streamable HTTP client session also passes.
+- All 14 official public API/dataset probes passed on 2026-07-20.
+- Draft PR #2 targets `main` from
+  `agent/modernize-unified-pharmacy-gateway`.
+- Remote `main` advanced through 0.9.1 while this work was in progress. Its
+  FastMCP/simulation work is now integrated locally in an explicit two-parent
+  merge; publication and PR verification remain.
+- The local `gh` credential is invalid; the authenticated GitHub connector is
+  used for publication without storing credentials in the repository.
+- After owner-approved merge, repository Pages must use GitHub Actions.
 
 ## Immediate next actions
 
-1. Review the published branch and open/merge a PR under normal repository policy.
-2. After merge, enable GitHub Actions Pages and inspect the first workflows.
-3. Re-authenticate terminal GitHub access with `gh auth login -h github.com`.
+1. Publish the integration commit and verify PR mergeability/checks.
+2. Refresh MEM with the remote commit/check state.
+3. Merge only with repository-owner approval, then verify GitHub Pages.

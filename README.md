@@ -8,11 +8,11 @@
 An MCP server and agent harness that makes pharmaceutical knowledge available
 through one traceable query contract. It combines public drug APIs, Taiwan
 TFDA/NHI data, hospital FHIR and inventory, organization databases, vector
-search, files, and fixed web documents.
+search, files, fixed web documents, and a trusted PK/DDI simulation catalog.
 
 [繁體中文](README.zh-TW.md) · [Documentation](https://u9401066.github.io/pharmacy-mcp/) · [Architecture](ARCHITECTURE.md)
 
-> Alpha software. Reference data only; not medical advice or a replacement for
+> Version 1.0 prerelease. Reference data only; not medical advice or a replacement for
 > a pharmacist, physician, or validated clinical decision-support system.
 
 ## Why this gateway
@@ -32,6 +32,10 @@ search, files, and fixed web documents.
   paths, SQL, endpoints, or URLs.
 - **Drift detection:** a scheduled health workflow probes 14 official API and
   dataset surfaces every week without downloading the large Taiwan datasets.
+- **Deployable FastMCP:** use stdio locally or mount the same tool catalog over
+  SSE/Streamable HTTP; service creation and the ASGI export remain lazy.
+- **Auditable simulation:** trusted formulas include units, assumptions,
+  limitations, provenance, fixtures, and fail-closed numerical validation.
 
 ## Quick start
 
@@ -42,6 +46,13 @@ git clone https://github.com/u9401066/pharmacy-mcp.git
 cd pharmacy-mcp
 uv sync --all-extras
 uv run pharmacy-mcp
+```
+
+Streamable HTTP and ASGI deployments use the same tools and output contract:
+
+```bash
+uv run pharmacy-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+uvicorn pharmacy_mcp.presentation.server:app --host 127.0.0.1 --port 8000
 ```
 
 MCP client configuration:
@@ -91,6 +102,7 @@ The Python API exposes the same contract through
 | Taiwan | TFDA permits, official NHI monthly drug items, coverage rules and terminology |
 | Hospital | FHIR R4/R5 medication, order, dispense, inventory and supply; bundled formulary |
 | Organization data | PDF, DOC/DOCX, CSV, XLS/XLSX, Markdown, text, read-only SQLite, vector gateway, fixed HTTPS pages |
+| PK/DDI simulation | Trusted formula catalog, concentration-time estimates, mechanistic CYP inhibition screening, formula resources and validation fixtures |
 | Licensed catalog | DrugBank, FDB and Micromedex are discoverable but never scraped or presented as enabled without a license |
 
 Call `list_knowledge_sources` for the runtime source of truth: capabilities,
@@ -118,7 +130,8 @@ The canonical top-level fields are:
 schema_version · status · data · sources · warnings · errors · meta
 ```
 
-Unknown top-level fields are rejected. Agents must preserve all seven fields,
+Unknown top-level fields are rejected. All 33 current tools, including
+calculation and simulation tools, use this envelope. Agents must preserve all seven fields,
 must not infer absent clinical facts, and must not flatten multiple providers
 into one implied authority. See the [agent harness guide](docs/agent-harness.md)
 and [response contract](docs/architecture/response-contract.md).

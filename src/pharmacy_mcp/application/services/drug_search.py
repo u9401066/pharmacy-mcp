@@ -1,7 +1,7 @@
 """Drug search service."""
 
 import hashlib
-from typing import Any
+from typing import Any, cast
 
 from pharmacy_mcp.domain.entities.drug import DrugConcept
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
@@ -39,8 +39,8 @@ class DrugSearchService:
         """
         cache_key = self._cache_key("search", query, max_results)
         cached = self.cache.get(cache_key)
-        if isinstance(cached, dict):
-            return cached
+        if cached:
+            return cast(dict[str, Any], cached)
 
         # Search RxNorm
         rxnorm_results = await self.rxnorm.search_by_name(query, max_results)
@@ -85,8 +85,8 @@ class DrugSearchService:
         """
         cache_key = self._cache_key("rxcui", rxcui)
         cached = self.cache.get(cache_key)
-        if isinstance(cached, dict):
-            return cached
+        if cached:
+            return cast(dict[str, Any], cached)
 
         drug = await self.rxnorm.get_by_rxcui(rxcui)
         if not drug:
@@ -119,7 +119,7 @@ class DrugSearchService:
         # Use RxNorm approximate term search for autocomplete
         return await self.rxnorm.search_by_name(prefix, max_results)
 
-    def _cache_key(self, *args: Any) -> str:
+    def _cache_key(self, *args: object) -> str:
         """Generate cache key from arguments."""
         key_str = ":".join(str(a) for a in args)
         return hashlib.sha256(key_str.encode()).hexdigest()

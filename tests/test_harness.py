@@ -3,7 +3,6 @@
 import json
 
 import pytest
-from mcp import types
 
 from pharmacy_mcp.application.harness import PharmacyHarness, build_agent_contract
 from pharmacy_mcp.domain.models.response import (
@@ -54,17 +53,11 @@ def test_agent_contract_constrains_forwarded_output() -> None:
 @pytest.mark.asyncio
 async def test_mcp_exposes_parameterized_agent_contract_prompt() -> None:
     server = create_server()
-    request = types.GetPromptRequest(
-        params=types.GetPromptRequestParams(
-            name="pharmacy-query-contract",
-            arguments={"output_format": "json_compact", "locale": "zh-TW"},
-        )
+    prompt = await server.get_prompt(
+        "pharmacy-query-contract",
+        {"output_format": "json_compact", "locale": "zh-TW"},
     )
 
-    result = await server.request_handlers[types.GetPromptRequest](request)
-    prompt = result.root
-    assert isinstance(prompt, types.GetPromptResult)
-    assert isinstance(prompt.messages[0].content, types.TextContent)
     assert "output_format=json_compact" in prompt.messages[0].content.text
 
 

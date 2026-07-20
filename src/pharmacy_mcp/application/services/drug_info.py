@@ -1,7 +1,7 @@
 """Drug information service."""
 
 import hashlib
-from typing import Any
+from typing import Any, cast
 
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
 from pharmacy_mcp.infrastructure.api.nhi import get_nhi_coverage_info
@@ -35,8 +35,8 @@ class DrugInfoService:
         """
         cache_key = self._cache_key("full_info", drug_name)
         cached = self.cache.get(cache_key)
-        if isinstance(cached, dict):
-            return cached
+        if cached:
+            return cast(dict[str, Any], cached)
 
         # Get FDA label sections
         label_info = await self.fda.get_drug_label_sections(drug_name)
@@ -87,7 +87,7 @@ class DrugInfoService:
         if not translation and not nhi_coverage:
             return None
 
-        result: dict[str, Any] = {}
+        result = {}
 
         if translation:
             result["translation"] = {
@@ -125,8 +125,8 @@ class DrugInfoService:
         """
         cache_key = self._cache_key("dosage_info", drug_name)
         cached = self.cache.get(cache_key)
-        if isinstance(cached, dict):
-            return cached
+        if cached:
+            return cast(dict[str, Any], cached)
 
         label_info = await self.fda.get_drug_label_sections(drug_name)
 
@@ -159,8 +159,8 @@ class DrugInfoService:
         """
         cache_key = self._cache_key("warnings", drug_name)
         cached = self.cache.get(cache_key)
-        if isinstance(cached, dict):
-            return cached
+        if cached:
+            return cast(dict[str, Any], cached)
 
         label_info = await self.fda.get_drug_label_sections(drug_name)
 
@@ -191,8 +191,8 @@ class DrugInfoService:
         """
         cache_key = self._cache_key("pharmacology", drug_name)
         cached = self.cache.get(cache_key)
-        if isinstance(cached, dict):
-            return cached
+        if cached:
+            return cast(dict[str, Any], cached)
 
         label_info = await self.fda.get_drug_label_sections(drug_name)
 
@@ -209,7 +209,7 @@ class DrugInfoService:
         self.cache.set(cache_key, result)
         return result
 
-    def _cache_key(self, *args: Any) -> str:
+    def _cache_key(self, *args: object) -> str:
         """Generate cache key from arguments."""
         key_str = ":".join(str(a).lower() for a in args)
         return hashlib.sha256(key_str.encode()).hexdigest()

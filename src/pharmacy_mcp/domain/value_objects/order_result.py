@@ -18,8 +18,8 @@ class ValidationResult:
     """
 
     valid: bool
-    errors: tuple[str, ...] = ()
-    warnings: tuple[str, ...] = ()
+    errors: tuple[str, ...] = field(default_factory=tuple)
+    warnings: tuple[str, ...] = field(default_factory=tuple)
     suggested_adjustments: dict[str, Any] | None = None
 
     @classmethod

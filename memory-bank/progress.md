@@ -61,7 +61,7 @@
 
 ## Doing
 
-- 🚧 v0.9.0a1 現代化翻新
+- ✅ v1.0.0a1 現代化翻新與 main 整合
 - ✅ QueryResponse v1.0 穩定輸出契約
 - ✅ 全 MCP tool 共用 outputSchema 與 output_format/locale
 - ✅ 修正 `pharmacy-mcp` CLI entry point
@@ -82,6 +82,9 @@
 - ✅ fixed HTTPS document connector（no redirects / no caller URL）
 - ✅ Python agent harness + deterministic CLI
 - ✅ MCP agent-contract prompt
+- ✅ FastMCP stdio/SSE/Streamable HTTP + lazy ASGI
+- ✅ trusted PK/DDI formula catalog、resources、prompts 與 simulation service
+- ✅ 全 33 tools 由 transport boundary 套用 QueryResponse v1.0
 - ✅ MkDocs Material GitHub Pages 說明網站
 - ✅ GitHub Pages official artifact/deploy workflow
 - ✅ Python 3.11/3.12/3.13 test/build CI
@@ -89,11 +92,11 @@
 - ✅ repo-wide Ruff format/check baseline
 - ✅ repo-wide strict mypy baseline
 - ✅ CI quality gate（format/lint/type）
-- ✅ 120 tests / 79.94% branch coverage（gate 70%）
+- ✅ 187 tests / 82.25% branch coverage（gate 70%）
 - ✅ SQLite/Cache resources explicit lifecycle，ResourceWarning-as-error 通過
 - ✅ Bandit security baseline in CI；legacy cache key 改 SHA-256
 - ✅ MkDocs strict build、sdist/wheel build
-- ✅ end-to-end MCP stdio smoke（28 tools / prompt / compound query）
+- ✅ isolated MCP stdio + Streamable HTTP smoke（33 tools / 3 prompts / compound query / simulation）
 - ✅ isolated wheel CLI smoke
 - ✅ RxClass 獨立 provider（class ID/type/relation/source）
 - ✅ openFDA 七個 drug endpoints 全部可依 capability 執行
@@ -103,6 +106,7 @@
 - ✅ 每週 14-source live health workflow；2026-07-20 全數通過
 - ✅ 新增能力後完整 release audit 全綠（quality/security/docs/package/CLI/MCP）
 - ✅ 20 個分段 commits 已發布到 `agent/modernize-unified-pharmacy-gateway`
+- ✅ 最新 main 已在本地完成 two-parent integration；待發佈並驗證 PR #2
 - ⚠️ 本機 `gh` token 仍無效；後續 terminal push 前需 `gh auth login -h github.com`
 
 ## Next
