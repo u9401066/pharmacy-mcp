@@ -134,5 +134,17 @@
 - resource type 採 allowlist；每個不支援的 R4/R5 resource 獨立降級為 warning
 - SMART Backend Services 的 token 取得/輪替交由院內授權基礎設施
 
+### DEC-015: 組織資料連接器採 operator allowlist
+**日期**: 2026-07-20
+**決策**: file/SQL/vector/web 皆由啟動設定限定資料邊界，不接受 agent 指定路徑、SQL 或 URL
+**安全界線**:
+- file 僅掃描設定 roots，拒絕 symlink/越界/超大檔案並限制掃描數
+- SQLite 使用 `mode=ro`、驗證過的 table/column allowlist 與 bound values
+- vector 只傳 query/limit/明確 `vector_filters`，不外送 patient context
+- web 僅固定 credential-free HTTPS URL、不跟 redirect、限制 response bytes
+**原因**:
+- 單一入口必須能整合院內資料，同時避免 agent 取得通用檔案、資料庫或網路能力
+- 統一 provider port 讓每個來源維持 provenance、partial failure 與相同輸出契約
+
 ---
 *Last updated: 2025-12-22*

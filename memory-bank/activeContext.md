@@ -29,7 +29,11 @@
 - 已完成 read-only FHIR R4/R5 adapter：Medication/Knowledge/Request/Dispense + Inventory/Supply
 - FHIR base URL 設定後才註冊；Bearer token 為 SecretStr 且不進 MCP args/results/logs
 - patient resources 僅在明確 `context.patient_id` 時查詢；R5 inventory 不支援時保留 R4 fallback partial result
-- 下一批：SQL/vector/file/web connectors、agent harness、GitHub Pages/CI
+- 已完成 PDF/DOC/DOCX/CSV/XLS/XLSX/Markdown/text 受控檔案查詢
+- 已完成 SQLite read-only table/column allowlist，agent 無法提交 SQL
+- 已完成 internal vector gateway（只外送明確 vector_filters）與固定 HTTPS 文件入口
+- file root/symlink/size/count、web redirect/size、secret 等安全界線均有測試
+- 下一批：agent harness、GitHub Pages/CI
 
 ## 📝 最近完成的變更（v0.8.5）
 

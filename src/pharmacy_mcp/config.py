@@ -1,8 +1,8 @@
 """MCP Server configuration."""
 
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,18 @@ class Settings(BaseSettings):
     fhir_timeout_seconds: float = 20.0
     fhir_medication_resources: str = "MedicationKnowledge,Medication"
     fhir_inventory_resources: str = "InventoryItem,InventoryReport,SupplyDelivery"
+
+    # Local/organization knowledge connectors
+    file_roots: str = "knowledge"
+    file_max_bytes: int = 20 * 1024 * 1024
+    file_max_files: int = 500
+    sql_database_path: str | None = None
+    sql_tables: list[dict[str, Any]] = Field(default_factory=list)
+    vector_search_url: str | None = None
+    vector_api_key: SecretStr | None = None
+    vector_verify_tls: bool = True
+    web_urls: list[str] = Field(default_factory=list)
+    web_max_bytes: int = 2 * 1024 * 1024
 
     # Cache settings
     cache_dir: str = ".cache"

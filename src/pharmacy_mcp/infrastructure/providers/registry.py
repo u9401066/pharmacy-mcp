@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pharmacy_mcp.config import settings
 from pharmacy_mcp.domain.models.provider import (
     KnowledgeProvider,
@@ -19,6 +21,16 @@ from pharmacy_mcp.infrastructure.providers.builtin import (
     TaiwanKnowledgeProvider,
 )
 from pharmacy_mcp.infrastructure.providers.catalog import PROVIDER_CATALOG
+from pharmacy_mcp.infrastructure.providers.file import FileKnowledgeProvider
+from pharmacy_mcp.infrastructure.providers.sql import (
+    SQLiteKnowledgeProvider,
+    mappings_from_settings,
+)
+from pharmacy_mcp.infrastructure.providers.vector import (
+    VectorKnowledgeProvider,
+    VectorSearchClient,
+)
+from pharmacy_mcp.infrastructure.providers.web import WebKnowledgeProvider
 
 
 class ProviderRegistry:
@@ -102,6 +114,44 @@ def build_default_registry() -> ProviderRegistry:
     registry.register(MedlinePlusKnowledgeProvider())
     if settings.fhir_base_url:
         registry.register(FHIRKnowledgeProvider())
+    file_roots = tuple(
+        Path(value.strip())
+        for value in settings.file_roots.split(",")
+        if value.strip()
+    )
+    if file_roots:
+        registry.register(
+            FileKnowledgeProvider(
+                file_roots,
+                max_bytes=settings.file_max_bytes,
+                max_files=settings.file_max_files,
+            )
+        )
+    if settings.sql_database_path and settings.sql_tables:
+        registry.register(
+            SQLiteKnowledgeProvider(
+                settings.sql_database_path,
+                mappings_from_settings(settings.sql_tables),
+            )
+        )
+    if settings.vector_search_url:
+        vector_key = settings.vector_api_key
+        registry.register(
+            VectorKnowledgeProvider(
+                VectorSearchClient(
+                    settings.vector_search_url,
+                    api_key=vector_key.get_secret_value() if vector_key else None,
+                    verify_tls=settings.vector_verify_tls,
+                )
+            )
+        )
+    if settings.web_urls:
+        registry.register(
+            WebKnowledgeProvider(
+                tuple(settings.web_urls),
+                max_bytes=settings.web_max_bytes,
+            )
+        )
     registry.register(TaiwanKnowledgeProvider(), aliases=("tw-nhi",))
     registry.register(FormularyKnowledgeProvider())
     return registry

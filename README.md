@@ -115,6 +115,11 @@ short-lived bearer token. The shipped FHIR adapter covers R4/R5 medication,
 patient order/dispense, and inventory/supply resources; see
 [FHIR and inventory](docs/fhir.md) and [.env.example](.env.example).
 
+Organization-owned PDF/DOC/DOCX/CSV/XLS/XLSX/Markdown/text files, read-only
+SQLite projections, an internal vector gateway, and fixed HTTPS documents can
+join the same compound query. See [organization knowledge connectors](docs/connectors.md)
+for configuration and security boundaries.
+
 ### Drug Search
 | Tool | Description |
 |------|-------------|

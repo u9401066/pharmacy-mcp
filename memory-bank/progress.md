@@ -76,7 +76,10 @@
 - ✅ FHIR R4/R5 medication + explicit patient query adapter
 - ✅ FHIR R5 InventoryItem/InventoryReport + R4 SupplyDelivery fallback
 - ✅ Bearer secret boundary、resource allowlist、unsupported resource isolation
-- 📋 FHIR/庫存、SQL/vector/file/web connectors
+- ✅ PDF/DOC/DOCX/CSV/XLS/XLSX/Markdown/text file connector
+- ✅ read-only allowlisted SQLite connector
+- ✅ vendor-neutral vector search gateway connector
+- ✅ fixed HTTPS document connector（no redirects / no caller URL）
 - 📋 agent harness、GitHub Pages 與 CI
 
 ## Next
