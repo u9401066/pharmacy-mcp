@@ -2,28 +2,38 @@
 
 from typing import Literal
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings."""
-    
+
     model_config = SettingsConfigDict(
         env_prefix="PHARMACY_MCP_",
         env_file=".env",
     )
-    
+
     # API URLs
     rxnorm_base_url: str = "https://rxnav.nlm.nih.gov/REST"
     fda_base_url: str = "https://api.fda.gov"
     dailymed_base_url: str = "https://dailymed.nlm.nih.gov/dailymed/services"
     pubchem_base_url: str = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
     medlineplus_service_url: str = "https://connect.medlineplus.gov/service"
-    
+
+    # Hospital FHIR. Adapter registers only when base URL is configured.
+    fhir_base_url: str | None = None
+    fhir_bearer_token: SecretStr | None = None
+    fhir_version: Literal["R4", "R5"] = "R4"
+    fhir_verify_tls: bool = True
+    fhir_timeout_seconds: float = 20.0
+    fhir_medication_resources: str = "MedicationKnowledge,Medication"
+    fhir_inventory_resources: str = "InventoryItem,InventoryReport,SupplyDelivery"
+
     # Cache settings
     cache_dir: str = ".cache"
     cache_ttl_seconds: int = 86400  # 24 hours
-    
+
     # API settings
     request_timeout: int = 30
     max_retries: int = 3
@@ -38,7 +48,7 @@ class Settings(BaseSettings):
     # Stable agent-facing response contract
     default_output_format: Literal["json", "json_compact", "markdown"] = "json"
     default_locale: str = "zh-TW"
-    
+
     # Disclaimer
     disclaimer: str = (
         "⚠️ 免責聲明：本資訊僅供參考，不構成醫療建議。"

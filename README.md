@@ -110,6 +110,11 @@ Taiwan NHI queries use an on-demand SQLite index of the official monthly CSV
 (224,455 rows in the 2026-07-20 smoke test). See [Taiwan NHI compound queries](docs/taiwan-nhi.md)
 for refresh, offline, and provenance settings.
 
+Hospital integration is enabled by setting `PHARMACY_MCP_FHIR_BASE_URL` and a
+short-lived bearer token. The shipped FHIR adapter covers R4/R5 medication,
+patient order/dispense, and inventory/supply resources; see
+[FHIR and inventory](docs/fhir.md) and [.env.example](.env.example).
+
 ### Drug Search
 | Tool | Description |
 |------|-------------|

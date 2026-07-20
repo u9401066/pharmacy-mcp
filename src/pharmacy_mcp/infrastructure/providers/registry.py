@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pharmacy_mcp.config import settings
 from pharmacy_mcp.domain.models.provider import (
     KnowledgeProvider,
     ProviderDescriptor,
@@ -9,6 +10,7 @@ from pharmacy_mcp.domain.models.provider import (
 )
 from pharmacy_mcp.infrastructure.providers.builtin import (
     DailyMedKnowledgeProvider,
+    FHIRKnowledgeProvider,
     FormularyKnowledgeProvider,
     MedlinePlusKnowledgeProvider,
     OpenFDAKnowledgeProvider,
@@ -98,6 +100,8 @@ def build_default_registry() -> ProviderRegistry:
     registry.register(DailyMedKnowledgeProvider())
     registry.register(PubChemKnowledgeProvider())
     registry.register(MedlinePlusKnowledgeProvider())
+    if settings.fhir_base_url:
+        registry.register(FHIRKnowledgeProvider())
     registry.register(TaiwanKnowledgeProvider(), aliases=("tw-nhi",))
     registry.register(FormularyKnowledgeProvider())
     return registry

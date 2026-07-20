@@ -112,7 +112,7 @@ async def test_source_discovery_exposes_registration_truth() -> None:
     assert result["count"] >= 2
     providers = {item["id"]: item for item in result["providers"]}
     assert providers["fhir"]["registered"] is False
-    assert providers["fhir"]["state"] == "configurable"
+    assert providers["fhir"]["state"] == "ready"
 
 
 @pytest.mark.asyncio

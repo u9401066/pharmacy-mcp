@@ -26,6 +26,10 @@
 - 已實作並註冊 DailyMed SPL v2、PubChem PUG REST、MedlinePlus Connect adapters
 - 2026-07-20 live compound smoke test 三來源同時回 `ok`，provenance 完整
 - 下一批：FHIR/院內庫存、SQL/vector/file/web adapters 與 agent harness
+- 已完成 read-only FHIR R4/R5 adapter：Medication/Knowledge/Request/Dispense + Inventory/Supply
+- FHIR base URL 設定後才註冊；Bearer token 為 SecretStr 且不進 MCP args/results/logs
+- patient resources 僅在明確 `context.patient_id` 時查詢；R5 inventory 不支援時保留 R4 fallback partial result
+- 下一批：SQL/vector/file/web connectors、agent harness、GitHub Pages/CI
 
 ## 📝 最近完成的變更（v0.8.5）
 

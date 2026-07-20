@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable
 from typing import Any
 
 from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
-from pharmacy_mcp.domain.models.provider import ProviderQuery, ProviderResult
+from pharmacy_mcp.domain.models.provider import (
+    ProviderQuery,
+    ProviderResult,
+    QueryCapability,
+)
 from pharmacy_mcp.domain.models.response import ResponseStatus, SourceReference
 from pharmacy_mcp.infrastructure.api.dailymed import DailyMedClient
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
+from pharmacy_mcp.infrastructure.api.fhir import FHIRClient, FHIRSearchBatch
 from pharmacy_mcp.infrastructure.api.medlineplus import MedlinePlusClient
 from pharmacy_mcp.infrastructure.api.pubchem import PubChemClient
 from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
@@ -121,6 +127,76 @@ class MedlinePlusKnowledgeProvider:
             provider_id=self.descriptor.id,
             data=data[: request.limit],
             sources=[_source(self.descriptor.id)],
+        )
+
+
+class FHIRKnowledgeProvider:
+    """Hospital medication, formulary, patient-order, and inventory adapter."""
+
+    descriptor = get_provider_descriptor("fhir")
+
+    def __init__(self, client: FHIRClient | None = None) -> None:
+        self.client = client or FHIRClient()
+
+    async def query(self, request: ProviderQuery) -> ProviderResult:
+        requested = set(request.capabilities)
+        jobs: list[tuple[str, Awaitable[FHIRSearchBatch]]] = []
+        if requested.intersection(
+            {QueryCapability.SEARCH, QueryCapability.IDENTITY, QueryCapability.FORMULARY}
+        ):
+            jobs.append(
+                ("medications", self.client.search_medications(request.text, request.limit))
+            )
+        if QueryCapability.INVENTORY in requested:
+            jobs.append(
+                ("inventory", self.client.search_inventory(request.text, request.limit))
+            )
+
+        patient_id = request.context.get("patient_id")
+        if isinstance(patient_id, str) and patient_id:
+            jobs.append(
+                (
+                    "patient_medications",
+                    self.client.search_patient_medications(patient_id, request.limit),
+                )
+            )
+
+        data: dict[str, object] = {
+            "fhir_version": self.client.fhir_version,
+            "server": self.client.base_url,
+        }
+        warnings: list[str] = []
+        if jobs:
+            results = await asyncio.gather(
+                *(job for _, job in jobs),
+                return_exceptions=True,
+            )
+            for (name, _), result in zip(jobs, results, strict=True):
+                if isinstance(result, BaseException):
+                    warnings.append(f"{name} query failed: {result}")
+                    continue
+                batch = result
+                if not isinstance(batch, FHIRSearchBatch):
+                    warnings.append(f"{name} returned an invalid adapter result")
+                    continue
+                data[name] = batch.resources
+                warnings.extend(batch.warnings)
+        else:
+            warnings.append("No FHIR capability matched this query")
+
+        return ProviderResult(
+            provider_id=self.descriptor.id,
+            status=ResponseStatus.PARTIAL if warnings else ResponseStatus.OK,
+            data=data,
+            sources=[
+                SourceReference(
+                    provider="fhir",
+                    title="Configured hospital FHIR server",
+                    uri=self.client.base_url,
+                    version=self.client.fhir_version,
+                )
+            ],
+            warnings=warnings,
         )
 
 

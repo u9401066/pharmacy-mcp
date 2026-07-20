@@ -73,6 +73,9 @@
 - ✅ DailyMed SPL v2 adapter + live smoke test
 - ✅ PubChem PUG REST chemical identity adapter + live smoke test
 - ✅ MedlinePlus Connect patient education adapter + live smoke test
+- ✅ FHIR R4/R5 medication + explicit patient query adapter
+- ✅ FHIR R5 InventoryItem/InventoryReport + R4 SupplyDelivery fallback
+- ✅ Bearer secret boundary、resource allowlist、unsupported resource isolation
 - 📋 FHIR/庫存、SQL/vector/file/web connectors
 - 📋 agent harness、GitHub Pages 與 CI
 

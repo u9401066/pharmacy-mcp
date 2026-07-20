@@ -12,7 +12,7 @@ catalog status and whether an executable adapter is actually registered.
 | `medlineplus-connect` | [MedlinePlus Connect](https://medlineplus.gov/medlineplus-connect/web-service/) | patient education by RxCUI/NDC/name | ready |
 | `tw-tfda` | [TFDA open data](https://data.gov.tw/dataset/9122) | permits, ingredients, product identity | ready |
 | `tw-nhi` | [NHI drug-item dataset](https://info.nhi.gov.tw/IODE0000/IODE0000S09?id=111) | reimbursement item and coverage metadata | ready |
-| `fhir` | [HL7 FHIR](https://hl7.org/fhir/) | hospital medications, formulary, orders, dispense and inventory | configurable |
+| `fhir` | [HL7 FHIR](https://hl7.org/fhir/) | hospital medications, formulary, orders, dispense and inventory | ready; endpoint required |
 | `local-formulary` | bundled or hospital formulary | local product rules | ready |
 | `sql` | operator-defined SQL | formulary, price, inventory | configurable |
 | `vector` | operator-defined vector DB | semantic document retrieval | configurable |

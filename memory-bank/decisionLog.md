@@ -125,5 +125,14 @@
 - 每個來源可獨立 timeout/fail，複合查詢仍保留其他成功結果
 - 保留官方 ID、版本、連結與 attribution，方便追溯與二階段詳查
 
+### DEC-014: FHIR adapter 預設隨附、設定 endpoint 後才註冊
+**日期**: 2026-07-20
+**決策**: read-only FHIR client 支援 R4/R5；無 base URL 時 catalog ready 但 runtime unregistered
+**安全界線**:
+- Bearer token 僅讀環境 SecretStr，不接受 tool argument、不回傳、不記錄
+- patient resources 僅在呼叫方明確提供 `context.patient_id` 時查詢
+- resource type 採 allowlist；每個不支援的 R4/R5 resource 獨立降級為 warning
+- SMART Backend Services 的 token 取得/輪替交由院內授權基礎設施
+
 ---
 *Last updated: 2025-12-22*
