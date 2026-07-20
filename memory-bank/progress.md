@@ -110,8 +110,9 @@
 - ✅ 每週 18-surface live health workflow；2026-07-20 全數通過
 - ✅ 藥品知識 coverage/evidence matrix（可執行來源、capability、測試與界線）
 - ✅ 新增能力後完整 release audit 全綠（quality/security/docs/package/CLI/MCP）
-- ✅ 20 個分段 commits 已發布到 `agent/modernize-unified-pharmacy-gateway`
+- ✅ 功能、測試、文件與狀態均以分段 commits 發布到 `agent/modernize-unified-pharmacy-gateway`
 - ✅ two-parent integration 已發佈；PR #2 mergeable 且 CI run 29741488853 成功
+- ✅ API/docs expansion audited tree 已發佈；CI run 29742857952 成功
 - ⚠️ 本機 `gh` token 仍無效；後續 terminal push 前需 `gh auth login -h github.com`
 
 ## Next

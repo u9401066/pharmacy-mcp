@@ -50,9 +50,10 @@ segmented release history.
   `agent/modernize-unified-pharmacy-gateway`.
 - Remote `main` advanced through 0.9.1 while this work was in progress. Its
   FastMCP/simulation work was integrated in an explicit two-parent merge.
-- Remote integration commit `96447af9426b463c2104cc7d7f8fb67fc8158ffb`
-  points to the exact locally audited tree, PR #2 is mergeable, and CI run
-  29741488853 completed successfully.
+- The two-parent integration and the API/docs expansion are published. Remote
+  expansion commit `dc4ef45fcf8eec69c0743d09a8abc8f7ffac4462` points to audited
+  tree `b86ad80c7480a3aa94aeb8ef5feb08dafd6305aa`; PR #2 is mergeable and
+  CI run `29742857952` completed successfully.
 - The local `gh` credential is invalid; the authenticated GitHub connector is
   used for publication without storing credentials in the repository.
 - After owner-approved merge, repository Pages must use GitHub Actions.
