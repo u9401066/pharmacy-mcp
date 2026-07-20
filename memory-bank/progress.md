@@ -102,7 +102,8 @@
 - ✅ TFDA current HTTPS ZIP ingestion + plain JSON compatibility
 - ✅ 每週 14-source live health workflow；2026-07-20 全數通過
 - ✅ 新增能力後完整 release audit 全綠（quality/security/docs/package/CLI/MCP）
-- ⛔ Push pending：本機 GitHub token invalid；需 `gh auth login -h github.com`
+- ✅ 20 個分段 commits 已發布到 `agent/modernize-unified-pharmacy-gateway`
+- ⚠️ 本機 `gh` token 仍無效；後續 terminal push 前需 `gh auth login -h github.com`
 
 ## Next
 

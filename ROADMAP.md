@@ -21,10 +21,14 @@ Updated: 2026-07-20
 
 ### Release boundary
 
-- [ ] Re-authenticate the local GitHub CLI and push the segmented feature branch
+- [x] Publish the segmented feature branch to GitHub
 - [ ] Review and merge through the repository's normal branch policy
 - [ ] Select GitHub Actions as the repository Pages source
 - [ ] Run the public-source workflow and verify the deployed documentation URL
+
+The branch was published through the installed GitHub connector because the
+machine-local `gh` credential was invalid. Re-authenticate `gh` before the next
+terminal-only push; no credential was written into the repository.
 
 ## v0.9.x — production hardening
 

@@ -49,14 +49,14 @@ Git history, and a pushed remote branch.
   stdio smoke all passed.
 - Live official checks passed for all 14 health probes, all seven openFDA drug
   endpoints, structured RxClass, and the compound TFDA + NHI provider.
-- Work is on `agent/modernize-unified-pharmacy-gateway` in segmented commits.
-- External blocker: the local `gh` credential for `u9401066` is invalid, so an
-  authenticated push cannot complete until the operator runs
-  `gh auth login -h github.com`.
+- Work is published to `agent/modernize-unified-pharmacy-gateway` as segmented
+  commits. The remote and local final tree SHA are identical.
+- The machine-local `gh` credential for `u9401066` remains invalid. Publication
+  used the installed GitHub connector without exposing or storing a token.
 - After push/merge, repository Settings → Pages must use **GitHub Actions**.
 
 ## Immediate next actions
 
-1. Attempt `git push --set-upstream origin agent/modernize-unified-pharmacy-gateway`.
-2. If authentication still fails, preserve the exact recovery command for the operator.
-3. After push/merge, enable GitHub Actions Pages and inspect the first workflows.
+1. Review the published branch and open/merge a PR under normal repository policy.
+2. After merge, enable GitHub Actions Pages and inspect the first workflows.
+3. Re-authenticate terminal GitHub access with `gh auth login -h github.com`.
