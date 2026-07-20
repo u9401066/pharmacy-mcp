@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import io
+import json
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -321,6 +324,35 @@ async def test_tfda_client_fetch_search_and_statistics(
     stats = await client.get_drug_statistics()
     assert stats["total_permits"] == 2
     assert stats["active_permits"] == 1
+
+
+@pytest.mark.asyncio
+async def test_tfda_client_decodes_current_zip_payload(
+    respx_mock: respx.MockRouter,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    url = "https://tfda.example/active.zip"
+    monkeypatch.setattr(TFDAClient, "ACTIVE_PERMITS_JSON_URL", url)
+    payload = [
+        {
+            "許可證字號": "A1",
+            "英文品名": "WARFARIN",
+            "中文品名": "華法林",
+            "主成分略述": "WARFARIN SODIUM",
+            "製造商名稱": "CURRENT FIELD NAME",
+        }
+    ]
+    zipped = io.BytesIO()
+    with zipfile.ZipFile(zipped, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("37_5.json", json.dumps(payload, ensure_ascii=False))
+    respx_mock.get(url).mock(
+        return_value=httpx.Response(200, content=zipped.getvalue())
+    )
+
+    client = TFDAClient(MemoryCache())  # type: ignore[arg-type]
+    result = await client.search_drug_by_name("warfarin", limit=1)
+
+    assert result[0]["manufacturer"]["name"] == "CURRENT FIELD NAME"
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,10 @@
 """Taiwan TFDA (食品藥物管理署) Open Data API client."""
 
+from __future__ import annotations
+
+import io
+import json
+import zipfile
 from typing import Any
 
 import httpx
@@ -16,8 +21,9 @@ class TFDAClient:
     """
 
     # 政府開放資料 URL
-    DRUG_PERMITS_JSON_URL = "https://data.fda.gov.tw/opendata/exportDataList.do?method=ExportData&InfoId=36&logType=5"
-    ACTIVE_PERMITS_JSON_URL = "https://data.fda.gov.tw/opendata/exportDataList.do?method=ExportData&InfoId=37&logType=5"
+    DRUG_PERMITS_JSON_URL = "https://data.fda.gov.tw/data/opendata/export/36/json"
+    ACTIVE_PERMITS_JSON_URL = "https://data.fda.gov.tw/data/opendata/export/37/json"
+    MAX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024
 
     # Cache TTL: 7 days (matching government update frequency)
     CACHE_TTL = 7 * 24 * 60 * 60  # 604800 seconds
@@ -56,7 +62,7 @@ class TFDAClient:
         ) as client:  # Longer timeout for large file
             response = await client.get(url)
             response.raise_for_status()
-            payload: Any = response.json()
+            payload = self._decode_payload(response)
 
         if not isinstance(payload, list):
             raise ValueError("TFDA permits endpoint must return a JSON array")
@@ -66,6 +72,23 @@ class TFDAClient:
         self._cache.set(cache_key, data, ttl=self.CACHE_TTL)
 
         return data
+
+    def _decode_payload(self, response: httpx.Response) -> Any:
+        """Decode TFDA's current ZIP-wrapped JSON or legacy plain JSON."""
+
+        content = response.content
+        if not zipfile.is_zipfile(io.BytesIO(content)):
+            return response.json()
+
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            members = [item for item in archive.infolist() if not item.is_dir()]
+            if len(members) != 1 or not members[0].filename.lower().endswith(".json"):
+                raise ValueError("TFDA ZIP must contain exactly one JSON document")
+            member = members[0]
+            if member.file_size > self.MAX_UNCOMPRESSED_BYTES:
+                raise ValueError("TFDA JSON exceeds the uncompressed size limit")
+            with archive.open(member) as source:
+                return json.load(source)
 
     async def search_drug_by_name(
         self, query: str, limit: int = 20, active_only: bool = True
@@ -229,7 +252,7 @@ class TFDAClient:
                 "tax_id": raw.get("申請商統一編號", ""),
             },
             "manufacturer": {
-                "name": raw.get("製造廠名稱", ""),
+                "name": raw.get("製造商名稱") or raw.get("製造廠名稱", ""),
                 "address": raw.get("製造廠廠址", ""),
                 "country": raw.get("製造廠國別", ""),
             },
