@@ -70,6 +70,9 @@
 - ✅ provider timeout、partial failure、provenance 聚合
 - ✅ 台灣 TFDA/NHI 複合查詢與官方 CSV SQLite 索引
 - ✅ NHI 真實資料 smoke test（224,455 rows）與 ROC date regression test
+- ✅ DailyMed SPL v2 adapter + live smoke test
+- ✅ PubChem PUG REST chemical identity adapter + live smoke test
+- ✅ MedlinePlus Connect patient education adapter + live smoke test
 - 📋 FHIR/庫存、SQL/vector/file/web connectors
 - 📋 agent harness、GitHub Pages 與 CI
 

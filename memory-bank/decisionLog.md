@@ -117,5 +117,13 @@
 - 2026-07-20 真實資料建置 224,455 rows
 - ROC 六碼/七碼日期以數值比較；index schema version 變更會自動重建
 
+### DEC-013: 公共 API 以 bounded projection 接入統一 port
+**日期**: 2026-07-20
+**決策**: DailyMed/PubChem/MedlinePlus 各自保留官方 client，但只透過 provider port 暴露給 agent
+**原因**:
+- 避免大型 SPL/化學/HTML payload 無限制進入 context
+- 每個來源可獨立 timeout/fail，複合查詢仍保留其他成功結果
+- 保留官方 ID、版本、連結與 attribution，方便追溯與二階段詳查
+
 ---
 *Last updated: 2025-12-22*

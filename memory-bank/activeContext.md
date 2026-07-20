@@ -23,6 +23,9 @@
 - 修正民國 99 年六碼日期誤判現行資料，索引 schema version 會強制淘汰舊索引
 - 台灣 provider 現在複合 TFDA + NHI items + coverage rules，個別故障保留 partial result
 - 下一批：DailyMed/PubChem/MedlinePlus、FHIR/院內庫存 adapters
+- 已實作並註冊 DailyMed SPL v2、PubChem PUG REST、MedlinePlus Connect adapters
+- 2026-07-20 live compound smoke test 三來源同時回 `ok`，provenance 完整
+- 下一批：FHIR/院內庫存、SQL/vector/file/web adapters 與 agent harness
 
 ## 📝 最近完成的變更（v0.8.5）
 

@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     rxnorm_base_url: str = "https://rxnav.nlm.nih.gov/REST"
     fda_base_url: str = "https://api.fda.gov"
     dailymed_base_url: str = "https://dailymed.nlm.nih.gov/dailymed/services"
+    pubchem_base_url: str = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
+    medlineplus_service_url: str = "https://connect.medlineplus.gov/service"
     
     # Cache settings
     cache_dir: str = ".cache"

@@ -8,7 +8,10 @@ from typing import Any
 from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
 from pharmacy_mcp.domain.models.provider import ProviderQuery, ProviderResult
 from pharmacy_mcp.domain.models.response import ResponseStatus, SourceReference
+from pharmacy_mcp.infrastructure.api.dailymed import DailyMedClient
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
+from pharmacy_mcp.infrastructure.api.medlineplus import MedlinePlusClient
+from pharmacy_mcp.infrastructure.api.pubchem import PubChemClient
 from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
 from pharmacy_mcp.infrastructure.knowledge.formulary import FormularyKnowledge
 from pharmacy_mcp.infrastructure.providers.catalog import get_provider_descriptor
@@ -66,6 +69,57 @@ class OpenFDAKnowledgeProvider:
         return ProviderResult(
             provider_id=self.descriptor.id,
             data=data,
+            sources=[_source(self.descriptor.id)],
+        )
+
+
+class DailyMedKnowledgeProvider:
+    """DailyMed current Structured Product Label search."""
+
+    descriptor = get_provider_descriptor("dailymed")
+
+    def __init__(self, client: DailyMedClient | None = None) -> None:
+        self.client = client or DailyMedClient()
+
+    async def query(self, request: ProviderQuery) -> ProviderResult:
+        data = await self.client.search_spls(request.text, request.limit)
+        return ProviderResult(
+            provider_id=self.descriptor.id,
+            data=data,
+            sources=[_source(self.descriptor.id)],
+        )
+
+
+class PubChemKnowledgeProvider:
+    """PubChem chemical identity and calculated-property lookup."""
+
+    descriptor = get_provider_descriptor("pubchem")
+
+    def __init__(self, client: PubChemClient | None = None) -> None:
+        self.client = client or PubChemClient()
+
+    async def query(self, request: ProviderQuery) -> ProviderResult:
+        data = await self.client.get_compound_by_name(request.text)
+        return ProviderResult(
+            provider_id=self.descriptor.id,
+            data=data,
+            sources=[_source(self.descriptor.id)],
+        )
+
+
+class MedlinePlusKnowledgeProvider:
+    """MedlinePlus patient-education lookup by English medication name."""
+
+    descriptor = get_provider_descriptor("medlineplus-connect")
+
+    def __init__(self, client: MedlinePlusClient | None = None) -> None:
+        self.client = client or MedlinePlusClient()
+
+    async def query(self, request: ProviderQuery) -> ProviderResult:
+        data = await self.client.search_medication(drug_name=request.text)
+        return ProviderResult(
+            provider_id=self.descriptor.id,
+            data=data[: request.limit],
             sources=[_source(self.descriptor.id)],
         )
 

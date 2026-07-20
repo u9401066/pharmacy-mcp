@@ -7,9 +7,9 @@ catalog status and whether an executable adapter is actually registered.
 |---|---|---|---|
 | `rxnorm` / `rxclass` | [NLM RxNav](https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html) | identity, normalized names, classes | ready |
 | `openfda` | [openFDA Drug APIs](https://open.fda.gov/apis/drug/) | labels, adverse events, NDC, recalls, approvals, shortages | ready |
-| `dailymed` | [DailyMed SPL v2](https://dailymed.nlm.nih.gov/dailymed/app-support-web-services.cfm) | current structured labels | configurable |
-| `pubchem` | [PubChem PUG REST](https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest) | compound identity and chemistry | configurable |
-| `medlineplus-connect` | [MedlinePlus Connect](https://medlineplus.gov/medlineplus-connect/web-service/) | patient education by RxCUI/NDC/name | configurable |
+| `dailymed` | [DailyMed SPL v2](https://dailymed.nlm.nih.gov/dailymed/app-support-web-services.cfm) | current structured labels | ready |
+| `pubchem` | [PubChem PUG REST](https://pubchem.ncbi.nlm.nih.gov/docs/pug-rest) | compound identity and chemistry | ready |
+| `medlineplus-connect` | [MedlinePlus Connect](https://medlineplus.gov/medlineplus-connect/web-service/) | patient education by RxCUI/NDC/name | ready |
 | `tw-tfda` | [TFDA open data](https://data.gov.tw/dataset/9122) | permits, ingredients, product identity | ready |
 | `tw-nhi` | [NHI drug-item dataset](https://info.nhi.gov.tw/IODE0000/IODE0000S09?id=111) | reimbursement item and coverage metadata | ready |
 | `fhir` | [HL7 FHIR](https://hl7.org/fhir/) | hospital medications, formulary, orders, dispense and inventory | configurable |

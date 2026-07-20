@@ -8,8 +8,11 @@ from pharmacy_mcp.domain.models.provider import (
     QueryCapability,
 )
 from pharmacy_mcp.infrastructure.providers.builtin import (
+    DailyMedKnowledgeProvider,
     FormularyKnowledgeProvider,
+    MedlinePlusKnowledgeProvider,
     OpenFDAKnowledgeProvider,
+    PubChemKnowledgeProvider,
     RxNormKnowledgeProvider,
     TaiwanKnowledgeProvider,
 )
@@ -92,6 +95,9 @@ def build_default_registry() -> ProviderRegistry:
     registry = ProviderRegistry()
     registry.register(RxNormKnowledgeProvider(), aliases=("rxclass",))
     registry.register(OpenFDAKnowledgeProvider())
+    registry.register(DailyMedKnowledgeProvider())
+    registry.register(PubChemKnowledgeProvider())
+    registry.register(MedlinePlusKnowledgeProvider())
     registry.register(TaiwanKnowledgeProvider(), aliases=("tw-nhi",))
     registry.register(FormularyKnowledgeProvider())
     return registry
