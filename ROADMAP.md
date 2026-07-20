@@ -24,6 +24,7 @@ Updated: 2026-07-20
 ### Release boundary
 
 - [x] Publish the segmented feature branch to GitHub
+- [x] Integrate current main and verify a conflict-free PR with passing CI
 - [ ] Review and merge through the repository's normal branch policy
 - [ ] Select GitHub Actions as the repository Pages source
 - [ ] Run the public-source workflow and verify the deployed documentation URL

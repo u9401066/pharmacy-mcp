@@ -106,7 +106,7 @@
 - ✅ 每週 14-source live health workflow；2026-07-20 全數通過
 - ✅ 新增能力後完整 release audit 全綠（quality/security/docs/package/CLI/MCP）
 - ✅ 20 個分段 commits 已發布到 `agent/modernize-unified-pharmacy-gateway`
-- ✅ 最新 main 已在本地完成 two-parent integration；待發佈並驗證 PR #2
+- ✅ two-parent integration 已發佈；PR #2 mergeable 且 CI run 29741488853 成功
 - ⚠️ 本機 `gh` token 仍無效；後續 terminal push 前需 `gh auth login -h github.com`
 
 ## Next

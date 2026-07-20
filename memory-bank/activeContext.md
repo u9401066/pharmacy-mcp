@@ -45,14 +45,16 @@ segmented release history.
 - Draft PR #2 targets `main` from
   `agent/modernize-unified-pharmacy-gateway`.
 - Remote `main` advanced through 0.9.1 while this work was in progress. Its
-  FastMCP/simulation work is now integrated locally in an explicit two-parent
-  merge; publication and PR verification remain.
+  FastMCP/simulation work was integrated in an explicit two-parent merge.
+- Remote integration commit `96447af9426b463c2104cc7d7f8fb67fc8158ffb`
+  points to the exact locally audited tree, PR #2 is mergeable, and CI run
+  29741488853 completed successfully.
 - The local `gh` credential is invalid; the authenticated GitHub connector is
   used for publication without storing credentials in the repository.
 - After owner-approved merge, repository Pages must use GitHub Actions.
 
 ## Immediate next actions
 
-1. Publish the integration commit and verify PR mergeability/checks.
-2. Refresh MEM with the remote commit/check state.
-3. Merge only with repository-owner approval, then verify GitHub Pages.
+1. Review and merge PR #2 only with repository-owner approval.
+2. Select GitHub Actions as the Pages source and verify the deployed site.
+3. Re-authenticate terminal GitHub access before a future terminal-only push.
