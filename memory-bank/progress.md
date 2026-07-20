@@ -89,7 +89,7 @@
 - ✅ repo-wide Ruff format/check baseline
 - ✅ repo-wide strict mypy baseline
 - ✅ CI quality gate（format/lint/type）
-- ✅ 115 tests / 78.88% branch coverage（gate 70%）
+- ✅ 120 tests / 79.94% branch coverage（gate 70%）
 - ✅ SQLite/Cache resources explicit lifecycle，ResourceWarning-as-error 通過
 - ✅ Bandit security baseline in CI；legacy cache key 改 SHA-256
 - ✅ MkDocs strict build、sdist/wheel build
@@ -101,7 +101,7 @@
 - ✅ provider partial status 正確傳遞到統一回應
 - ✅ TFDA current HTTPS ZIP ingestion + plain JSON compatibility
 - ✅ 每週 14-source live health workflow；2026-07-20 全數通過
-- 🚧 新增能力後的完整 release audit 待重跑
+- ✅ 新增能力後完整 release audit 全綠（quality/security/docs/package/CLI/MCP）
 - ⛔ Push pending：本機 GitHub token invalid；需 `gh auth login -h github.com`
 
 ## Next

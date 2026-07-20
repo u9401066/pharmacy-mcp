@@ -44,10 +44,11 @@ Git history, and a pushed remote branch.
 
 ## Validation and release state
 
-- Prior release audit: 115 tests, 78.80% branch coverage, Ruff, strict mypy,
-  Bandit, strict MkDocs, sdist/wheel, isolated CLI, and MCP stdio smoke passed.
-- New provider/TFDA changes have passed targeted tests, static checks, and live
-  official-source smoke tests. A new full release audit is the next action.
+- Final audit: 120 tests, 79.94% branch coverage, Ruff, strict mypy, Bandit,
+  ResourceWarning-as-error, strict MkDocs, sdist/wheel, isolated CLI, and MCP
+  stdio smoke all passed.
+- Live official checks passed for all 14 health probes, all seven openFDA drug
+  endpoints, structured RxClass, and the compound TFDA + NHI provider.
 - Work is on `agent/modernize-unified-pharmacy-gateway` in segmented commits.
 - External blocker: the local `gh` credential for `u9401066` is invalid, so an
   authenticated push cannot complete until the operator runs
@@ -56,6 +57,6 @@ Git history, and a pushed remote branch.
 
 ## Immediate next actions
 
-1. Run the complete test/coverage/security/docs/package/MCP audit again.
-2. Record final counts in progress/changelog memory.
-3. Attempt `git push --set-upstream origin agent/modernize-unified-pharmacy-gateway`.
+1. Attempt `git push --set-upstream origin agent/modernize-unified-pharmacy-gateway`.
+2. If authentication still fails, preserve the exact recovery command for the operator.
+3. After push/merge, enable GitHub Actions Pages and inspect the first workflows.
