@@ -135,10 +135,32 @@ async def test_openfda_client_projects_labels_events_and_sections(
     respx_mock.get(f"{base_url}/drug/event.json").mock(
         return_value=httpx.Response(200, json={"results": [{"safetyreportid": "1"}]})
     )
+    respx_mock.get(f"{base_url}/drug/ndc.json").mock(
+        return_value=httpx.Response(200, json={"results": [{"product_ndc": "1"}]})
+    )
+    respx_mock.get(f"{base_url}/drug/enforcement.json").mock(
+        return_value=httpx.Response(200, json={"results": [{"recall_number": "D-1"}]})
+    )
+    approval_route = respx_mock.get(f"{base_url}/drug/drugsfda.json").mock(
+        return_value=httpx.Response(
+            200, json={"results": [{"application_number": "NDA1"}]}
+        )
+    )
+    respx_mock.get(f"{base_url}/drug/shortages.json").mock(
+        return_value=httpx.Response(200, json={"results": [{"status": "Current"}]})
+    )
     client = FDAClient(base_url)
 
     assert (await client.search_drug_labels("warfarin"))[0]["openfda"]
     assert (await client.get_adverse_events("warfarin"))[0]["safetyreportid"] == "1"
+    assert (await client.search_ndc("warfarin"))[0]["product_ndc"] == "1"
+    assert (await client.search_recalls("warfarin"))[0]["recall_number"] == "D-1"
+    assert (await client.search_approvals('warfarin "sodium"', 100))[0][
+        "application_number"
+    ] == "NDA1"
+    assert approval_route.calls.last.request.url.params["limit"] == "99"
+    assert '\\"sodium\\"' in approval_route.calls.last.request.url.params["search"]
+    assert (await client.search_shortages("warfarin"))[0]["status"] == "Current"
     assert (await client.get_drug_interactions_from_label("warfarin"))["warnings"] == [
         "bleeding"
     ]
@@ -206,8 +228,24 @@ async def test_rxnorm_client_search_detail_classes_and_types(
             json={
                 "rxclassDrugInfoList": {
                     "rxclassDrugInfo": [
-                        {"rxclassMinConceptItem": {"className": "Anticoagulants"}},
-                        {"rxclassMinConceptItem": {"className": "Anticoagulants"}},
+                        {
+                            "rxclassMinConceptItem": {
+                                "classId": "N1",
+                                "className": "Anticoagulants",
+                                "classType": "MOA",
+                            },
+                            "rela": "has_MoA",
+                            "relaSource": "MEDRT",
+                        },
+                        {
+                            "rxclassMinConceptItem": {
+                                "classId": "N1",
+                                "className": "Anticoagulants",
+                                "classType": "MOA",
+                            },
+                            "rela": "has_MoA",
+                            "relaSource": "MEDRT",
+                        },
                     ]
                 }
             },
@@ -223,6 +261,17 @@ async def test_rxnorm_client_search_detail_classes_and_types(
     assert len(concepts) == 1
     assert drug is not None and drug.drug_type is DrugType.INGREDIENT
     assert drug.drug_classes == ["Anticoagulants"]
+    assert await client.get_drug_classes("11289") == ["Anticoagulants"]
+    memberships = await client.get_drug_class_memberships("11289")
+    assert memberships == [
+        {
+            "class_id": "N1",
+            "class_name": "Anticoagulants",
+            "class_type": "MOA",
+            "relation": "has_MoA",
+            "relation_source": "MEDRT",
+        }
+    ]
     assert await client.get_by_rxcui("missing") is None
     assert await client.get_interactions("11289") == []
     assert client._parse_drug_type("BN") is DrugType.BRAND

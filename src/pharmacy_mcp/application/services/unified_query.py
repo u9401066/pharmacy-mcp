@@ -72,17 +72,19 @@ class UnifiedQueryService:
         provider_data: dict[str, object] = {}
         sources_out: list[SourceReference] = []
         warnings: list[str] = []
+        saw_partial = False
 
         for result in results:
             if result.status is ResponseStatus.ERROR:
                 errors.extend(result.errors)
                 continue
+            saw_partial = saw_partial or result.status is ResponseStatus.PARTIAL
             provider_data[result.provider_id] = result.data
             sources_out.extend(result.sources)
             warnings.extend(result.warnings)
             errors.extend(result.errors)
 
-        if errors and provider_data:
+        if provider_data and (errors or saw_partial):
             status = ResponseStatus.PARTIAL
         elif errors:
             status = ResponseStatus.ERROR

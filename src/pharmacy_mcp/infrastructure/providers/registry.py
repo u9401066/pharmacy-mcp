@@ -18,6 +18,7 @@ from pharmacy_mcp.infrastructure.providers.builtin import (
     MedlinePlusKnowledgeProvider,
     OpenFDAKnowledgeProvider,
     PubChemKnowledgeProvider,
+    RxClassKnowledgeProvider,
     RxNormKnowledgeProvider,
     TaiwanKnowledgeProvider,
 )
@@ -112,7 +113,8 @@ def build_default_registry() -> ProviderRegistry:
     """Build the batteries-included public/local provider registry."""
 
     registry = ProviderRegistry()
-    registry.register(RxNormKnowledgeProvider(), aliases=("rxclass",))
+    registry.register(RxNormKnowledgeProvider())
+    registry.register(RxClassKnowledgeProvider())
     registry.register(OpenFDAKnowledgeProvider())
     registry.register(DailyMedKnowledgeProvider())
     registry.register(PubChemKnowledgeProvider())

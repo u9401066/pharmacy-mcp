@@ -5,6 +5,7 @@ from typing import Any
 import pytest
 
 from pharmacy_mcp.application.services.unified_query import UnifiedQueryService
+from pharmacy_mcp.domain.entities.drug import DrugConcept
 from pharmacy_mcp.domain.models.provider import (
     ProviderDescriptor,
     ProviderKind,
@@ -14,7 +15,11 @@ from pharmacy_mcp.domain.models.provider import (
     QueryCapability,
 )
 from pharmacy_mcp.domain.models.response import ResponseStatus, SourceReference
-from pharmacy_mcp.infrastructure.providers.builtin import FormularyKnowledgeProvider
+from pharmacy_mcp.infrastructure.providers.builtin import (
+    FormularyKnowledgeProvider,
+    OpenFDAKnowledgeProvider,
+    RxClassKnowledgeProvider,
+)
 from pharmacy_mcp.infrastructure.providers.catalog import PROVIDER_CATALOG
 from pharmacy_mcp.infrastructure.providers.registry import ProviderRegistry
 from pharmacy_mcp.presentation.server import _handle_tool
@@ -54,6 +59,89 @@ class FakeProvider:
         )
 
 
+class FakeRxClassClient:
+    async def search_by_name(
+        self, name: str, max_results: int = 10
+    ) -> list[DrugConcept]:
+        return [
+            DrugConcept(rxcui="11289", name=name.title(), tty="IN"),
+            DrugConcept(rxcui="missing", name="Missing", tty="IN"),
+        ][:max_results]
+
+    async def get_drug_class_memberships(
+        self, rxcui: str
+    ) -> list[dict[str, str | None]]:
+        if rxcui == "missing":
+            raise RuntimeError("offline")
+        return [
+            {
+                "class_id": "N0000175503",
+                "class_name": "Vitamin K Antagonists",
+                "class_type": "MOA",
+                "relation": "has_MoA",
+                "relation_source": "MEDRT",
+            }
+        ]
+
+
+class FakeOpenFDAClient:
+    base_url = "https://fda.example"
+
+    def __init__(self, *, fail_shortages: bool = False) -> None:
+        self.calls: list[str] = []
+        self.fail_shortages = fail_shortages
+
+    async def search_drug_labels(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        self.calls.append("labels")
+        return [
+            {
+                "openfda": {"brand_name": [drug_name], "generic_name": [drug_name]},
+                "dosage_and_administration": ["individualize"],
+                "drug_interactions": ["monitor interactions"],
+            }
+        ][:limit]
+
+    async def get_adverse_events(
+        self, drug_name: str, limit: int = 100
+    ) -> list[dict[str, Any]]:
+        self.calls.append("adverse_events")
+        return [
+            {
+                "safetyreportid": "1",
+                "patient": {
+                    "reaction": [{"reactionmeddrapt": "Haemorrhage"}],
+                    "drug": [{"medicinalproduct": drug_name}],
+                },
+            }
+        ][:limit]
+
+    async def search_ndc(self, drug_name: str, limit: int = 10) -> list[dict[str, Any]]:
+        self.calls.append("ndc")
+        return [{"product_ndc": "0001-0001", "generic_name": drug_name}][:limit]
+
+    async def search_recalls(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        self.calls.append("recalls")
+        return [{"recall_number": "D-1", "product_description": drug_name}][:limit]
+
+    async def search_approvals(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        self.calls.append("approvals")
+        return [{"application_number": "NDA001", "sponsor_name": drug_name}][:limit]
+
+    async def search_shortages(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        self.calls.append("shortages")
+        if self.fail_shortages:
+            raise RuntimeError("offline")
+        return [{"generic_name": drug_name, "status": "Current"}][:limit]
+
+
 def test_catalog_ids_are_unique_and_states_are_explicit() -> None:
     provider_ids = [provider.id for provider in PROVIDER_CATALOG]
 
@@ -89,6 +177,31 @@ async def test_unified_query_reports_unconfigured_provider() -> None:
 
 
 @pytest.mark.asyncio
+async def test_unified_query_preserves_provider_partial_status() -> None:
+    provider = FakeProvider("partial", data=["warfarin"])
+
+    async def partial_query(request: ProviderQuery) -> ProviderResult:
+        del request
+        return ProviderResult(
+            provider_id="partial",
+            status=ResponseStatus.PARTIAL,
+            data=["warfarin"],
+            warnings=["one endpoint was unavailable"],
+        )
+
+    provider.query = partial_query  # type: ignore[method-assign]
+    registry = ProviderRegistry()
+    registry.register(provider)
+
+    result = await UnifiedQueryService(registry).query(
+        text="warfarin", sources=["partial"]
+    )
+
+    assert result.status is ResponseStatus.PARTIAL
+    assert result.warnings == ["one endpoint was unavailable"]
+
+
+@pytest.mark.asyncio
 async def test_local_formulary_implements_provider_port() -> None:
     provider = FormularyKnowledgeProvider()
 
@@ -97,6 +210,73 @@ async def test_local_formulary_implements_provider_port() -> None:
     assert result.status is ResponseStatus.OK
     assert result.provider_id == "local-formulary"
     assert any(item["generic_name"] == "Warfarin" for item in result.data)
+
+
+@pytest.mark.asyncio
+async def test_rxclass_provider_executes_class_lookup_and_isolates_failures() -> None:
+    provider = RxClassKnowledgeProvider(FakeRxClassClient())  # type: ignore[arg-type]
+
+    result = await provider.query(ProviderQuery(text="warfarin", limit=2))
+
+    assert result.provider_id == "rxclass"
+    assert result.status is ResponseStatus.PARTIAL
+    assert result.data[0]["classes"][0]["class_type"] == "MOA"
+    assert result.data[0]["classes"][0]["relation_source"] == "MEDRT"
+    assert result.data[1]["classes"] == []
+    assert "RxCUI missing" in result.warnings[0]
+
+
+@pytest.mark.asyncio
+async def test_openfda_provider_routes_every_declared_endpoint() -> None:
+    client = FakeOpenFDAClient()
+    provider = OpenFDAKnowledgeProvider(client)  # type: ignore[arg-type]
+
+    result = await provider.query(
+        ProviderQuery(
+            text="warfarin",
+            capabilities=(
+                QueryCapability.LABEL,
+                QueryCapability.ADVERSE_EVENT,
+                QueryCapability.NDC,
+                QueryCapability.RECALL,
+                QueryCapability.APPROVAL,
+                QueryCapability.SHORTAGE,
+            ),
+            limit=2,
+        )
+    )
+
+    assert result.status is ResponseStatus.OK
+    assert set(result.data) == {
+        "labels",
+        "adverse_events",
+        "ndc",
+        "recalls",
+        "approvals",
+        "shortages",
+    }
+    assert result.data["adverse_events"][0]["reactions"] == ["Haemorrhage"]
+    assert result.data["ndc"][0]["product_ndc"] == "0001-0001"
+    assert set(client.calls) == set(result.data)
+    assert len(result.sources) == 6
+
+
+@pytest.mark.asyncio
+async def test_openfda_provider_keeps_success_when_one_endpoint_fails() -> None:
+    provider = OpenFDAKnowledgeProvider(  # type: ignore[arg-type]
+        FakeOpenFDAClient(fail_shortages=True)
+    )
+
+    result = await provider.query(
+        ProviderQuery(
+            text="warfarin",
+            capabilities=(QueryCapability.LABEL, QueryCapability.SHORTAGE),
+        )
+    )
+
+    assert result.status is ResponseStatus.PARTIAL
+    assert "labels" in result.data and "shortages" not in result.data
+    assert result.errors[0].code == "openfda_endpoint_error"
 
 
 @pytest.mark.asyncio

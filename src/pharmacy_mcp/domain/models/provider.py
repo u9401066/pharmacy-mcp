@@ -25,6 +25,8 @@ class QueryCapability(StrEnum):
     INTERACTION = "interaction"
     ADVERSE_EVENT = "adverse_event"
     DRUG_CLASS = "drug_class"
+    NDC = "ndc"
+    APPROVAL = "approval"
     REIMBURSEMENT = "reimbursement"
     FORMULARY = "formulary"
     INVENTORY = "inventory"

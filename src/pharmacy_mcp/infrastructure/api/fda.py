@@ -1,4 +1,6 @@
-"""FDA openFDA API client."""
+"""FDA openFDA drug API client."""
+
+from __future__ import annotations
 
 from typing import Any
 
@@ -27,26 +29,12 @@ class FDAClient:
         Returns:
             List of drug label data
         """
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(
-                f"{self.base_url}/drug/label.json",
-                params={
-                    "search": f'openfda.brand_name:"{drug_name}" OR '
-                    f'openfda.generic_name:"{drug_name}"',
-                    "limit": limit,
-                },
-            )
-            if response.status_code == 404:
-                return []
-            response.raise_for_status()
-            data: Any = response.json()
-
-        if not isinstance(data, dict):
-            return []
-        results = data.get("results", [])
-        if not isinstance(results, list):
-            return []
-        return [item for item in results if isinstance(item, dict)]
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "label",
+            f'openfda.brand_name:"{term}" OR openfda.generic_name:"{term}"',
+            limit,
+        )
 
     async def get_adverse_events(
         self, drug_name: str, limit: int = 100
@@ -61,13 +49,79 @@ class FDAClient:
         Returns:
             List of adverse event reports
         """
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "event",
+            f'patient.drug.medicinalproduct:"{term}"',
+            limit,
+        )
+
+    async def search_ndc(self, drug_name: str, limit: int = 10) -> list[dict[str, Any]]:
+        """Search the NDC Directory; an NDC does not imply FDA approval."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "ndc",
+            f'brand_name:"{term}" OR generic_name:"{term}"',
+            limit,
+        )
+
+    async def search_recalls(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Search public drug recall enforcement reports."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "enforcement",
+            (
+                f'openfda.brand_name:"{term}" OR '
+                f'openfda.generic_name:"{term}" OR '
+                f'product_description:"{term}"'
+            ),
+            limit,
+        )
+
+    async def search_approvals(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Search Drugs@FDA approval application records."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "drugsfda",
+            (
+                f'openfda.brand_name:"{term}" OR '
+                f'openfda.generic_name:"{term}" OR '
+                f'products.brand_name:"{term}"'
+            ),
+            min(limit, 99),
+        )
+
+    async def search_shortages(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Search FDA's current and resolved drug shortage records."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "shortages",
+            f'generic_name:"{term}" OR proprietary_name:"{term}"',
+            limit,
+        )
+
+    async def _search_endpoint(
+        self,
+        endpoint: str,
+        search: str,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """Run one bounded openFDA endpoint query and normalize empty results."""
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.get(
-                f"{self.base_url}/drug/event.json",
-                params={
-                    "search": f'patient.drug.medicinalproduct:"{drug_name}"',
-                    "limit": limit,
-                },
+                f"{self.base_url}/drug/{endpoint}.json",
+                params={"search": search, "limit": limit},
             )
             if response.status_code == 404:
                 return []
@@ -80,6 +134,12 @@ class FDAClient:
         if not isinstance(results, list):
             return []
         return [item for item in results if isinstance(item, dict)]
+
+    @staticmethod
+    def _quoted_term(value: str) -> str:
+        """Escape the two characters significant inside an openFDA phrase."""
+
+        return value.replace("\\", "\\\\").replace('"', '\\"')
 
     async def get_drug_interactions_from_label(
         self, drug_name: str
