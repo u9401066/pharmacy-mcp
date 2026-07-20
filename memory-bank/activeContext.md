@@ -18,6 +18,11 @@
 - provider registry 支援 capability/source routing、並行查詢、timeout、partial failure
 - catalog 涵蓋主要公共藥品 API、台灣資料、FHIR、local/SQL/vector/file/web 與需授權來源
 - 下一批：台灣健保真實 CSV 索引、DailyMed/PubChem 與 FHIR/院內庫存 adapters
+- 已將 NHI placeholder 換成官方月資料 CSV → SQLite 原子索引
+- 真實 smoke test：2026-07-20 建置 224,455 rows，可查現行支付價/ATC/有效期/官方連結
+- 修正民國 99 年六碼日期誤判現行資料，索引 schema version 會強制淘汰舊索引
+- 台灣 provider 現在複合 TFDA + NHI items + coverage rules，個別故障保留 partial result
+- 下一批：DailyMed/PubChem/MedlinePlus、FHIR/院內庫存 adapters
 
 ## 📝 最近完成的變更（v0.8.5）
 

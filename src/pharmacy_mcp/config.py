@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     max_retries: int = 3
     provider_timeout_seconds: float = 20.0
 
+    # Taiwan NHI official monthly CSV index (~100 MB source download)
+    nhi_index_path: str = ".cache/nhi/drug-items.sqlite3"
+    nhi_auto_download: bool = True
+    nhi_refresh_days: int = 7
+    nhi_download_timeout_seconds: float = 300.0
+
     # Stable agent-facing response contract
     default_output_format: Literal["json", "json_compact", "markdown"] = "json"
     default_locale: str = "zh-TW"

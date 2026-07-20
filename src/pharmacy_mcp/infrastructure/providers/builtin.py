@@ -82,22 +82,33 @@ class TaiwanKnowledgeProvider:
         results: tuple[
             dict[str, Any] | BaseException,
             dict[str, Any] | BaseException,
+            dict[str, Any] | BaseException,
         ] = await asyncio.gather(
             self.service.search_tfda_drug(request.text, limit=request.limit),
+            self.service.search_nhi_drugs(request.text, limit=request.limit),
             self.service.get_nhi_coverage(request.text),
             return_exceptions=True,
         )
-        tfda_result, nhi_result = results
+        tfda_result, nhi_items_result, nhi_coverage_result = results
         warnings: list[str] = []
         data: dict[str, object] = {}
         if isinstance(tfda_result, BaseException):
             warnings.append(f"TFDA query unavailable: {tfda_result}")
         else:
             data["tfda"] = tfda_result
-        if isinstance(nhi_result, BaseException):
-            warnings.append(f"NHI query unavailable: {nhi_result}")
+        nhi: dict[str, object] = {}
+        if isinstance(nhi_items_result, BaseException):
+            warnings.append(f"NHI item query unavailable: {nhi_items_result}")
         else:
-            data["nhi"] = nhi_result
+            nhi["items"] = nhi_items_result
+        if isinstance(nhi_coverage_result, BaseException):
+            warnings.append(
+                f"NHI coverage query unavailable: {nhi_coverage_result}"
+            )
+        else:
+            nhi["coverage"] = nhi_coverage_result
+        if nhi:
+            data["nhi"] = nhi
 
         return ProviderResult(
             provider_id="taiwan",

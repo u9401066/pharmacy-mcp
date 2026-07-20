@@ -161,7 +161,7 @@ class TestNHIClient:
     @pytest.fixture
     def client(self):
         """Create NHI client instance."""
-        return NHIClient()
+        return NHIClient(auto_download=False)
     
     def test_lookup_known_nhi_code(self, client):
         """Test looking up known NHI code."""

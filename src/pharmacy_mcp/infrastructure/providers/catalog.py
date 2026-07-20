@@ -111,7 +111,7 @@ PROVIDER_CATALOG: tuple[ProviderDescriptor, ...] = (
         kind=ProviderKind.TAIWAN_OPEN_DATA,
         state=ProviderState.READY,
         capabilities=(C.SEARCH, C.REIMBURSEMENT),
-        documentation_url="https://data.nhi.gov.tw/",
+        documentation_url="https://info.nhi.gov.tw/IODE0000/IODE0000S09?id=111",
         enabled_by_default=True,
     ),
     ProviderDescriptor(

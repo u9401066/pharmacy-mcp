@@ -133,6 +133,26 @@ class TaiwanDrugService:
             "price_info": None,
             "note": "未找到此健保代碼，請確認代碼正確性"
         }
+
+    async def search_nhi_drugs(
+        self,
+        drug_name: str,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        """Search the indexed official NHI drug-item dataset by name/code/ATC."""
+
+        results = await self._nhi_client.search_by_drug_name(drug_name, limit)
+        return {
+            "query": drug_name,
+            "result_count": len(results),
+            "results": results,
+            "index": self._nhi_client.get_index_status(),
+        }
+
+    def get_nhi_data_status(self) -> dict[str, Any]:
+        """Return NHI local-index freshness and upstream provenance."""
+
+        return self._nhi_client.get_index_status()
     
     def translate_drug_name(
         self,

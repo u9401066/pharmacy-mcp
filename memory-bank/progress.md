@@ -68,7 +68,8 @@
 - ✅ provider catalog 與 unified query orchestrator
 - ✅ `query_pharmacy` / `list_knowledge_sources` MCP tools
 - ✅ provider timeout、partial failure、provenance 聚合
-- 📋 台灣 TFDA/NHI 複合查詢與本地索引
+- ✅ 台灣 TFDA/NHI 複合查詢與官方 CSV SQLite 索引
+- ✅ NHI 真實資料 smoke test（224,455 rows）與 ROC date regression test
 - 📋 FHIR/庫存、SQL/vector/file/web connectors
 - 📋 agent harness、GitHub Pages 與 CI
 

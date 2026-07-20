@@ -104,6 +104,10 @@ must use MCP `structuredContent` as the source of truth. See the
 
 See the complete [data-source catalog](docs/data-sources.md).
 
+Taiwan NHI queries use an on-demand SQLite index of the official monthly CSV
+(224,455 rows in the 2026-07-20 smoke test). See [Taiwan NHI compound queries](docs/taiwan-nhi.md)
+for refresh, offline, and provenance settings.
+
 ### Drug Search
 | Tool | Description |
 |------|-------------|

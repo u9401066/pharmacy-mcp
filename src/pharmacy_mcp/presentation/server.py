@@ -148,6 +148,18 @@ def create_server() -> Server:
                 },
             ),
             Tool(
+                name="get_nhi_data_status",
+                description=(
+                    "Inspect Taiwan NHI official CSV index freshness, row count, "
+                    "local path, and upstream dataset URL without downloading data."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": False,
+                },
+            ),
+            Tool(
                 name="search_drug",
                 description="Search for drugs by name. Returns results from RxNorm and FDA databases.",
                 inputSchema={
@@ -783,6 +795,9 @@ async def _handle_tool(
                 item for item in catalog if capability in item["capabilities"]
             ]
         return {"count": len(catalog), "providers": catalog}
+
+    if name == "get_nhi_data_status":
+        return taiwan_drug_service.get_nhi_data_status()
 
     # Drug search tools
     if name == "search_drug":
