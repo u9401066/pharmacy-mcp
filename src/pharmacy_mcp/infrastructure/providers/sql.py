@@ -80,8 +80,10 @@ class SQLiteKnowledgeProvider:
                     f"lower(CAST({_quoted(item)} AS TEXT)) LIKE ?"
                     for item in mapping.search_columns
                 )
+                # Identifiers have passed the strict regex and are quoted;
+                # all caller-provided values remain bound parameters.
                 statement = (
-                    f"SELECT {output} FROM {_quoted(mapping.table)} "
+                    f"SELECT {output} FROM {_quoted(mapping.table)} "  # nosec B608
                     f"WHERE {predicates} LIMIT ?"
                 )
                 term = f"%{query.casefold()}%"

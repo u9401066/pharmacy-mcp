@@ -9,6 +9,7 @@ import sqlite3
 import tempfile
 import threading
 from collections.abc import Sequence
+from contextlib import closing
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -150,7 +151,7 @@ class NHIIndex:
                 "dataset_url": self.dataset_url,
                 "auto_download": self.auto_download,
             }
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             metadata = dict(connection.execute("SELECT key, value FROM metadata"))
         return {
             "ready": True,
@@ -244,14 +245,14 @@ class NHIIndex:
                     batch.append(self._normalize_row(raw_row))
                     if len(batch) >= 2000:
                         connection.executemany(
-                            f"INSERT INTO nhi_drugs VALUES ({placeholders})",  # noqa: S608
+                            f"INSERT INTO nhi_drugs VALUES ({placeholders})",  # nosec B608
                             batch,
                         )
                         count += len(batch)
                         batch.clear()
                 if batch:
                     connection.executemany(
-                        f"INSERT INTO nhi_drugs VALUES ({placeholders})",  # noqa: S608
+                        f"INSERT INTO nhi_drugs VALUES ({placeholders})",  # nosec B608
                         batch,
                     )
                     count += len(batch)
@@ -287,6 +288,8 @@ class NHIIndex:
     ) -> list[dict[str, Any]]:
         term = f"%{query.casefold()}%"
         current_clause = "AND is_current = 1" if current_only else ""
+        # Column names and the optional clause are internal constants; search
+        # text and limit remain bound parameters.
         statement = f"""
             SELECT {",".join(_COLUMNS)} FROM nhi_drugs
             WHERE (
@@ -296,19 +299,20 @@ class NHIIndex:
             ) {current_clause}
             ORDER BY is_current DESC, effective_start DESC, nhi_code
             LIMIT ?
-        """  # noqa: S608
-        with self._connect() as connection:
+        """  # nosec B608
+        with closing(self._connect()) as connection:
             rows = connection.execute(statement, (*([term] * 5), limit)).fetchall()
         return [self._row_to_dict(row) for row in rows]
 
     def _get_by_code_sync(self, nhi_code: str) -> dict[str, Any] | None:
+        # Column names are internal constants; the NHI code remains bound.
         statement = f"""
             SELECT {",".join(_COLUMNS)} FROM nhi_drugs
             WHERE upper(nhi_code) = upper(?)
             ORDER BY is_current DESC, effective_start DESC
             LIMIT 1
-        """  # noqa: S608
-        with self._connect() as connection:
+        """  # nosec B608
+        with closing(self._connect()) as connection:
             row = connection.execute(statement, (nhi_code,)).fetchone()
         return self._row_to_dict(row) if row else None
 
@@ -343,7 +347,7 @@ class NHIIndex:
         if not self.database_path.is_file():
             return False
         try:
-            with self._connect() as connection:
+            with closing(self._connect()) as connection:
                 metadata = dict(connection.execute("SELECT key, value FROM metadata"))
                 return (
                     metadata.get("indexed_at") is not None
@@ -355,7 +359,7 @@ class NHIIndex:
     def _is_fresh(self) -> bool:
         if not self._is_valid_database():
             return False
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 "SELECT value FROM metadata WHERE key = 'indexed_at'"
             ).fetchone()

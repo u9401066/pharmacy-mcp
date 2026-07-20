@@ -1,6 +1,7 @@
 """Tests for file, SQL, vector, and allowlisted web knowledge connectors."""
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 import httpx
@@ -83,7 +84,7 @@ async def test_sql_provider_uses_read_only_allowlisted_projection(
     tmp_path: Path,
 ) -> None:
     database = tmp_path / "hospital.sqlite3"
-    with sqlite3.connect(database) as connection:
+    with closing(sqlite3.connect(database)) as connection:
         connection.execute(
             "CREATE TABLE medications (code TEXT, name TEXT, stock INTEGER, secret TEXT)"
         )
@@ -91,6 +92,7 @@ async def test_sql_provider_uses_read_only_allowlisted_projection(
             "INSERT INTO medications VALUES (?, ?, ?, ?)",
             ("W001", "Warfarin", 42, "must-not-leak"),
         )
+        connection.commit()
     provider = SQLiteKnowledgeProvider(
         database,
         (

@@ -33,6 +33,8 @@ jobs:
         run: uv run ruff check src tests examples
       - name: Type check
         run: uv run mypy src
+      - name: Security scan
+        run: uv run bandit -r src -c pyproject.toml -q
 
   test:
     name: Python ${{ matrix.python-version }}
@@ -53,7 +55,7 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --all-extras --dev
       - name: Run test suite
-        run: uv run pytest
+        run: uv run pytest --cov=pharmacy_mcp --cov-report=term
       - name: Build distribution
         run: uv build
 

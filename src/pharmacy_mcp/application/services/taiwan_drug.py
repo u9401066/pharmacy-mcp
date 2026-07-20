@@ -17,9 +17,13 @@ from pharmacy_mcp.infrastructure.api.tfda import (
 class TaiwanDrugService:
     """Service for Taiwan-specific drug information."""
 
-    def __init__(self) -> None:
-        self._tfda_client = TFDAClient()
-        self._nhi_client = NHIClient()
+    def __init__(
+        self,
+        tfda_client: TFDAClient | None = None,
+        nhi_client: NHIClient | None = None,
+    ) -> None:
+        self._tfda_client = tfda_client or TFDAClient()
+        self._nhi_client = nhi_client or NHIClient()
 
     async def search_tfda_drug(
         self, query: str, limit: int = 20, search_type: str = "name"

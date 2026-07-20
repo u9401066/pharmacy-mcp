@@ -212,4 +212,4 @@ class DrugInfoService:
     def _cache_key(self, *args: Any) -> str:
         """Generate cache key from arguments."""
         key_str = ":".join(str(a).lower() for a in args)
-        return hashlib.md5(key_str.encode()).hexdigest()
+        return hashlib.sha256(key_str.encode()).hexdigest()

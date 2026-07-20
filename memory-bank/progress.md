@@ -89,7 +89,10 @@
 - ✅ repo-wide Ruff format/check baseline
 - ✅ repo-wide strict mypy baseline
 - ✅ CI quality gate（format/lint/type）
-- 🚧 final coverage/security/build validation and push
+- ✅ 115 tests / 78.88% branch coverage（gate 70%）
+- ✅ SQLite/Cache resources explicit lifecycle，ResourceWarning-as-error 通過
+- ✅ Bandit security baseline in CI；legacy cache key 改 SHA-256
+- 🚧 final docs/package/wheel smoke and push
 
 ## Next
 

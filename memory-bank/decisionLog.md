@@ -179,5 +179,17 @@
 - strict mypy 覆蓋 `src`
 - 兩者納入獨立 CI quality job
 
+### DEC-019: Coverage 與資源生命週期是 release gate
+**日期**: 2026-07-20
+**決策**: CI 的多版本 test job 執行 branch coverage，維持既有 70% 門檻
+**改善**:
+- 新增 retained atomic services、RxNorm/openFDA/TFDA 舊 adapters 的合成/HTTP mock 測試
+- coverage 從 63.9% 提升到 78.88%，tests 從 107 增至 115
+- NHI SQLite 使用 `contextlib.closing`；CacheService 以 finalizer + idempotent close 管理連線
+- 測試可將 ResourceWarning/PytestUnraisableExceptionWarning 升為 error
+**原因**:
+- SQLite connection 的 `with connection` 只管理 transaction，不會關閉 connection
+- 相容性 tools 既然繼續公開，就必須由 CI 覆蓋，而非只測新 gateway
+
 ---
 *Last updated: 2025-12-22*

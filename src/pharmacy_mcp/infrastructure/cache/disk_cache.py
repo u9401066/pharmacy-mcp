@@ -1,6 +1,7 @@
 """Disk-based cache service."""
 
 import json
+import weakref
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ class CacheService:
         self.cache_dir = Path(cache_dir or settings.cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._cache = Cache(str(self.cache_dir))
+        self._finalizer = weakref.finalize(self, self._cache.close)
         self.default_ttl = settings.cache_ttl_seconds
 
     def get(self, key: str) -> Any | None:
@@ -98,4 +100,5 @@ class CacheService:
 
     def close(self) -> None:
         """Close cache connection."""
-        self._cache.close()
+        if self._finalizer.alive:
+            self._finalizer()

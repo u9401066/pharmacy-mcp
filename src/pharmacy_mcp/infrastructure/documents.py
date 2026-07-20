@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import csv
-import subprocess
+import shutil
+
+# Required only for optional legacy .doc extraction; never invoked through a shell.
+import subprocess  # nosec B404
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -167,15 +170,18 @@ def _read_xls(path: Path) -> str:
 
 
 def _read_legacy_doc(path: Path) -> str:
+    executable = shutil.which("antiword")
+    if executable is None:
+        raise RuntimeError("legacy .doc requires the antiword executable")
     try:
-        result = subprocess.run(
-            ["antiword", str(path)],
+        # The executable is resolved to an absolute path and the validated file
+        # path is passed as one argument with shell=False.
+        result = subprocess.run(  # nosec B603
+            [executable, str(path)],
             check=True,
             capture_output=True,
             timeout=20,
         )
-    except FileNotFoundError as exc:
-        raise RuntimeError("legacy .doc requires the antiword executable") from exc
     except subprocess.SubprocessError as exc:
         raise RuntimeError(f"antiword extraction failed: {exc}") from exc
     return result.stdout.decode("utf-8", errors="replace")

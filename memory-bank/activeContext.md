@@ -40,7 +40,10 @@
 - `mkdocs build --strict` 已通過；待 push 後於 repo Settings 將 Pages source 設為 GitHub Actions
 - repo-wide Ruff 由 647 issues 收斂至 0；strict mypy 亦已全綠，未放寬全域 strict
 - CI 新增 format/lint/type quality job
-- 下一批：coverage/security/build 最終驗證、提交與 push
+- coverage 由 63.9% 提升至 78.88%（門檻 70%），115 tests 全綠
+- 修正 sqlite context manager 不會自動 close 的誤用；ResourceWarning-as-error 通過
+- cache keys 改 SHA-256；Bandit 無未處理 findings 並加入 CI
+- 下一批：最終 docs/package/wheel smoke、提交與 push
 
 ## 📝 最近完成的變更（v0.8.5）
 
