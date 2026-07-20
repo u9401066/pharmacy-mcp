@@ -146,5 +146,16 @@
 - 單一入口必須能整合院內資料，同時避免 agent 取得通用檔案、資料庫或網路能力
 - 統一 provider port 讓每個來源維持 provenance、partial failure 與相同輸出契約
 
+### DEC-016: MCP、Python 與 CLI 共用同一 QueryResponse
+**日期**: 2026-07-20
+**決策**: `query_pharmacy`、`PharmacyHarness`、`pharmacy-query` 全部回傳/輸出 QueryResponse v1.0
+**Agent 約束**:
+- 所有 tools 宣告相同 outputSchema，MCP structuredContent 是唯一真實來源
+- `pharmacy-query-contract` MCP prompt 明示保留七個 top-level fields
+- JSON renderer 不允許額外 prose/code fence；不得補造缺失臨床事實或丟棄 partial failures
+**原因**:
+- transport 可以不同，但 agent 解析和下游自動化只需維護一種契約
+- prompt + JSON Schema + deterministic renderer 形成互補的格式約束
+
 ---
 *Last updated: 2025-12-22*

@@ -65,6 +65,7 @@ dev = [
 
 [project.scripts]
 pharmacy-mcp = "pharmacy_mcp.presentation.server:main"
+pharmacy-query = "pharmacy_mcp.presentation.cli:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -80,7 +80,9 @@
 - ✅ read-only allowlisted SQLite connector
 - ✅ vendor-neutral vector search gateway connector
 - ✅ fixed HTTPS document connector（no redirects / no caller URL）
-- 📋 agent harness、GitHub Pages 與 CI
+- ✅ Python agent harness + deterministic CLI
+- ✅ MCP agent-contract prompt
+- 📋 GitHub Pages 與 CI
 
 ## Next
 

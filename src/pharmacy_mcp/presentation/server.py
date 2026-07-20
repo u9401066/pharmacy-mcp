@@ -6,8 +6,17 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import CallToolResult, TextContent, Tool
+from mcp.types import (
+    CallToolResult,
+    GetPromptResult,
+    Prompt,
+    PromptArgument,
+    PromptMessage,
+    TextContent,
+    Tool,
+)
 
+from pharmacy_mcp.application.harness import AGENT_CONTRACT_NAME, build_agent_contract
 from pharmacy_mcp.application.services.dosage import DosageService
 from pharmacy_mcp.application.services.drug_info import DrugInfoService
 from pharmacy_mcp.application.services.drug_search import DrugSearchService
@@ -59,7 +68,7 @@ unified_query_service = UnifiedQueryService(provider_registry)
 def create_server() -> Server:
     """Create and configure the MCP server."""
     server = Server("pharmacy-mcp")
-    
+
     @server.list_tools()
     async def list_tools() -> list[Tool]:
         """List all available pharmacy tools."""
@@ -678,7 +687,7 @@ def create_server() -> Server:
                 },
             ),
         ])
-    
+
     @server.call_tool()
     async def call_tool(
         name: str,
@@ -742,7 +751,59 @@ def create_server() -> Server:
                 structuredContent=response.model_dump(mode="json"),
                 isError=True,
             )
-    
+
+    @server.list_prompts()
+    async def list_prompts() -> list[Prompt]:
+        """Expose the stable agent consumption contract to MCP clients."""
+
+        return [
+            Prompt(
+                name=AGENT_CONTRACT_NAME,
+                title="Pharmacy query output contract",
+                description=(
+                    "Instructions that constrain an agent to the versioned "
+                    "QueryResponse envelope and source-preserving behavior."
+                ),
+                arguments=[
+                    PromptArgument(
+                        name="output_format",
+                        description="json, json_compact, or markdown",
+                        required=False,
+                    ),
+                    PromptArgument(
+                        name="locale",
+                        description="BCP 47 response locale, such as zh-TW",
+                        required=False,
+                    ),
+                ],
+            )
+        ]
+
+    @server.get_prompt()
+    async def get_prompt(
+        name: str,
+        arguments: dict[str, str] | None,
+    ) -> GetPromptResult:
+        """Return parameterized instructions for the selected rendering."""
+
+        if name != AGENT_CONTRACT_NAME:
+            raise ValueError(f"Unknown prompt: {name}")
+        prompt_arguments = arguments or {}
+        output_format = _parse_output_format(prompt_arguments.get("output_format"))
+        locale = prompt_arguments.get("locale", settings.default_locale)
+        return GetPromptResult(
+            description="Pharmacy MCP agent query and response contract.",
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(
+                        type="text",
+                        text=build_agent_contract(output_format, locale),
+                    ),
+                )
+            ],
+        )
+
     return server
 
 
@@ -805,34 +866,34 @@ async def _handle_tool(
             query=arguments["query"],
             max_results=arguments.get("max_results", 10),
         )
-    
+
     # Drug info tools
     elif name == "get_drug_info":
         return await drug_info_service.get_full_info(arguments["drug_name"])
-    
+
     elif name == "get_drug_dosage":
         return await drug_info_service.get_dosage_info(arguments["drug_name"])
-    
+
     elif name == "get_drug_warnings":
         return await drug_info_service.get_warnings(arguments["drug_name"])
-    
+
     # Interaction tools
     elif name == "check_drug_interaction":
         return await interaction_service.check_drug_drug_interaction(
             drug1=arguments["drug1"],
             drug2=arguments["drug2"],
         )
-    
+
     elif name == "check_multi_drug_interactions":
         return await interaction_service.check_multi_drug_interactions(
             drugs=arguments["drugs"],
         )
-    
+
     elif name == "check_food_drug_interaction":
         return await interaction_service.check_food_drug_interaction(
             drug_name=arguments["drug_name"],
         )
-    
+
     # Dosage calculation tools
     elif name == "calculate_dose_by_weight":
         return dosage_service.calculate_weight_based_dose(
@@ -841,7 +902,7 @@ async def _handle_tool(
             dose_unit=arguments.get("dose_unit", "mg"),
             max_dose=arguments.get("max_dose"),
         )
-    
+
     elif name == "calculate_dose_by_bsa":
         return dosage_service.calculate_bsa_based_dose(
             dose_per_m2=arguments["dose_per_m2"],
@@ -850,7 +911,7 @@ async def _handle_tool(
             dose_unit=arguments.get("dose_unit", "mg"),
             max_dose=arguments.get("max_dose"),
         )
-    
+
     elif name == "calculate_creatinine_clearance":
         return dosage_service.calculate_creatinine_clearance(
             age_years=arguments["age_years"],
@@ -858,7 +919,7 @@ async def _handle_tool(
             serum_creatinine=arguments["serum_creatinine"],
             gender=arguments["gender"],
         )
-    
+
     elif name == "calculate_pediatric_dose":
         return dosage_service.calculate_pediatric_dose(
             adult_dose=arguments["adult_dose"],
@@ -868,7 +929,7 @@ async def _handle_tool(
             child_age_years=arguments.get("child_age_years"),
             child_bsa=arguments.get("child_bsa"),
         )
-    
+
     elif name == "calculate_infusion_rate":
         return dosage_service.calculate_infusion_rate(
             total_dose=arguments["total_dose"],
@@ -876,14 +937,14 @@ async def _handle_tool(
             volume_ml=arguments["volume_ml"],
             duration_hours=arguments["duration_hours"],
         )
-    
+
     elif name == "convert_dose_units":
         return dosage_service.convert_dose_units(
             value=arguments["value"],
             from_unit=arguments["from_unit"],
             to_unit=arguments["to_unit"],
         )
-    
+
     # Taiwan drug tools (台灣藥品工具)
     elif name == "search_tfda_drug":
         return await taiwan_drug_service.search_tfda_drug(
@@ -891,35 +952,35 @@ async def _handle_tool(
             limit=arguments.get("limit", 20),
             search_type=arguments.get("search_type", "name"),
         )
-    
+
     elif name == "get_nhi_coverage":
         return await taiwan_drug_service.get_nhi_coverage(
             drug_name=arguments["drug_name"],
         )
-    
+
     elif name == "get_nhi_drug_price":
         return await taiwan_drug_service.get_nhi_drug_price(
             nhi_code=arguments["nhi_code"],
         )
-    
+
     elif name == "translate_drug_name":
         return taiwan_drug_service.translate_drug_name(
             name=arguments["name"],
         )
-    
+
     elif name == "list_prior_authorization_drugs":
         return await taiwan_drug_service.get_prior_authorization_drugs()
-    
+
     elif name == "list_nhi_coverage_rules":
         return taiwan_drug_service.list_nhi_coverage_rules()
-    
+
     # Prescription tools (處方工具)
     elif name == "get_formulary_item":
         item = prescription_service.get_formulary_item(arguments["drug_code"])
         if item:
             return item.to_dict()
         return {"error": f"Drug code {arguments['drug_code']} not found in formulary"}
-    
+
     elif name == "search_formulary":
         items = prescription_service.search_formulary(
             query=arguments["query"],
@@ -929,14 +990,14 @@ async def _handle_tool(
             "count": len(items),
             "items": [item.to_dict() for item in items],
         }
-    
+
     elif name == "get_renal_adjustment":
         adjustment = prescription_service.get_renal_adjustment(
             drug_code=arguments["drug_code"],
             crcl=arguments["crcl"],
         )
         return adjustment.to_dict()
-    
+
     elif name == "validate_order":
         result = prescription_service.validate_order(
             drug_code=arguments["drug_code"],
@@ -947,7 +1008,7 @@ async def _handle_tool(
             patient_crcl=arguments.get("patient_crcl"),
         )
         return result.to_dict()
-    
+
     elif name == "submit_order":
         result = await prescription_service.submit_order(
             patient_id=arguments["patient_id"],
@@ -962,14 +1023,14 @@ async def _handle_tool(
             notes=arguments.get("notes"),
         )
         return result.to_dict()
-    
+
     elif name == "stop_order":
         result = await prescription_service.stop_order(
             order_id=arguments["order_id"],
             reason=arguments["reason"],
         )
         return result.to_dict()
-    
+
     else:
         return {"error": f"Unknown tool: {name}"}
 
@@ -977,7 +1038,7 @@ async def _handle_tool(
 async def run_server():
     """Run the MCP server."""
     server = create_server()
-    
+
     async with stdio_server() as (read_stream, write_stream):
         logger.info("Pharmacy MCP Server starting...")
         await server.run(

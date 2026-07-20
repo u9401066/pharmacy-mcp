@@ -33,7 +33,9 @@
 - 已完成 SQLite read-only table/column allowlist，agent 無法提交 SQL
 - 已完成 internal vector gateway（只外送明確 vector_filters）與固定 HTTPS 文件入口
 - file root/symlink/size/count、web redirect/size、secret 等安全界線均有測試
-- 下一批：agent harness、GitHub Pages/CI
+- 已完成 Python `PharmacyHarness` 與 `pharmacy-query` CLI 單一入口
+- MCP 新增 `pharmacy-query-contract` prompt，明確約束 agent 保留固定 envelope/provenance/failures
+- 下一批：GitHub Pages/CI、repo-wide quality baseline 與總文件翻新
 
 ## 📝 最近完成的變更（v0.8.5）
 

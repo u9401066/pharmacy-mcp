@@ -120,6 +120,18 @@ SQLite projections, an internal vector gateway, and fixed HTTPS documents can
 join the same compound query. See [organization knowledge connectors](docs/connectors.md)
 for configuration and security boundaries.
 
+The same contract is available outside MCP through the Python
+`PharmacyHarness` and `pharmacy-query` CLI. MCP clients can load the
+`pharmacy-query-contract` prompt to constrain downstream agent output. See the
+[agent harness guide](docs/agent-harness.md).
+
+```bash
+uv run pharmacy-query warfarin \
+  --source local-formulary \
+  --capability formulary \
+  --format json_compact
+```
+
 ### Drug Search
 | Tool | Description |
 |------|-------------|
