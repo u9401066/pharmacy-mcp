@@ -95,6 +95,13 @@
 - ✅ MkDocs strict build、sdist/wheel build
 - ✅ end-to-end MCP stdio smoke（28 tools / prompt / compound query）
 - ✅ isolated wheel CLI smoke
+- ✅ RxClass 獨立 provider（class ID/type/relation/source）
+- ✅ openFDA 七個 drug endpoints 全部可依 capability 執行
+- ✅ bounded openFDA label/regulatory projections
+- ✅ provider partial status 正確傳遞到統一回應
+- ✅ TFDA current HTTPS ZIP ingestion + plain JSON compatibility
+- ✅ 每週 14-source live health workflow；2026-07-20 全數通過
+- 🚧 新增能力後的完整 release audit 待重跑
 - ⛔ Push pending：本機 GitHub token invalid；需 `gh auth login -h github.com`
 
 ## Next

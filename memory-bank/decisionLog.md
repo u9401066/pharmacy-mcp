@@ -61,6 +61,7 @@
 - 政府開放資料每週更新，保持資料新鮮度
 - 減少維護成本
 - disk cache 提供 7 天 TTL，平衡效能與即時性
+**後續修正**: NHI 大型歷史資料已由 DEC-012 改採本機 SQLite 索引；本決策僅保留於 TFDA 下載快取。
 **資料來源**:
 - TFDA: https://data.fda.gov.tw/opendata/exportDataList.do
 - 政府資料開放平台: data.gov.tw/dataset/9122
@@ -203,5 +204,29 @@
 - local implementation ready；GitHub push 因本機 u9401066 token invalid 而尚未完成
 - 不在 repo 寫入或繞過 credentials；由 operator 重新登入後推送
 
+### DEC-021: openFDA 依 capability 執行七個獨立藥品端點
+**日期**: 2026-07-20
+**決策**: `openfda` provider 明確分流 label、event、NDC、enforcement、Drugs@FDA、Orange Book、shortages
+**原因**:
+- catalog 宣告的能力必須有實際 executable route，不得由 label search 冒充
+- NDC、FDA approval、therapeutic equivalence、recall 與 shortage 有不同語意與更新週期
+- 一個端點失敗時保留其他成功結果，並把統一回應標為 `partial`
+**輸出界線**:
+- `search` 只查 labels；監測/法規資料必須明確要求 capability
+- label 文字、products、submissions 與巢狀陣列均採 bounded projection
+- NDC 不得被描述成 FDA approval 或 reimbursement
+
+### DEC-022: 官方來源漂移採每週 live probe 並保留安全下載格式
+**日期**: 2026-07-20
+**決策**: GitHub Actions 每週檢查 14 個公共來源 surface；大型 TFDA/NHI 資料只驗證 stream status
+**原因**:
+- mock tests 無法發現 endpoint redirect、格式或欄位漂移
+- 首次執行即發現 TFDA 舊 URL 轉向明文 HTTP 且新格式改為 ZIP
+- 維運檢查必須與 CI correctness gate 分離，避免一般 PR 依賴外部服務
+**TFDA 安全處理**:
+- 固定使用官方 HTTPS URL，不跟隨降級到 HTTP 的 redirect
+- ZIP 只接受單一 JSON member，限制 uncompressed size，不解壓到檔案系統
+- 保留 plain JSON 相容路徑與七日 cache
+
 ---
-*Last updated: 2025-12-22*
+*Last updated: 2026-07-20*
