@@ -30,6 +30,8 @@ search, files, and fixed web documents.
 - **Hospital-ready boundaries:** FHIR is read-only; file, SQL, vector, and web
   connectors are configured by operators instead of accepting arbitrary agent
   paths, SQL, endpoints, or URLs.
+- **Drift detection:** a scheduled health workflow probes 14 official API and
+  dataset surfaces every week without downloading the large Taiwan datasets.
 
 ## Quick start
 
@@ -85,7 +87,7 @@ The Python API exposes the same contract through
 
 | Area | Shipped adapters |
 |---|---|
-| Public drug knowledge | RxNorm/RxClass, openFDA, DailyMed, PubChem, MedlinePlus Connect |
+| Public drug knowledge | RxNorm/RxClass; all seven openFDA drug endpoints; DailyMed; PubChem; MedlinePlus Connect |
 | Taiwan | TFDA permits, official NHI monthly drug items, coverage rules and terminology |
 | Hospital | FHIR R4/R5 medication, order, dispense, inventory and supply; bundled formulary |
 | Organization data | PDF, DOC/DOCX, CSV, XLS/XLSX, Markdown, text, read-only SQLite, vector gateway, fixed HTTPS pages |
@@ -126,13 +128,15 @@ and [response contract](docs/architecture/response-contract.md).
 ```bash
 uv sync --all-extras
 uv run pytest
-uv run ruff check src tests examples
+uv run ruff check src tests examples scripts
 uv run mypy src
 uv run mkdocs build --strict
+uv run python scripts/check_source_health.py
 ```
 
 The repository uses segmented Conventional Commits, an updated Memory Bank, CI
-across supported Python versions, and a GitHub Pages documentation workflow.
+across supported Python versions, weekly public-source health checks, and a
+GitHub Pages documentation workflow.
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
 ## License

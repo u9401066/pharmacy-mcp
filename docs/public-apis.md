@@ -7,20 +7,38 @@ response contracts.
 ## NLM RxNorm and RxClass
 
 RxNorm normalizes drug names to RxCUIs and RxClass maps those concepts to drug
-classes. The adapter covers concept search, concept detail, and class lookup.
+classes. `rxnorm` returns identity records; the separate `rxclass` provider
+resolves each RxCUI and preserves class ID, class type, relation, and relation
+source instead of flattening every membership into an ambiguous name.
 
 Official documentation: <https://lhncbc.nlm.nih.gov/RxNav/APIs/RxNormAPIs.html>
 
 ## FDA openFDA
 
-The adapter currently projects product-label search into bounded agent results.
-The catalog also records openFDA's drug event, NDC, recall, Orange Book,
-Drugs@FDA, and shortage endpoint capabilities for subsequent query modes.
+The `openfda` provider executes all seven current openFDA drug endpoints. It
+routes only the endpoints requested by capability and keeps every payload
+bounded before it enters agent context.
+
+| Capability | Result key | Official endpoint |
+|---|---|---|
+| `label`, `dosing`, `safety`, `interaction` | `labels` | `/drug/label.json` |
+| `adverse_event` | `adverse_events` | `/drug/event.json` |
+| `ndc` | `ndc` | `/drug/ndc.json` |
+| `recall` | `recalls` | `/drug/enforcement.json` |
+| `approval` | `approvals` | `/drug/drugsfda.json` |
+| `therapeutic_equivalence` | `therapeutic_equivalence` | `/drug/orangebook.json` |
+| `shortage` | `shortages` | `/drug/shortages.json` |
+
+`search` intentionally queries labels only. Ask for the explicit capability
+when the agent needs surveillance, regulatory, NDC, equivalence, or shortage
+records. A failure in one selected endpoint produces `partial` while retaining
+the other successful endpoint results.
 
 Official documentation: <https://open.fda.gov/apis/drug/>
 
 openFDA explicitly warns that public records are not validated for direct
-medical-care decisions. Agents must retain the gateway disclaimer.
+medical-care decisions. NDC Directory inclusion does not indicate FDA approval
+or reimbursement. Agents must retain the gateway disclaimer and source boundary.
 
 ## NLM DailyMed SPL v2
 
@@ -60,3 +78,5 @@ Official documentation: <https://medlineplus.gov/medlineplus-connect/web-service
 
 A live smoke test on 2026-07-20 returned DailyMed SPL publication metadata,
 PubChem CID `54678486`, and MedlinePlus patient education in one `ok` response.
+The scheduled source-health workflow also checks RxNorm/RxClass, every openFDA
+drug endpoint, both Taiwan download surfaces, and these three sources weekly.

@@ -14,12 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider registry with capability routing, concurrency, timeout isolation,
   provenance, and partial-failure aggregation
 - DailyMed, PubChem, and MedlinePlus Connect public API adapters
+- Capability-routed execution for all seven openFDA drug endpoints, including
+  NDC, enforcement, Drugs@FDA, Orange Book, and shortages
+- Structured RxClass membership results with class type, relation, and source
 - Official Taiwan NHI monthly CSV to atomic, versioned SQLite index
 - Taiwan TFDA + NHI item + coverage-rule compound query
 - Read-only FHIR R4/R5 medication, patient order/dispense, inventory, and supply
 - Secure file, read-only SQLite, vector gateway, and fixed HTTPS connectors
 - Python `PharmacyHarness` and `pharmacy-query` CLI
 - MkDocs Material site, GitHub Pages deployment, and multi-version CI workflows
+- Weekly health workflow for 14 official public API and dataset surfaces
 
 ### Changed
 - Package prerelease version is now `0.9.0a1`
@@ -28,10 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Repo-wide Ruff formatting/lint and strict mypy baselines now pass and run in CI
 - Coverage is above the configured 70% gate; SQLite resources close explicitly
 - Legacy non-security cache keys now use SHA-256 and Bandit runs in CI
+- TFDA permit ingestion now follows the official HTTPS ZIP distribution and
+  accepts the prior plain-JSON response for compatibility
 
 ### Fixed
 - Taiwan ROC six-digit dates are compared numerically so historical items are
   not misclassified as currently reimbursed
+- Provider-level `partial` status now propagates through the unified response
 
 ---
 

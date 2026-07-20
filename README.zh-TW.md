@@ -27,6 +27,8 @@
   來源失敗時，其餘成功資料以 `partial` 回傳。
 - **預設能接醫院：** FHIR 只讀；file/SQL/vector/web 都由管理者設定邊界，
   agent 不能自行指定路徑、SQL、endpoint 或 URL。
+- **主動偵測來源漂移：** 每週排程檢查 14 個官方 API/資料集入口，且不下載
+  台灣的大型資料檔。
 
 ## 快速開始
 
@@ -81,7 +83,7 @@ Python 可直接匯入 `pharmacy_mcp.application.harness.PharmacyHarness`。
 
 | 範圍 | 隨附 adapters |
 |---|---|
-| 公共藥品知識 | RxNorm/RxClass、openFDA、DailyMed、PubChem、MedlinePlus Connect |
+| 公共藥品知識 | RxNorm/RxClass、openFDA 全七個藥品端點、DailyMed、PubChem、MedlinePlus Connect |
 | 台灣 | TFDA 許可證、健保署官方每月藥品項目、給付規則、藥名對照 |
 | 醫院 | FHIR R4/R5 藥品、醫囑、調劑、庫存/供應，以及 bundled formulary |
 | 組織資料 | PDF、DOC/DOCX、CSV、XLS/XLSX、Markdown、text、唯讀 SQLite、vector gateway、固定 HTTPS 文件 |
@@ -118,13 +120,15 @@ schema_version · status · data · sources · warnings · errors · meta
 ```bash
 uv sync --all-extras
 uv run pytest
-uv run ruff check src tests examples
+uv run ruff check src tests examples scripts
 uv run mypy src
 uv run mkdocs build --strict
+uv run python scripts/check_source_health.py
 ```
 
 本 repo 使用分段 Conventional Commits、持續更新 Memory Bank、多 Python 版本
-CI 和 GitHub Pages 文件部署。詳見 [CONTRIBUTING.md](CONTRIBUTING.md) 與
+CI、每週公共來源健康檢查和 GitHub Pages 文件部署。詳見
+[CONTRIBUTING.md](CONTRIBUTING.md) 與
 [SECURITY.md](SECURITY.md)。
 
 ## 授權

@@ -48,6 +48,7 @@ nav:
       - 台灣健保複合查詢: taiwan-nhi.md
       - FHIR 與院內庫存: fhir.md
       - 院內資料連接器: connectors.md
+  - 維運與來源健康: operations.md
 
 plugins:
   - search
