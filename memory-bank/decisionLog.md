@@ -191,5 +191,17 @@
 - SQLite connection 的 `with connection` 只管理 transaction，不會關閉 connection
 - 相容性 tools 既然繼續公開，就必須由 CI 覆蓋，而非只測新 gateway
 
+### DEC-020: v0.9.0a1 以 transport-level smoke 作最終驗證
+**日期**: 2026-07-20
+**決策**: 除 unit/integration tests 外，release readiness 必須驗證真實 MCP stdio session 與 built wheel
+**驗證結果**:
+- MCP client 完成 initialize/list_tools/list_prompts/get_prompt/call_tool
+- server 暴露 28 tools、`pharmacy-query-contract` prompt，compound result 為 QueryResponse v1.0
+- sdist/wheel build 成功，isolated wheel 可執行 `pharmacy-query` 並產出可解析 JSON
+- MkDocs strict build 成功，Pages artifact workflow 已在 repo
+**發布狀態**:
+- local implementation ready；GitHub push 因本機 u9401066 token invalid 而尚未完成
+- 不在 repo 寫入或繞過 credentials；由 operator 重新登入後推送
+
 ---
 *Last updated: 2025-12-22*

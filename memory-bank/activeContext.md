@@ -43,7 +43,13 @@
 - coverage 由 63.9% 提升至 78.88%（門檻 70%），115 tests 全綠
 - 修正 sqlite context manager 不會自動 close 的誤用；ResourceWarning-as-error 通過
 - cache keys 改 SHA-256；Bandit 無未處理 findings 並加入 CI
-- 下一批：最終 docs/package/wheel smoke、提交與 push
+- 最終驗證完成：Ruff/mypy/Bandit、115 tests/78.80% coverage、strict docs、sdist/wheel 全綠
+- end-to-end MCP stdio smoke：28 tools、1 agent prompt、`query_pharmacy` structuredContent v1.0 `ok`
+- isolated wheel 的 `pharmacy-query` CLI smoke 亦通過
+- 本地現代化提交均保存在 `agent/modernize-unified-pharmacy-gateway`
+- 唯一外部阻塞：`gh` 的 u9401066 token 無效，HTTPS push 無法取得 credentials
+- 解除方式：執行 `gh auth login -h github.com` 後重跑 `git push --set-upstream origin agent/modernize-unified-pharmacy-gateway`
+- push 後需在 GitHub Settings → Pages 將 source 設為 GitHub Actions，workflow 才會發布 GitHub.io
 
 ## 📝 最近完成的變更（v0.8.5）
 

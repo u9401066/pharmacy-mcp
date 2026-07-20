@@ -92,7 +92,10 @@
 - ✅ 115 tests / 78.88% branch coverage（gate 70%）
 - ✅ SQLite/Cache resources explicit lifecycle，ResourceWarning-as-error 通過
 - ✅ Bandit security baseline in CI；legacy cache key 改 SHA-256
-- 🚧 final docs/package/wheel smoke and push
+- ✅ MkDocs strict build、sdist/wheel build
+- ✅ end-to-end MCP stdio smoke（28 tools / prompt / compound query）
+- ✅ isolated wheel CLI smoke
+- ⛔ Push pending：本機 GitHub token invalid；需 `gh auth login -h github.com`
 
 ## Next
 
