@@ -335,12 +335,20 @@ async def test_tfda_client_decodes_current_zip_payload(
     monkeypatch.setattr(TFDAClient, "ACTIVE_PERMITS_JSON_URL", url)
     payload = [
         {
+            "許可證字號": "NULLABLE",
+            "英文品名": None,
+            "中文品名": None,
+            "主成分略述": None,
+            "製造商名稱": None,
+            "劑型": None,
+        },
+        {
             "許可證字號": "A1",
             "英文品名": "WARFARIN",
             "中文品名": "華法林",
             "主成分略述": "WARFARIN SODIUM",
             "製造商名稱": "CURRENT FIELD NAME",
-        }
+        },
     ]
     zipped = io.BytesIO()
     with zipfile.ZipFile(zipped, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -353,6 +361,7 @@ async def test_tfda_client_decodes_current_zip_payload(
     result = await client.search_drug_by_name("warfarin", limit=1)
 
     assert result[0]["manufacturer"]["name"] == "CURRENT FIELD NAME"
+    assert result[0]["drug_category"] == ""
 
 
 @pytest.mark.asyncio

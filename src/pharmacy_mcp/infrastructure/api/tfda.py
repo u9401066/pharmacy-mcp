@@ -13,6 +13,14 @@ from pharmacy_mcp.config import settings
 from pharmacy_mcp.infrastructure.cache.disk_cache import CacheService
 
 
+def _text(value: object) -> str:
+    """Normalize nullable government-data scalar fields at the adapter edge."""
+
+    if value is None:
+        return ""
+    return value if isinstance(value, str) else str(value)
+
+
 class TFDAClient:
     """Client for Taiwan FDA Open Data Platform.
 
@@ -109,9 +117,9 @@ class TFDAClient:
 
         results = []
         for drug in data:
-            chinese_name = drug.get("中文品名", "").lower()
-            english_name = drug.get("英文品名", "").lower()
-            ingredients = drug.get("主成分略述", "").lower()
+            chinese_name = _text(drug.get("中文品名")).lower()
+            english_name = _text(drug.get("英文品名")).lower()
+            ingredients = _text(drug.get("主成分略述")).lower()
 
             if (
                 query_lower in chinese_name
@@ -139,7 +147,7 @@ class TFDAClient:
         data = await self._fetch_drug_permits(active_only=False)
 
         for drug in data:
-            if drug.get("許可證字號") == permit_number:
+            if _text(drug.get("許可證字號")) == permit_number:
                 return self._format_drug_record(drug)
 
         return None
@@ -163,7 +171,7 @@ class TFDAClient:
 
         results = []
         for drug in data:
-            ingredients = drug.get("主成分略述", "").lower()
+            ingredients = _text(drug.get("主成分略述")).lower()
 
             if query_lower in ingredients:
                 results.append(self._format_drug_record(drug))
@@ -191,8 +199,8 @@ class TFDAClient:
 
         results = []
         for drug in data:
-            mfr_name = drug.get("製造廠名稱", "").lower()
-            applicant = drug.get("申請商名稱", "").lower()
+            mfr_name = _text(drug.get("製造商名稱") or drug.get("製造廠名稱")).lower()
+            applicant = _text(drug.get("申請商名稱")).lower()
 
             if query_lower in mfr_name or query_lower in applicant:
                 results.append(self._format_drug_record(drug))
@@ -214,7 +222,7 @@ class TFDAClient:
         # Count by dosage form (劑型)
         dosage_forms: dict[str, int] = {}
         for drug in active_data:
-            form = drug.get("劑型", "未知")
+            form = _text(drug.get("劑型")) or "未知"
             dosage_forms[form] = dosage_forms.get(form, 0) + 1
 
         return {
@@ -237,33 +245,33 @@ class TFDAClient:
             Formatted drug record
         """
         return {
-            "permit_number": raw.get("許可證字號", ""),
-            "chinese_name": raw.get("中文品名", ""),
-            "english_name": raw.get("英文品名", ""),
-            "dosage_form": raw.get("劑型", ""),
-            "packaging": raw.get("包裝", ""),
-            "drug_category": raw.get("藥品類別", ""),
-            "controlled_drug_class": raw.get("管制藥品分類級別", ""),
-            "ingredients": raw.get("主成分略述", ""),
-            "indications": raw.get("適應症", ""),
+            "permit_number": _text(raw.get("許可證字號")),
+            "chinese_name": _text(raw.get("中文品名")),
+            "english_name": _text(raw.get("英文品名")),
+            "dosage_form": _text(raw.get("劑型")),
+            "packaging": _text(raw.get("包裝")),
+            "drug_category": _text(raw.get("藥品類別")),
+            "controlled_drug_class": _text(raw.get("管制藥品分類級別")),
+            "ingredients": _text(raw.get("主成分略述")),
+            "indications": _text(raw.get("適應症")),
             "applicant": {
-                "name": raw.get("申請商名稱", ""),
-                "address": raw.get("申請商地址", ""),
-                "tax_id": raw.get("申請商統一編號", ""),
+                "name": _text(raw.get("申請商名稱")),
+                "address": _text(raw.get("申請商地址")),
+                "tax_id": _text(raw.get("申請商統一編號")),
             },
             "manufacturer": {
-                "name": raw.get("製造商名稱") or raw.get("製造廠名稱", ""),
-                "address": raw.get("製造廠廠址", ""),
-                "country": raw.get("製造廠國別", ""),
+                "name": _text(raw.get("製造商名稱") or raw.get("製造廠名稱")),
+                "address": _text(raw.get("製造廠廠址")),
+                "country": _text(raw.get("製造廠國別")),
             },
             "dates": {
-                "issue_date": raw.get("發證日期", ""),
-                "expiry_date": raw.get("有效日期", ""),
-                "cancellation_date": raw.get("註銷日期", ""),
+                "issue_date": _text(raw.get("發證日期")),
+                "expiry_date": _text(raw.get("有效日期")),
+                "cancellation_date": _text(raw.get("註銷日期")),
             },
             "status": {
                 "is_cancelled": bool(raw.get("註銷狀態")),
-                "cancellation_reason": raw.get("註銷理由", ""),
+                "cancellation_reason": _text(raw.get("註銷理由")),
             },
             "source": "TFDA",
         }
