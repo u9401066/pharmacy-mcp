@@ -2,19 +2,22 @@
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class InteractionSeverity(str, Enum):
     """Interaction severity levels."""
+
     CONTRAINDICATED = "contraindicated"  # 禁忌
-    SEVERE = "severe"                     # 嚴重
-    MODERATE = "moderate"                 # 中等
-    MINOR = "minor"                       # 輕微
-    UNKNOWN = "unknown"                   # 未知
+    SEVERE = "severe"  # 嚴重
+    MODERATE = "moderate"  # 中等
+    MINOR = "minor"  # 輕微
+    UNKNOWN = "unknown"  # 未知
 
 
 class InteractionType(str, Enum):
     """Type of interaction."""
+
     DRUG_DRUG = "drug-drug"
     DRUG_FOOD = "drug-food"
     DRUG_ALCOHOL = "drug-alcohol"
@@ -25,28 +28,28 @@ class InteractionType(str, Enum):
 @dataclass
 class DrugInteraction:
     """Drug interaction entity."""
-    
+
     drug1_rxcui: str
     drug1_name: str
     drug2_rxcui: str
     drug2_name: str
-    
+
     severity: InteractionSeverity = InteractionSeverity.UNKNOWN
     interaction_type: InteractionType = InteractionType.DRUG_DRUG
-    
+
     description: str = ""
     mechanism: str | None = None
     clinical_effect: str | None = None
     management: str | None = None
-    
+
     # Evidence
     evidence_level: str | None = None
     references: list[str] | None = None
-    
+
     # Source
     source: str = "FDA"
-    
-    def to_dict(self) -> dict:
+
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "drug1": {
@@ -66,7 +69,7 @@ class DrugInteraction:
             "evidence_level": self.evidence_level,
             "source": self.source,
         }
-    
+
     @property
     def is_severe(self) -> bool:
         """Check if interaction is severe or contraindicated."""

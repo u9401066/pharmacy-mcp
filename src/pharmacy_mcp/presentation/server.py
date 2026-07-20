@@ -69,626 +69,658 @@ def create_server() -> Server:
     """Create and configure the MCP server."""
     server = Server("pharmacy-mcp")
 
-    @server.list_tools()
+    @server.list_tools()  # type: ignore[no-untyped-call,untyped-decorator]
     async def list_tools() -> list[Tool]:
         """List all available pharmacy tools."""
-        return _decorate_tools([
-            Tool(
-                name="query_pharmacy",
-                description=(
-                    "Single pharmaceutical knowledge entry point. Queries selected "
-                    "API, Taiwan, hospital, database, document, vector, and web "
-                    "providers concurrently and preserves partial failures."
-                ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "minLength": 1,
-                            "maxLength": 500,
-                            "description": "Drug, identifier, indication, or question.",
+        return _decorate_tools(
+            [
+                Tool(
+                    name="query_pharmacy",
+                    description=(
+                        "Single pharmaceutical knowledge entry point. Queries selected "
+                        "API, Taiwan, hospital, database, document, vector, and web "
+                        "providers concurrently and preserves partial failures."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500,
+                                "description": "Drug, identifier, indication, or question.",
+                            },
+                            "capabilities": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "enum": [item.value for item in QueryCapability],
+                                },
+                                "default": ["search"],
+                                "uniqueItems": True,
+                                "description": "Knowledge capabilities required by the query.",
+                            },
+                            "sources": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "enum": [item.id for item in PROVIDER_CATALOG],
+                                },
+                                "uniqueItems": True,
+                                "description": (
+                                    "Explicit providers. Omit to use enabled compatible sources."
+                                ),
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 100,
+                                "default": 10,
+                            },
+                            "context": {
+                                "type": "object",
+                                "description": (
+                                    "Optional provider routing context. Do not put secrets here."
+                                ),
+                            },
                         },
-                        "capabilities": {
-                            "type": "array",
-                            "items": {
+                        "required": ["query"],
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="list_knowledge_sources",
+                    description=(
+                        "List every cataloged pharmaceutical knowledge source and its "
+                        "capabilities, readiness, credential requirements, and actual "
+                        "runtime registration state."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "state": {
+                                "type": "string",
+                                "enum": [
+                                    "ready",
+                                    "configurable",
+                                    "license_required",
+                                    "deprecated",
+                                ],
+                                "description": "Optional readiness filter.",
+                            },
+                            "capability": {
                                 "type": "string",
                                 "enum": [item.value for item in QueryCapability],
+                                "description": "Optional capability filter.",
                             },
-                            "default": ["search"],
-                            "uniqueItems": True,
-                            "description": "Knowledge capabilities required by the query.",
                         },
-                        "sources": {
-                            "type": "array",
-                            "items": {
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="get_nhi_data_status",
+                    description=(
+                        "Inspect Taiwan NHI official CSV index freshness, row count, "
+                        "local path, and upstream dataset URL without downloading data."
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
+                ),
+                Tool(
+                    name="search_drug",
+                    description="Search for drugs by name. Returns results from RxNorm and FDA databases.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "query": {
                                 "type": "string",
-                                "enum": [item.id for item in PROVIDER_CATALOG],
+                                "description": "Drug name to search for",
                             },
-                            "uniqueItems": True,
-                            "description": (
-                                "Explicit providers. Omit to use enabled compatible sources."
-                            ),
+                            "max_results": {
+                                "type": "integer",
+                                "description": "Maximum number of results (default: 10)",
+                                "default": 10,
+                            },
                         },
-                        "limit": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100,
-                            "default": 10,
-                        },
-                        "context": {
-                            "type": "object",
-                            "description": (
-                                "Optional provider routing context. Do not put secrets here."
-                            ),
-                        },
+                        "required": ["query"],
                     },
-                    "required": ["query"],
-                    "additionalProperties": False,
-                },
-            ),
-            Tool(
-                name="list_knowledge_sources",
-                description=(
-                    "List every cataloged pharmaceutical knowledge source and its "
-                    "capabilities, readiness, credential requirements, and actual "
-                    "runtime registration state."
                 ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "state": {
-                            "type": "string",
-                            "enum": [
-                                "ready",
-                                "configurable",
-                                "license_required",
-                                "deprecated",
-                            ],
-                            "description": "Optional readiness filter.",
+                Tool(
+                    name="get_drug_info",
+                    description="Get comprehensive information about a drug including indications, dosage, warnings, and pharmacology.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug_name": {
+                                "type": "string",
+                                "description": "Name of the drug",
+                            },
                         },
-                        "capability": {
-                            "type": "string",
-                            "enum": [item.value for item in QueryCapability],
-                            "description": "Optional capability filter.",
-                        },
+                        "required": ["drug_name"],
                     },
-                    "additionalProperties": False,
-                },
-            ),
-            Tool(
-                name="get_nhi_data_status",
-                description=(
-                    "Inspect Taiwan NHI official CSV index freshness, row count, "
-                    "local path, and upstream dataset URL without downloading data."
                 ),
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                    "additionalProperties": False,
-                },
-            ),
-            Tool(
-                name="search_drug",
-                description="Search for drugs by name. Returns results from RxNorm and FDA databases.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "Drug name to search for",
+                Tool(
+                    name="get_drug_dosage",
+                    description="Get dosage and administration information for a drug.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug_name": {
+                                "type": "string",
+                                "description": "Name of the drug",
+                            },
                         },
-                        "max_results": {
-                            "type": "integer",
-                            "description": "Maximum number of results (default: 10)",
-                            "default": 10,
-                        },
+                        "required": ["drug_name"],
                     },
-                    "required": ["query"],
-                },
-            ),
-            Tool(
-                name="get_drug_info",
-                description="Get comprehensive information about a drug including indications, dosage, warnings, and pharmacology.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug_name": {
-                            "type": "string",
-                            "description": "Name of the drug",
+                ),
+                Tool(
+                    name="get_drug_warnings",
+                    description="Get warnings, contraindications, and adverse reactions for a drug.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug_name": {
+                                "type": "string",
+                                "description": "Name of the drug",
+                            },
                         },
+                        "required": ["drug_name"],
                     },
-                    "required": ["drug_name"],
-                },
-            ),
-            Tool(
-                name="get_drug_dosage",
-                description="Get dosage and administration information for a drug.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug_name": {
-                            "type": "string",
-                            "description": "Name of the drug",
+                ),
+                Tool(
+                    name="check_drug_interaction",
+                    description="Check for interactions between two drugs.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug1": {
+                                "type": "string",
+                                "description": "First drug name",
+                            },
+                            "drug2": {
+                                "type": "string",
+                                "description": "Second drug name",
+                            },
                         },
+                        "required": ["drug1", "drug2"],
                     },
-                    "required": ["drug_name"],
-                },
-            ),
-            Tool(
-                name="get_drug_warnings",
-                description="Get warnings, contraindications, and adverse reactions for a drug.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug_name": {
-                            "type": "string",
-                            "description": "Name of the drug",
+                ),
+                Tool(
+                    name="check_multi_drug_interactions",
+                    description="Check for interactions among multiple drugs (medication list review).",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drugs": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of drug names to check",
+                            },
                         },
+                        "required": ["drugs"],
                     },
-                    "required": ["drug_name"],
-                },
-            ),
-            Tool(
-                name="check_drug_interaction",
-                description="Check for interactions between two drugs.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug1": {
-                            "type": "string",
-                            "description": "First drug name",
+                ),
+                Tool(
+                    name="check_food_drug_interaction",
+                    description="Check for food-drug interactions for a specific drug.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug_name": {
+                                "type": "string",
+                                "description": "Name of the drug",
+                            },
                         },
-                        "drug2": {
-                            "type": "string",
-                            "description": "Second drug name",
-                        },
+                        "required": ["drug_name"],
                     },
-                    "required": ["drug1", "drug2"],
-                },
-            ),
-            Tool(
-                name="check_multi_drug_interactions",
-                description="Check for interactions among multiple drugs (medication list review).",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drugs": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "List of drug names to check",
+                ),
+                Tool(
+                    name="calculate_dose_by_weight",
+                    description="Calculate weight-based dosage (mg/kg).",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "dose_per_kg": {
+                                "type": "number",
+                                "description": "Dose per kg of body weight",
+                            },
+                            "patient_weight_kg": {
+                                "type": "number",
+                                "description": "Patient weight in kg",
+                            },
+                            "dose_unit": {
+                                "type": "string",
+                                "description": "Unit of dose (default: mg)",
+                                "default": "mg",
+                            },
+                            "max_dose": {
+                                "type": "number",
+                                "description": "Maximum dose cap (optional)",
+                            },
                         },
+                        "required": ["dose_per_kg", "patient_weight_kg"],
                     },
-                    "required": ["drugs"],
-                },
-            ),
-            Tool(
-                name="check_food_drug_interaction",
-                description="Check for food-drug interactions for a specific drug.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug_name": {
-                            "type": "string",
-                            "description": "Name of the drug",
+                ),
+                Tool(
+                    name="calculate_dose_by_bsa",
+                    description="Calculate BSA-based dosage (mg/m²), commonly used in oncology.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "dose_per_m2": {
+                                "type": "number",
+                                "description": "Dose per m² of body surface area",
+                            },
+                            "height_cm": {
+                                "type": "number",
+                                "description": "Patient height in cm",
+                            },
+                            "weight_kg": {
+                                "type": "number",
+                                "description": "Patient weight in kg",
+                            },
+                            "dose_unit": {
+                                "type": "string",
+                                "description": "Unit of dose (default: mg)",
+                                "default": "mg",
+                            },
+                            "max_dose": {
+                                "type": "number",
+                                "description": "Maximum dose cap (optional)",
+                            },
                         },
+                        "required": ["dose_per_m2", "height_cm", "weight_kg"],
                     },
-                    "required": ["drug_name"],
-                },
-            ),
-            Tool(
-                name="calculate_dose_by_weight",
-                description="Calculate weight-based dosage (mg/kg).",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "dose_per_kg": {
-                            "type": "number",
-                            "description": "Dose per kg of body weight",
+                ),
+                Tool(
+                    name="calculate_creatinine_clearance",
+                    description="Calculate creatinine clearance using Cockcroft-Gault formula for renal dosing adjustments.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "age_years": {
+                                "type": "integer",
+                                "description": "Patient age in years",
+                            },
+                            "weight_kg": {
+                                "type": "number",
+                                "description": "Patient weight in kg",
+                            },
+                            "serum_creatinine": {
+                                "type": "number",
+                                "description": "Serum creatinine in mg/dL",
+                            },
+                            "gender": {
+                                "type": "string",
+                                "description": "Patient gender (m/f or male/female)",
+                            },
                         },
-                        "patient_weight_kg": {
-                            "type": "number",
-                            "description": "Patient weight in kg",
-                        },
-                        "dose_unit": {
-                            "type": "string",
-                            "description": "Unit of dose (default: mg)",
-                            "default": "mg",
-                        },
-                        "max_dose": {
-                            "type": "number",
-                            "description": "Maximum dose cap (optional)",
-                        },
+                        "required": [
+                            "age_years",
+                            "weight_kg",
+                            "serum_creatinine",
+                            "gender",
+                        ],
                     },
-                    "required": ["dose_per_kg", "patient_weight_kg"],
-                },
-            ),
-            Tool(
-                name="calculate_dose_by_bsa",
-                description="Calculate BSA-based dosage (mg/m²), commonly used in oncology.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "dose_per_m2": {
-                            "type": "number",
-                            "description": "Dose per m² of body surface area",
+                ),
+                Tool(
+                    name="calculate_pediatric_dose",
+                    description="Calculate pediatric dose from adult dose using weight, age, or BSA method.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "adult_dose": {
+                                "type": "number",
+                                "description": "Standard adult dose",
+                            },
+                            "child_weight_kg": {
+                                "type": "number",
+                                "description": "Child's weight in kg",
+                            },
+                            "method": {
+                                "type": "string",
+                                "description": "Calculation method: weight, age, or bsa",
+                                "enum": ["weight", "age", "bsa"],
+                                "default": "weight",
+                            },
+                            "child_age_years": {
+                                "type": "integer",
+                                "description": "Child's age in years (required for age method)",
+                            },
+                            "child_bsa": {
+                                "type": "number",
+                                "description": "Child's BSA in m² (required for bsa method)",
+                            },
+                            "dose_unit": {
+                                "type": "string",
+                                "description": "Unit of dose (default: mg)",
+                                "default": "mg",
+                            },
                         },
-                        "height_cm": {
-                            "type": "number",
-                            "description": "Patient height in cm",
-                        },
-                        "weight_kg": {
-                            "type": "number",
-                            "description": "Patient weight in kg",
-                        },
-                        "dose_unit": {
-                            "type": "string",
-                            "description": "Unit of dose (default: mg)",
-                            "default": "mg",
-                        },
-                        "max_dose": {
-                            "type": "number",
-                            "description": "Maximum dose cap (optional)",
-                        },
+                        "required": ["adult_dose", "child_weight_kg"],
                     },
-                    "required": ["dose_per_m2", "height_cm", "weight_kg"],
-                },
-            ),
-            Tool(
-                name="calculate_creatinine_clearance",
-                description="Calculate creatinine clearance using Cockcroft-Gault formula for renal dosing adjustments.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "age_years": {
-                            "type": "integer",
-                            "description": "Patient age in years",
+                ),
+                Tool(
+                    name="calculate_infusion_rate",
+                    description="Calculate IV infusion rate.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "total_dose": {
+                                "type": "number",
+                                "description": "Total dose to infuse",
+                            },
+                            "dose_unit": {
+                                "type": "string",
+                                "description": "Unit of dose",
+                            },
+                            "volume_ml": {
+                                "type": "number",
+                                "description": "Total volume in mL",
+                            },
+                            "duration_hours": {
+                                "type": "number",
+                                "description": "Infusion duration in hours",
+                            },
                         },
-                        "weight_kg": {
-                            "type": "number",
-                            "description": "Patient weight in kg",
-                        },
-                        "serum_creatinine": {
-                            "type": "number",
-                            "description": "Serum creatinine in mg/dL",
-                        },
-                        "gender": {
-                            "type": "string",
-                            "description": "Patient gender (m/f or male/female)",
-                        },
+                        "required": [
+                            "total_dose",
+                            "dose_unit",
+                            "volume_ml",
+                            "duration_hours",
+                        ],
                     },
-                    "required": ["age_years", "weight_kg", "serum_creatinine", "gender"],
-                },
-            ),
-            Tool(
-                name="calculate_pediatric_dose",
-                description="Calculate pediatric dose from adult dose using weight, age, or BSA method.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "adult_dose": {
-                            "type": "number",
-                            "description": "Standard adult dose",
+                ),
+                Tool(
+                    name="convert_dose_units",
+                    description="Convert between dose units (g, mg, mcg, ng).",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "value": {
+                                "type": "number",
+                                "description": "Dose value to convert",
+                            },
+                            "from_unit": {
+                                "type": "string",
+                                "description": "Source unit (g, mg, mcg, ng)",
+                            },
+                            "to_unit": {
+                                "type": "string",
+                                "description": "Target unit (g, mg, mcg, ng)",
+                            },
                         },
-                        "child_weight_kg": {
-                            "type": "number",
-                            "description": "Child's weight in kg",
-                        },
-                        "method": {
-                            "type": "string",
-                            "description": "Calculation method: weight, age, or bsa",
-                            "enum": ["weight", "age", "bsa"],
-                            "default": "weight",
-                        },
-                        "child_age_years": {
-                            "type": "integer",
-                            "description": "Child's age in years (required for age method)",
-                        },
-                        "child_bsa": {
-                            "type": "number",
-                            "description": "Child's BSA in m² (required for bsa method)",
-                        },
-                        "dose_unit": {
-                            "type": "string",
-                            "description": "Unit of dose (default: mg)",
-                            "default": "mg",
-                        },
+                        "required": ["value", "from_unit", "to_unit"],
                     },
-                    "required": ["adult_dose", "child_weight_kg"],
-                },
-            ),
-            Tool(
-                name="calculate_infusion_rate",
-                description="Calculate IV infusion rate.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "total_dose": {
-                            "type": "number",
-                            "description": "Total dose to infuse",
+                ),
+                # ========== Taiwan Drug Tools (台灣藥品工具) ==========
+                Tool(
+                    name="search_tfda_drug",
+                    description="搜尋台灣 TFDA 藥品資料庫。Search Taiwan TFDA drug database for drug permits and information.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Search query (drug name in Chinese or English)",
+                            },
+                            "search_type": {
+                                "type": "string",
+                                "description": "Type of search: name (default), ingredient, permit_number, manufacturer",
+                                "enum": [
+                                    "name",
+                                    "ingredient",
+                                    "permit_number",
+                                    "manufacturer",
+                                ],
+                                "default": "name",
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "description": "Maximum number of results (default: 20)",
+                                "default": 20,
+                            },
                         },
-                        "dose_unit": {
-                            "type": "string",
-                            "description": "Unit of dose",
-                        },
-                        "volume_ml": {
-                            "type": "number",
-                            "description": "Total volume in mL",
-                        },
-                        "duration_hours": {
-                            "type": "number",
-                            "description": "Infusion duration in hours",
-                        },
+                        "required": ["query"],
                     },
-                    "required": ["total_dose", "dose_unit", "volume_ml", "duration_hours"],
-                },
-            ),
-            Tool(
-                name="convert_dose_units",
-                description="Convert between dose units (g, mg, mcg, ng).",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "value": {
-                            "type": "number",
-                            "description": "Dose value to convert",
+                ),
+                Tool(
+                    name="get_nhi_coverage",
+                    description="查詢藥品健保給付狀態。Check if a drug is covered by Taiwan National Health Insurance (NHI) and get coverage details.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug_name": {
+                                "type": "string",
+                                "description": "Drug name (generic or brand name)",
+                            },
                         },
-                        "from_unit": {
-                            "type": "string",
-                            "description": "Source unit (g, mg, mcg, ng)",
-                        },
-                        "to_unit": {
-                            "type": "string",
-                            "description": "Target unit (g, mg, mcg, ng)",
-                        },
+                        "required": ["drug_name"],
                     },
-                    "required": ["value", "from_unit", "to_unit"],
-                },
-            ),
-            # ========== Taiwan Drug Tools (台灣藥品工具) ==========
-            Tool(
-                name="search_tfda_drug",
-                description="搜尋台灣 TFDA 藥品資料庫。Search Taiwan TFDA drug database for drug permits and information.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "Search query (drug name in Chinese or English)",
+                ),
+                Tool(
+                    name="get_nhi_drug_price",
+                    description="查詢健保藥價。Get NHI reimbursement price for a drug by NHI code.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "nhi_code": {
+                                "type": "string",
+                                "description": "NHI drug code (e.g., A022664100)",
+                            },
                         },
-                        "search_type": {
-                            "type": "string",
-                            "description": "Type of search: name (default), ingredient, permit_number, manufacturer",
-                            "enum": ["name", "ingredient", "permit_number", "manufacturer"],
-                            "default": "name",
-                        },
-                        "limit": {
-                            "type": "integer",
-                            "description": "Maximum number of results (default: 20)",
-                            "default": 20,
-                        },
+                        "required": ["nhi_code"],
                     },
-                    "required": ["query"],
-                },
-            ),
-            Tool(
-                name="get_nhi_coverage",
-                description="查詢藥品健保給付狀態。Check if a drug is covered by Taiwan National Health Insurance (NHI) and get coverage details.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug_name": {
-                            "type": "string",
-                            "description": "Drug name (generic or brand name)",
+                ),
+                Tool(
+                    name="translate_drug_name",
+                    description="藥品名稱中英對照。Translate drug names between English and Chinese (Traditional).",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "Drug name to translate (English or Chinese)",
+                            },
                         },
+                        "required": ["name"],
                     },
-                    "required": ["drug_name"],
-                },
-            ),
-            Tool(
-                name="get_nhi_drug_price",
-                description="查詢健保藥價。Get NHI reimbursement price for a drug by NHI code.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "nhi_code": {
-                            "type": "string",
-                            "description": "NHI drug code (e.g., A022664100)",
-                        },
+                ),
+                Tool(
+                    name="list_prior_authorization_drugs",
+                    description="列出需事前審查的健保藥品。List drugs requiring NHI prior authorization.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
                     },
-                    "required": ["nhi_code"],
-                },
-            ),
-            Tool(
-                name="translate_drug_name",
-                description="藥品名稱中英對照。Translate drug names between English and Chinese (Traditional).",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "Drug name to translate (English or Chinese)",
-                        },
+                ),
+                Tool(
+                    name="list_nhi_coverage_rules",
+                    description="列出健保給付規則資料庫。List all NHI coverage rules in the database.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
                     },
-                    "required": ["name"],
-                },
-            ),
-            Tool(
-                name="list_prior_authorization_drugs",
-                description="列出需事前審查的健保藥品。List drugs requiring NHI prior authorization.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                },
-            ),
-            Tool(
-                name="list_nhi_coverage_rules",
-                description="列出健保給付規則資料庫。List all NHI coverage rules in the database.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {},
-                    "required": [],
-                },
-            ),
-            # ========== Prescription Tools (處方工具) ==========
-            Tool(
-                name="get_formulary_item",
-                description="取得院內藥品詳情。Get hospital formulary item details by drug code.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug_code": {
-                            "type": "string",
-                            "description": "Hospital drug code (e.g., GENTA-INJ, VANCO-INJ)",
+                ),
+                # ========== Prescription Tools (處方工具) ==========
+                Tool(
+                    name="get_formulary_item",
+                    description="取得院內藥品詳情。Get hospital formulary item details by drug code.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug_code": {
+                                "type": "string",
+                                "description": "Hospital drug code (e.g., GENTA-INJ, VANCO-INJ)",
+                            },
                         },
+                        "required": ["drug_code"],
                     },
-                    "required": ["drug_code"],
-                },
-            ),
-            Tool(
-                name="search_formulary",
-                description="搜尋院內藥品檔。Search hospital formulary by drug name or code.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "Search query (drug name, generic name, or code)",
+                ),
+                Tool(
+                    name="search_formulary",
+                    description="搜尋院內藥品檔。Search hospital formulary by drug name or code.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "description": "Search query (drug name, generic name, or code)",
+                            },
+                            "limit": {
+                                "type": "integer",
+                                "description": "Maximum results (default: 10)",
+                                "default": 10,
+                            },
                         },
-                        "limit": {
-                            "type": "integer",
-                            "description": "Maximum results (default: 10)",
-                            "default": 10,
-                        },
+                        "required": ["query"],
                     },
-                    "required": ["query"],
-                },
-            ),
-            Tool(
-                name="get_renal_adjustment",
-                description="取得腎功能劑量調整建議。Get renal dosing adjustment recommendation based on CrCl.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug_code": {
-                            "type": "string",
-                            "description": "Hospital drug code",
+                ),
+                Tool(
+                    name="get_renal_adjustment",
+                    description="取得腎功能劑量調整建議。Get renal dosing adjustment recommendation based on CrCl.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug_code": {
+                                "type": "string",
+                                "description": "Hospital drug code",
+                            },
+                            "crcl": {
+                                "type": "number",
+                                "description": "Creatinine clearance in mL/min",
+                            },
                         },
-                        "crcl": {
-                            "type": "number",
-                            "description": "Creatinine clearance in mL/min",
-                        },
+                        "required": ["drug_code", "crcl"],
                     },
-                    "required": ["drug_code", "crcl"],
-                },
-            ),
-            Tool(
-                name="validate_order",
-                description="驗證醫囑。Validate a medication order before submission.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "drug_code": {
-                            "type": "string",
-                            "description": "Hospital drug code",
+                ),
+                Tool(
+                    name="validate_order",
+                    description="驗證醫囑。Validate a medication order before submission.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "drug_code": {
+                                "type": "string",
+                                "description": "Hospital drug code",
+                            },
+                            "dose": {
+                                "type": "number",
+                                "description": "Dose value",
+                            },
+                            "dose_unit": {
+                                "type": "string",
+                                "description": "Dose unit (mg, g, mL, etc.)",
+                            },
+                            "route": {
+                                "type": "string",
+                                "description": "Route of administration (PO, IV, IM, SC, etc.)",
+                            },
+                            "frequency": {
+                                "type": "string",
+                                "description": "Dosing frequency (QD, BID, TID, Q8H, etc.)",
+                            },
+                            "patient_crcl": {
+                                "type": "number",
+                                "description": "Patient CrCl in mL/min (optional, for renal adjustment)",
+                            },
                         },
-                        "dose": {
-                            "type": "number",
-                            "description": "Dose value",
-                        },
-                        "dose_unit": {
-                            "type": "string",
-                            "description": "Dose unit (mg, g, mL, etc.)",
-                        },
-                        "route": {
-                            "type": "string",
-                            "description": "Route of administration (PO, IV, IM, SC, etc.)",
-                        },
-                        "frequency": {
-                            "type": "string",
-                            "description": "Dosing frequency (QD, BID, TID, Q8H, etc.)",
-                        },
-                        "patient_crcl": {
-                            "type": "number",
-                            "description": "Patient CrCl in mL/min (optional, for renal adjustment)",
-                        },
+                        "required": [
+                            "drug_code",
+                            "dose",
+                            "dose_unit",
+                            "route",
+                            "frequency",
+                        ],
                     },
-                    "required": ["drug_code", "dose", "dose_unit", "route", "frequency"],
-                },
-            ),
-            Tool(
-                name="submit_order",
-                description="送出醫囑到 HIS。Submit a medication order to HIS.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "patient_id": {
-                            "type": "string",
-                            "description": "Patient ID",
+                ),
+                Tool(
+                    name="submit_order",
+                    description="送出醫囑到 HIS。Submit a medication order to HIS.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "patient_id": {
+                                "type": "string",
+                                "description": "Patient ID",
+                            },
+                            "drug_code": {
+                                "type": "string",
+                                "description": "Hospital drug code",
+                            },
+                            "dose": {
+                                "type": "number",
+                                "description": "Dose value",
+                            },
+                            "dose_unit": {
+                                "type": "string",
+                                "description": "Dose unit",
+                            },
+                            "route": {
+                                "type": "string",
+                                "description": "Route of administration",
+                            },
+                            "frequency": {
+                                "type": "string",
+                                "description": "Dosing frequency",
+                            },
+                            "duration_days": {
+                                "type": "integer",
+                                "description": "Treatment duration in days",
+                            },
+                            "physician_id": {
+                                "type": "string",
+                                "description": "Prescribing physician ID",
+                            },
+                            "override_warnings": {
+                                "type": "boolean",
+                                "description": "Override warnings and submit anyway",
+                                "default": False,
+                            },
+                            "notes": {
+                                "type": "string",
+                                "description": "Optional notes for the order",
+                            },
                         },
-                        "drug_code": {
-                            "type": "string",
-                            "description": "Hospital drug code",
-                        },
-                        "dose": {
-                            "type": "number",
-                            "description": "Dose value",
-                        },
-                        "dose_unit": {
-                            "type": "string",
-                            "description": "Dose unit",
-                        },
-                        "route": {
-                            "type": "string",
-                            "description": "Route of administration",
-                        },
-                        "frequency": {
-                            "type": "string",
-                            "description": "Dosing frequency",
-                        },
-                        "duration_days": {
-                            "type": "integer",
-                            "description": "Treatment duration in days",
-                        },
-                        "physician_id": {
-                            "type": "string",
-                            "description": "Prescribing physician ID",
-                        },
-                        "override_warnings": {
-                            "type": "boolean",
-                            "description": "Override warnings and submit anyway",
-                            "default": False,
-                        },
-                        "notes": {
-                            "type": "string",
-                            "description": "Optional notes for the order",
-                        },
+                        "required": [
+                            "patient_id",
+                            "drug_code",
+                            "dose",
+                            "dose_unit",
+                            "route",
+                            "frequency",
+                            "duration_days",
+                            "physician_id",
+                        ],
                     },
-                    "required": ["patient_id", "drug_code", "dose", "dose_unit", "route", "frequency", "duration_days", "physician_id"],
-                },
-            ),
-            Tool(
-                name="stop_order",
-                description="停止醫囑。Discontinue an active medication order.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "order_id": {
-                            "type": "string",
-                            "description": "Order ID to discontinue",
+                ),
+                Tool(
+                    name="stop_order",
+                    description="停止醫囑。Discontinue an active medication order.",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "order_id": {
+                                "type": "string",
+                                "description": "Order ID to discontinue",
+                            },
+                            "reason": {
+                                "type": "string",
+                                "description": "Reason for discontinuation",
+                            },
                         },
-                        "reason": {
-                            "type": "string",
-                            "description": "Reason for discontinuation",
-                        },
+                        "required": ["order_id", "reason"],
                     },
-                    "required": ["order_id", "reason"],
-                },
-            ),
-        ])
+                ),
+            ]
+        )
 
-    @server.call_tool()
+    @server.call_tool()  # type: ignore[untyped-decorator]
     async def call_tool(
         name: str,
         arguments: dict[str, Any],
@@ -752,7 +784,7 @@ def create_server() -> Server:
                 isError=True,
             )
 
-    @server.list_prompts()
+    @server.list_prompts()  # type: ignore[no-untyped-call,untyped-decorator]
     async def list_prompts() -> list[Prompt]:
         """Expose the stable agent consumption contract to MCP clients."""
 
@@ -779,7 +811,7 @@ def create_server() -> Server:
             )
         ]
 
-    @server.get_prompt()
+    @server.get_prompt()  # type: ignore[no-untyped-call,untyped-decorator]
     async def get_prompt(
         name: str,
         arguments: dict[str, str] | None,
@@ -852,9 +884,7 @@ async def _handle_tool(
         if state:
             catalog = [item for item in catalog if item["state"] == state]
         if capability:
-            catalog = [
-                item for item in catalog if capability in item["capabilities"]
-            ]
+            catalog = [item for item in catalog if capability in item["capabilities"]]
         return {"count": len(catalog), "providers": catalog}
 
     if name == "get_nhi_data_status":
@@ -999,7 +1029,7 @@ async def _handle_tool(
         return adjustment.to_dict()
 
     elif name == "validate_order":
-        result = prescription_service.validate_order(
+        validation = prescription_service.validate_order(
             drug_code=arguments["drug_code"],
             dose=arguments["dose"],
             dose_unit=arguments["dose_unit"],
@@ -1007,10 +1037,10 @@ async def _handle_tool(
             frequency=arguments["frequency"],
             patient_crcl=arguments.get("patient_crcl"),
         )
-        return result.to_dict()
+        return validation.to_dict()
 
     elif name == "submit_order":
-        result = await prescription_service.submit_order(
+        order_result = await prescription_service.submit_order(
             patient_id=arguments["patient_id"],
             drug_code=arguments["drug_code"],
             dose=arguments["dose"],
@@ -1022,20 +1052,20 @@ async def _handle_tool(
             override_warnings=arguments.get("override_warnings", False),
             notes=arguments.get("notes"),
         )
-        return result.to_dict()
+        return order_result.to_dict()
 
     elif name == "stop_order":
-        result = await prescription_service.stop_order(
+        stop_result = await prescription_service.stop_order(
             order_id=arguments["order_id"],
             reason=arguments["reason"],
         )
-        return result.to_dict()
+        return stop_result.to_dict()
 
     else:
         return {"error": f"Unknown tool: {name}"}
 
 
-async def run_server():
+async def run_server() -> None:
     """Run the MCP server."""
     server = create_server()
 
@@ -1048,7 +1078,7 @@ async def run_server():
         )
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     asyncio.run(run_server())
 

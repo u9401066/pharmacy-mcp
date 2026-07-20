@@ -168,5 +168,16 @@
 - 不把產物或 `gh-pages` branch 手動混入主要開發流程
 - 文件變更能在 PR/CI 先驗證，main 更新後自動發布 GitHub.io
 
+### DEC-018: 保留 strict mypy 並清償 repo-wide 品質債務
+**日期**: 2026-07-20
+**決策**: 不以關閉 strict 或大量 ignore 讓 CI 表面通過；修正裸型別、API payload narrowing 與 cache 邊界
+**例外**:
+- `diskcache` 套件缺少型別標記，因此只對該第三方 module 設 `ignore_missing_imports`
+- MCP SDK 的 server decorators 未暴露完整型別，只在四個 decorator 行採精確 error-code ignore
+**結果**:
+- Ruff format/check 覆蓋 `src tests examples`
+- strict mypy 覆蓋 `src`
+- 兩者納入獨立 CI quality job
+
 ---
 *Last updated: 2025-12-22*

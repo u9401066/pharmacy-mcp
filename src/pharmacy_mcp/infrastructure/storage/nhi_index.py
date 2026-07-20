@@ -20,8 +20,7 @@ from pharmacy_mcp.config import settings
 NHI_RESOURCE_ID = "A21030000I-E41001-001"
 NHI_INDEX_SCHEMA_VERSION = "2"
 NHI_DATASET_URL = (
-    "https://info.nhi.gov.tw/api/iode0000s01/Dataset?"
-    f"rId={NHI_RESOURCE_ID}"
+    f"https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId={NHI_RESOURCE_ID}"
 )
 
 _COLUMNS = (
@@ -289,7 +288,7 @@ class NHIIndex:
         term = f"%{query.casefold()}%"
         current_clause = "AND is_current = 1" if current_only else ""
         statement = f"""
-            SELECT {','.join(_COLUMNS)} FROM nhi_drugs
+            SELECT {",".join(_COLUMNS)} FROM nhi_drugs
             WHERE (
                 lower(nhi_code) LIKE ? OR lower(english_name) LIKE ? OR
                 lower(chinese_name) LIKE ? OR lower(ingredient) LIKE ? OR
@@ -304,7 +303,7 @@ class NHIIndex:
 
     def _get_by_code_sync(self, nhi_code: str) -> dict[str, Any] | None:
         statement = f"""
-            SELECT {','.join(_COLUMNS)} FROM nhi_drugs
+            SELECT {",".join(_COLUMNS)} FROM nhi_drugs
             WHERE upper(nhi_code) = upper(?)
             ORDER BY is_current DESC, effective_start DESC
             LIMIT 1
@@ -329,25 +328,23 @@ class NHIIndex:
             normalized["price"] = float(normalized["price"])
         except ValueError:
             normalized["price"] = None
-        normalized["is_current"] = int(
-            _is_current_date(normalized["effective_end"])
-        )
+        normalized["is_current"] = int(_is_current_date(normalized["effective_end"]))
         return tuple(normalized[column] for column in _COLUMNS)
 
     def _validate_headers(self, fieldnames: Sequence[str] | None) -> None:
         available = set(fieldnames or [])
         missing = set(_CSV_FIELDS.values()) - available
         if missing:
-            raise ValueError(f"NHI CSV is missing columns: {', '.join(sorted(missing))}")
+            raise ValueError(
+                f"NHI CSV is missing columns: {', '.join(sorted(missing))}"
+            )
 
     def _is_valid_database(self) -> bool:
         if not self.database_path.is_file():
             return False
         try:
             with self._connect() as connection:
-                metadata = dict(
-                    connection.execute("SELECT key, value FROM metadata")
-                )
+                metadata = dict(connection.execute("SELECT key, value FROM metadata"))
                 return (
                     metadata.get("indexed_at") is not None
                     and metadata.get("schema_version") == NHI_INDEX_SCHEMA_VERSION

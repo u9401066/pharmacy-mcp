@@ -59,13 +59,16 @@ class WebKnowledgeProvider:
         )
 
     async def _fetch(self, url: str) -> str:
-        async with httpx.AsyncClient(
-            timeout=self.timeout,
-            follow_redirects=False,
-            transport=self.transport,
-        ) as client, client.stream(
-            "GET", url, headers={"Accept": "text/html,text/plain"}
-        ) as response:
+        async with (
+            httpx.AsyncClient(
+                timeout=self.timeout,
+                follow_redirects=False,
+                transport=self.transport,
+            ) as client,
+            client.stream(
+                "GET", url, headers={"Accept": "text/html,text/plain"}
+            ) as response,
+        ):
             response.raise_for_status()
             content_length = int(response.headers.get("content-length", "0"))
             if content_length > self.max_bytes:

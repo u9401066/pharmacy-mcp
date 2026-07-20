@@ -102,4 +102,3 @@ class KnowledgeProvider(Protocol):
 
     async def query(self, request: ProviderQuery) -> ProviderResult:
         """Execute a normalized knowledge query."""
-

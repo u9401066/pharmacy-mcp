@@ -35,7 +35,10 @@ async def test_harness_returns_validated_single_entry_response() -> None:
 
     assert response.status is ResponseStatus.OK
     assert response.meta.output_format is OutputFormat.JSON_COMPACT
-    assert response.data["provider_results"]["local-formulary"][0]["generic_name"] == "Warfarin"
+    assert (
+        response.data["provider_results"]["local-formulary"][0]["generic_name"]
+        == "Warfarin"
+    )
     assert QueryResponse.model_validate(response.model_dump()) == response
 
 
@@ -65,7 +68,9 @@ async def test_mcp_exposes_parameterized_agent_contract_prompt() -> None:
     assert "output_format=json_compact" in prompt.messages[0].content.text
 
 
-def test_cli_emits_only_query_response(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_emits_only_query_response(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.setattr(
         "pharmacy_mcp.presentation.cli.PharmacyHarness",
         _local_harness,

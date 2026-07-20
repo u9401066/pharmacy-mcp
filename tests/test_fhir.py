@@ -113,9 +113,7 @@ async def test_fhir_provider_queries_patient_only_with_explicit_context() -> Non
 def test_default_registry_enables_fhir_only_when_base_url_is_set(monkeypatch) -> None:
     monkeypatch.setattr(settings, "fhir_base_url", "https://hospital.test/fhir")
 
-    providers = {
-        item["id"]: item for item in build_default_registry().catalog()
-    }
+    providers = {item["id"]: item for item in build_default_registry().catalog()}
 
     assert providers["fhir"]["state"] == "ready"
     assert providers["fhir"]["registered"] is True

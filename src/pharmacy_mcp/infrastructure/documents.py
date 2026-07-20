@@ -142,7 +142,9 @@ def _read_xlsx(path: Path) -> str:
         rows = []
         for sheet in workbook.worksheets:
             rows.append(f"[{sheet.title}]")
-            rows.extend(_stringify_row(row) for row in sheet.iter_rows(values_only=True))
+            rows.extend(
+                _stringify_row(row) for row in sheet.iter_rows(values_only=True)
+            )
         return "\n".join(rows)
     finally:
         workbook.close()
@@ -156,7 +158,9 @@ def _read_xls(path: Path) -> str:
         rows = []
         for sheet in workbook.sheets():
             rows.append(f"[{sheet.name}]")
-            rows.extend(_stringify_row(sheet.row_values(index)) for index in range(sheet.nrows))
+            rows.extend(
+                _stringify_row(sheet.row_values(index)) for index in range(sheet.nrows)
+            )
         return "\n".join(rows)
     finally:
         workbook.release_resources()

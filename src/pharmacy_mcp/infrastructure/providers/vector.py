@@ -50,9 +50,13 @@ class VectorSearchClient:
             )
         response.raise_for_status()
         payload = response.json()
-        results = payload.get("results", payload) if isinstance(payload, dict) else payload
+        results = (
+            payload.get("results", payload) if isinstance(payload, dict) else payload
+        )
         if not isinstance(results, list):
-            raise ValueError("Vector gateway must return a list or {'results': [...]} object")
+            raise ValueError(
+                "Vector gateway must return a list or {'results': [...]} object"
+            )
         return [item for item in results if isinstance(item, dict)][:limit]
 
 

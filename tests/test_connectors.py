@@ -79,7 +79,9 @@ def test_document_store_rejects_symlink_escape(
 
 
 @pytest.mark.asyncio
-async def test_sql_provider_uses_read_only_allowlisted_projection(tmp_path: Path) -> None:
+async def test_sql_provider_uses_read_only_allowlisted_projection(
+    tmp_path: Path,
+) -> None:
     database = tmp_path / "hospital.sqlite3"
     with sqlite3.connect(database) as connection:
         connection.execute(

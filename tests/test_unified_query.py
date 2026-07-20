@@ -58,9 +58,7 @@ def test_catalog_ids_are_unique_and_states_are_explicit() -> None:
     provider_ids = [provider.id for provider in PROVIDER_CATALOG]
 
     assert len(provider_ids) == len(set(provider_ids))
-    assert {"rxnorm", "openfda", "tw-tfda", "tw-nhi", "fhir"}.issubset(
-        provider_ids
-    )
+    assert {"rxnorm", "openfda", "tw-tfda", "tw-nhi", "fhir"}.issubset(provider_ids)
     assert all(provider.state for provider in PROVIDER_CATALOG)
 
 

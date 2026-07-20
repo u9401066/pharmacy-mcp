@@ -63,9 +63,7 @@ class OpenFDAKnowledgeProvider:
             {
                 "brand_name": label.get("openfda", {}).get("brand_name", []),
                 "generic_name": label.get("openfda", {}).get("generic_name", []),
-                "manufacturer": label.get("openfda", {}).get(
-                    "manufacturer_name", []
-                ),
+                "manufacturer": label.get("openfda", {}).get("manufacturer_name", []),
                 "route": label.get("openfda", {}).get("route", []),
                 "indications_and_usage": label.get("indications_and_usage", []),
                 "warnings": label.get("warnings_and_cautions", []),
@@ -142,10 +140,17 @@ class FHIRKnowledgeProvider:
         requested = set(request.capabilities)
         jobs: list[tuple[str, Awaitable[FHIRSearchBatch]]] = []
         if requested.intersection(
-            {QueryCapability.SEARCH, QueryCapability.IDENTITY, QueryCapability.FORMULARY}
+            {
+                QueryCapability.SEARCH,
+                QueryCapability.IDENTITY,
+                QueryCapability.FORMULARY,
+            }
         ):
             jobs.append(
-                ("medications", self.client.search_medications(request.text, request.limit))
+                (
+                    "medications",
+                    self.client.search_medications(request.text, request.limit),
+                )
             )
         if QueryCapability.INVENTORY in requested:
             jobs.append(
@@ -232,9 +237,7 @@ class TaiwanKnowledgeProvider:
         else:
             nhi["items"] = nhi_items_result
         if isinstance(nhi_coverage_result, BaseException):
-            warnings.append(
-                f"NHI coverage query unavailable: {nhi_coverage_result}"
-            )
+            warnings.append(f"NHI coverage query unavailable: {nhi_coverage_result}")
         else:
             nhi["coverage"] = nhi_coverage_result
         if nhi:

@@ -3,15 +3,9 @@
 import hashlib
 from typing import Any
 
-from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
+from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
 from pharmacy_mcp.infrastructure.cache.disk_cache import CacheService
-from pharmacy_mcp.domain.entities.interaction import (
-    DrugInteraction,
-    InteractionSeverity,
-    InteractionType,
-)
-
 
 # Common drug-drug interactions database
 # Note: RxNorm Drug Interaction API was discontinued by NLM in 2025
@@ -257,17 +251,17 @@ FOOD_DRUG_INTERACTIONS = {
 
 class InteractionService:
     """Service for checking drug-drug and food-drug interactions."""
-    
+
     def __init__(
         self,
         rxnorm_client: RxNormClient | None = None,
         fda_client: FDAClient | None = None,
         cache: CacheService | None = None,
-    ):
+    ) -> None:
         self.rxnorm = rxnorm_client or RxNormClient()
         self.fda = fda_client or FDAClient()
         self.cache = cache or CacheService()
-    
+
     async def check_drug_drug_interaction(
         self,
         drug1: str,
@@ -275,28 +269,28 @@ class InteractionService:
     ) -> dict[str, Any]:
         """
         Check interaction between two drugs.
-        
+
         Note: Uses local interaction database as RxNorm Drug Interaction API
         was discontinued by NLM in 2025.
-        
+
         Args:
             drug1: First drug name
             drug2: Second drug name
-            
+
         Returns:
             Interaction information
         """
         cache_key = self._cache_key("ddi", *sorted([drug1.lower(), drug2.lower()]))
         cached = self.cache.get(cache_key)
-        if cached:
+        if isinstance(cached, dict):
             return cached
-        
+
         drug1_lower = drug1.lower()
         drug2_lower = drug2.lower()
-        
+
         # Check local database for interactions
         interactions = []
-        
+
         # Try to find interaction in local database
         for (d1, d2), interaction_data in DRUG_DRUG_INTERACTIONS.items():
             # Check if either drug matches (partial match allowed)
@@ -304,26 +298,28 @@ class InteractionService:
             d2_match = d2 in drug2_lower or drug2_lower in d2
             d1_match_rev = d1 in drug2_lower or drug2_lower in d1
             d2_match_rev = d2 in drug1_lower or drug1_lower in d2
-            
+
             if (d1_match and d2_match) or (d1_match_rev and d2_match_rev):
-                interactions.append({
-                    "description": interaction_data.get("description"),
-                    "severity": interaction_data.get("severity"),
-                    "recommendation": interaction_data.get("recommendation"),
-                    "drugs_involved": [drug1, drug2],
-                })
-        
+                interactions.append(
+                    {
+                        "description": interaction_data.get("description"),
+                        "severity": interaction_data.get("severity"),
+                        "recommendation": interaction_data.get("recommendation"),
+                        "drugs_involved": [drug1, drug2],
+                    }
+                )
+
         # Also get from FDA label for additional context
         fda_interactions = await self.fda.get_drug_interactions_from_label(drug1)
         fda_mentions_drug2 = False
         fda_context = []
-        
+
         if fda_interactions:
             for text in fda_interactions.get("drug_interactions", []):
                 if drug2_lower in text.lower():
                     fda_mentions_drug2 = True
                     fda_context.append(text)
-        
+
         result = {
             "drug1": drug1,
             "drug2": drug2,
@@ -335,80 +331,83 @@ class InteractionService:
             "source": "local_database",
             "note": "RxNorm Drug Interaction API was discontinued by NLM in 2025. Using local database.",
         }
-        
+
         self.cache.set(cache_key, result)
         return result
-    
+
     async def check_multi_drug_interactions(
         self,
         drugs: list[str],
     ) -> dict[str, Any]:
         """
         Check interactions among multiple drugs.
-        
+
         Args:
             drugs: List of drug names
-            
+
         Returns:
             All pairwise interactions
         """
         if len(drugs) < 2:
-            return {"drugs": drugs, "interactions": [], "error": "Need at least 2 drugs"}
-        
+            return {
+                "drugs": drugs,
+                "interactions": [],
+                "error": "Need at least 2 drugs",
+            }
+
         all_interactions = []
         checked_pairs = set()
-        
+
         for i, drug1 in enumerate(drugs):
-            for drug2 in drugs[i + 1:]:
+            for drug2 in drugs[i + 1 :]:
                 pair = tuple(sorted([drug1.lower(), drug2.lower()]))
                 if pair in checked_pairs:
                     continue
                 checked_pairs.add(pair)
-                
+
                 result = await self.check_drug_drug_interaction(drug1, drug2)
                 if result.get("has_interaction"):
                     all_interactions.append(result)
-        
+
         # Sort by severity
         severity_order = {"contraindicated": 0, "high": 1, "moderate": 2, "low": 3}
         all_interactions.sort(
             key=lambda x: severity_order.get(
-                x.get("interactions", [{}])[0].get("severity", "").lower(),
-                4
+                x.get("interactions", [{}])[0].get("severity", "").lower(), 4
             )
         )
-        
+
         return {
             "drugs": drugs,
             "interactions": all_interactions,
             "total_interactions": len(all_interactions),
             "pairs_checked": len(checked_pairs),
         }
-    
+
     async def check_food_drug_interaction(
         self,
         drug_name: str,
     ) -> dict[str, Any]:
         """
         Check food-drug interactions for a drug.
-        
+
         Args:
             drug_name: Name of the drug
-            
+
         Returns:
             Food interaction information
         """
         drug_lower = drug_name.lower()
-        
+
         # Check local database first
         local_interactions = []
         for drug_key, interactions in FOOD_DRUG_INTERACTIONS.items():
             if drug_key in drug_lower or drug_lower in drug_key:
                 local_interactions.extend(interactions)
-        
+
         # Also get from FDA label
         fda_interactions = await self.fda.get_drug_interactions_from_label(drug_name)
-        
+
         # Extract food-related warnings from FDA label
         fda_food_info = []
         if fda_interactions:
@@ -416,68 +415,85 @@ class InteractionService:
                 content = fda_interactions.get(section, [])
                 for text in content:
                     text_lower = text.lower()
-                    if any(food in text_lower for food in ["food", "meal", "grapefruit", "dairy", "alcohol"]):
+                    if any(
+                        food in text_lower
+                        for food in ["food", "meal", "grapefruit", "dairy", "alcohol"]
+                    ):
                         fda_food_info.append(text)
-        
+
         return {
             "drug_name": drug_name,
             "food_interactions": local_interactions,
             "fda_food_info": fda_food_info,
-            "has_food_interactions": len(local_interactions) > 0 or len(fda_food_info) > 0,
+            "has_food_interactions": len(local_interactions) > 0
+            or len(fda_food_info) > 0,
         }
-    
+
     async def get_all_interactions(
         self,
         drug_name: str,
     ) -> dict[str, Any]:
         """
         Get all interaction information for a drug.
-        
+
         Args:
             drug_name: Name of the drug
-            
+
         Returns:
             Complete interaction profile
         """
         cache_key = self._cache_key("all_interactions", drug_name.lower())
         cached = self.cache.get(cache_key)
-        if cached:
+        if isinstance(cached, dict):
             return cached
-        
+
         drug_lower = drug_name.lower()
-        
+
         # Get local drug-drug interactions from database
         local_drug_interactions = []
         for (d1, d2), interaction_data in DRUG_DRUG_INTERACTIONS.items():
-            if d1 in drug_lower or drug_lower in d1 or d2 in drug_lower or drug_lower in d2:
+            if (
+                d1 in drug_lower
+                or drug_lower in d1
+                or d2 in drug_lower
+                or drug_lower in d2
+            ):
                 other_drug = d2 if (d1 in drug_lower or drug_lower in d1) else d1
-                local_drug_interactions.append({
-                    "interacting_drug": other_drug,
-                    "severity": interaction_data.get("severity"),
-                    "description": interaction_data.get("description"),
-                    "recommendation": interaction_data.get("recommendation"),
-                })
-        
+                local_drug_interactions.append(
+                    {
+                        "interacting_drug": other_drug,
+                        "severity": interaction_data.get("severity"),
+                        "description": interaction_data.get("description"),
+                        "recommendation": interaction_data.get("recommendation"),
+                    }
+                )
+
         # Get food interactions
         food_info = await self.check_food_drug_interaction(drug_name)
-        
+
         # Get FDA label interactions
         fda_interactions = await self.fda.get_drug_interactions_from_label(drug_name)
-        
+
         result = {
             "drug_name": drug_name,
             "drug_interactions": local_drug_interactions,
             "food_interactions": food_info.get("food_interactions", []),
-            "fda_drug_interactions": fda_interactions.get("drug_interactions", []) if fda_interactions else [],
-            "contraindications": fda_interactions.get("contraindications", []) if fda_interactions else [],
-            "warnings": fda_interactions.get("warnings", []) if fda_interactions else [],
+            "fda_drug_interactions": fda_interactions.get("drug_interactions", [])
+            if fda_interactions
+            else [],
+            "contraindications": fda_interactions.get("contraindications", [])
+            if fda_interactions
+            else [],
+            "warnings": fda_interactions.get("warnings", [])
+            if fda_interactions
+            else [],
             "note": "Drug interaction data from local database (RxNorm API discontinued 2025)",
         }
-        
+
         self.cache.set(cache_key, result)
         return result
-    
-    def _cache_key(self, *args) -> str:
+
+    def _cache_key(self, *args: Any) -> str:
         """Generate cache key from arguments."""
         key_str = ":".join(str(a) for a in args)
         return hashlib.md5(key_str.encode()).hexdigest()

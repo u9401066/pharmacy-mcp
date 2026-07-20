@@ -38,7 +38,9 @@
 - 已完成 MkDocs Material 說明網站與 GitHub Pages artifact/deploy workflow
 - 已完成 Python 3.11/3.12/3.13 CI、雙語 README、架構、安全、貢獻與 changelog 翻新
 - `mkdocs build --strict` 已通過；待 push 後於 repo Settings 將 Pages source 設為 GitHub Actions
-- 下一批：repo-wide Ruff/mypy quality baseline、最終驗證與 push
+- repo-wide Ruff 由 647 issues 收斂至 0；strict mypy 亦已全綠，未放寬全域 strict
+- CI 新增 format/lint/type quality job
+- 下一批：coverage/security/build 最終驗證、提交與 push
 
 ## 📝 最近完成的變更（v0.8.5）
 

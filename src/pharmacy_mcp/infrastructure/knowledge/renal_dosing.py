@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 from pharmacy_mcp.domain.value_objects.order_result import RenalAdjustment
 
@@ -13,7 +13,7 @@ class RenalDosingKnowledge:
     從 JSON 檔案載入腎功能調整規則，提供查詢功能。
     """
 
-    def __init__(self, data_path: Optional[Path] = None):
+    def __init__(self, data_path: Path | None = None):
         """初始化知識庫
 
         Args:
@@ -24,7 +24,7 @@ class RenalDosingKnowledge:
                 Path(__file__).parent.parent.parent / "data" / "renal_adjustments.json"
             )
 
-        self._adjustments: dict[str, dict] = {}
+        self._adjustments: dict[str, dict[str, Any]] = {}
         self._load_data(data_path)
 
     def _load_data(self, data_path: Path) -> None:
@@ -34,7 +34,7 @@ class RenalDosingKnowledge:
                 f"Renal adjustments data file not found: {data_path}"
             )
 
-        with open(data_path, "r", encoding="utf-8") as f:
+        with open(data_path, encoding="utf-8") as f:
             data = json.load(f)
 
         self._adjustments = data.get("adjustments", {})
@@ -71,9 +71,13 @@ class RenalDosingKnowledge:
                 freq = range_data.get("frequency", "")
                 is_contraindicated = range_data.get("contraindicated", False)
                 # 判斷是否需要調整：劑量改變 OR 頻率改變 OR 禁忌
-                normal_freq = drug_data.get("normal_dose", "").split()[-1] if drug_data.get("normal_dose") else ""
+                normal_freq = (
+                    drug_data.get("normal_dose", "").split()[-1]
+                    if drug_data.get("normal_dose")
+                    else ""
+                )
                 needs_adj = bool(
-                    dose_adj != 1.0 
+                    dose_adj != 1.0
                     or is_contraindicated
                     or (freq and normal_freq and freq != normal_freq)
                 )
@@ -100,7 +104,7 @@ class RenalDosingKnowledge:
         """取得所有有調整規則的藥品代碼"""
         return list(self._adjustments.keys())
 
-    def get_drug_normal_dose(self, drug_code: str) -> Optional[str]:
+    def get_drug_normal_dose(self, drug_code: str) -> str | None:
         """取得藥品的正常劑量
 
         Args:

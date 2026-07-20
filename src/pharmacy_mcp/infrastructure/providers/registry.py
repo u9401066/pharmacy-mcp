@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from pharmacy_mcp.config import settings
 from pharmacy_mcp.domain.models.provider import (
@@ -63,8 +64,12 @@ class ProviderRegistry:
         """Resolve unique executable providers and report unavailable source IDs."""
 
         if source_ids:
-            candidates = [(source_id, self._providers.get(source_id)) for source_id in source_ids]
-            missing = [source_id for source_id, provider in candidates if provider is None]
+            candidates = [
+                (source_id, self._providers.get(source_id)) for source_id in source_ids
+            ]
+            missing = [
+                source_id for source_id, provider in candidates if provider is None
+            ]
             providers = [provider for _, provider in candidates if provider is not None]
         else:
             missing = []
@@ -80,7 +85,7 @@ class ProviderRegistry:
             unique[provider.descriptor.id] = provider
         return list(unique.values()), missing
 
-    def catalog(self) -> list[dict[str, object]]:
+    def catalog(self) -> list[dict[str, Any]]:
         """Return the full catalog with actual runtime registration state."""
 
         registered_ids = set(self._providers)
@@ -115,9 +120,7 @@ def build_default_registry() -> ProviderRegistry:
     if settings.fhir_base_url:
         registry.register(FHIRKnowledgeProvider())
     file_roots = tuple(
-        Path(value.strip())
-        for value in settings.file_roots.split(",")
-        if value.strip()
+        Path(value.strip()) for value in settings.file_roots.split(",") if value.strip()
     )
     if file_roots:
         registry.register(

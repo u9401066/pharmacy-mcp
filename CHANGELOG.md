@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Package prerelease version is now `0.9.0a1`
 - `pharmacy-mcp` console entry point now targets the actual server module
 - Documentation and architecture now describe the unified gateway
+- Repo-wide Ruff formatting/lint and strict mypy baselines now pass and run in CI
 
 ### Fixed
 - Taiwan ROC six-digit dates are compared numerically so historical items are

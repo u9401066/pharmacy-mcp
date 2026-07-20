@@ -86,7 +86,10 @@
 - ✅ GitHub Pages official artifact/deploy workflow
 - ✅ Python 3.11/3.12/3.13 test/build CI
 - ✅ 雙語 README、architecture/security/contributing/changelog 現代化
-- 🚧 repo-wide Ruff/mypy quality baseline
+- ✅ repo-wide Ruff format/check baseline
+- ✅ repo-wide strict mypy baseline
+- ✅ CI quality gate（format/lint/type）
+- 🚧 final coverage/security/build validation and push
 
 ## Next
 

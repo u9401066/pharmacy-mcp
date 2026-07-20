@@ -1,6 +1,6 @@
 """處方服務 - 提供原子操作給 MCP Tools"""
 
-from typing import Any, Optional
+from typing import Any
 
 from pharmacy_mcp.domain.value_objects.order_result import (
     FormularyItem,
@@ -28,9 +28,9 @@ class PrescriptionService:
 
     def __init__(
         self,
-        formulary: Optional[FormularyKnowledge] = None,
-        renal_dosing: Optional[RenalDosingKnowledge] = None,
-        his_client: Optional[HISMockClient] = None,
+        formulary: FormularyKnowledge | None = None,
+        renal_dosing: RenalDosingKnowledge | None = None,
+        his_client: HISMockClient | None = None,
     ):
         """初始化處方服務
 
@@ -47,7 +47,7 @@ class PrescriptionService:
     # Query Operations (查詢)
     # =========================================================================
 
-    def get_formulary_item(self, drug_code: str) -> Optional[FormularyItem]:
+    def get_formulary_item(self, drug_code: str) -> FormularyItem | None:
         """取得院內藥品詳情
 
         Args:
@@ -105,7 +105,7 @@ class PrescriptionService:
         dose_unit: str,
         route: str,
         frequency: str,
-        patient_crcl: Optional[float] = None,
+        patient_crcl: float | None = None,
     ) -> ValidationResult:
         """驗證單一醫囑
 
@@ -128,7 +128,10 @@ class PrescriptionService:
         """
         errors: list[str] = []
         warnings: list[str] = []
-        suggested: Optional[dict[str, Any]] = None
+        suggested: dict[str, Any] | None = None
+
+        if not frequency.strip():
+            errors.append("給藥頻率不得為空白")
 
         # 1. 檢查藥品是否存在
         item = self.formulary.get_item(drug_code)
@@ -163,13 +166,9 @@ class PrescriptionService:
             adj = self.renal_dosing.get_adjustment(drug_code, patient_crcl)
 
             if adj.contraindicated:
-                errors.append(
-                    f"CrCl {patient_crcl:.1f} mL/min: {adj.recommendation}"
-                )
+                errors.append(f"CrCl {patient_crcl:.1f} mL/min: {adj.recommendation}")
             elif adj.needs_adjustment:
-                warnings.append(
-                    f"CrCl {patient_crcl:.1f} mL/min: {adj.recommendation}"
-                )
+                warnings.append(f"CrCl {patient_crcl:.1f} mL/min: {adj.recommendation}")
                 suggested = {
                     "renal_adjustment": True,
                     "suggested_frequency": adj.suggested_frequency,
@@ -202,7 +201,7 @@ class PrescriptionService:
         duration_days: int,
         physician_id: str,
         override_warnings: bool = False,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> OrderResult:
         """送出單一醫囑到 HIS
 

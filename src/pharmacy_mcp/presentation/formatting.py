@@ -63,8 +63,7 @@ def _render_markdown(payload: dict[str, Any]) -> str:
     if payload["errors"]:
         lines.extend(["", "## Errors", ""])
         lines.extend(
-            f"- `{error['code']}`: {error['message']}"
-            for error in payload["errors"]
+            f"- `{error['code']}`: {error['message']}" for error in payload["errors"]
         )
     lines.extend(["", "> " + meta["disclaimer"]])
     return "\n".join(lines)
