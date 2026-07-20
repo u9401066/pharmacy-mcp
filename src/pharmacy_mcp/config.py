@@ -1,5 +1,7 @@
 """MCP Server configuration."""
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +25,10 @@ class Settings(BaseSettings):
     # API settings
     request_timeout: int = 30
     max_retries: int = 3
+
+    # Stable agent-facing response contract
+    default_output_format: Literal["json", "json_compact", "markdown"] = "json"
+    default_locale: str = "zh-TW"
     
     # Disclaimer
     disclaimer: str = (

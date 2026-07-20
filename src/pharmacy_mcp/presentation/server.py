@@ -6,7 +6,7 @@ from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import CallToolResult, TextContent, Tool
 
 from pharmacy_mcp.application.services.drug_search import DrugSearchService
 from pharmacy_mcp.application.services.drug_info import DrugInfoService
@@ -14,10 +14,28 @@ from pharmacy_mcp.application.services.interaction import InteractionService
 from pharmacy_mcp.application.services.dosage import DosageService
 from pharmacy_mcp.application.services.taiwan_drug import TaiwanDrugService
 from pharmacy_mcp.application.services.prescription import PrescriptionService
+from pharmacy_mcp.config import settings
+from pharmacy_mcp.domain.models.response import OutputFormat, QueryResponse
+from pharmacy_mcp.presentation.formatting import ResponseFormatter
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+OUTPUT_SCHEMA = QueryResponse.model_json_schema()
+OUTPUT_FORMAT_PROPERTY: dict[str, Any] = {
+    "type": "string",
+    "enum": [item.value for item in OutputFormat],
+    "default": settings.default_output_format,
+    "description": (
+        "Text rendering. structuredContent always follows the versioned outputSchema."
+    ),
+}
+LOCALE_PROPERTY: dict[str, Any] = {
+    "type": "string",
+    "default": settings.default_locale,
+    "description": "BCP 47 locale for labels and messages (for example zh-TW or en-US).",
+}
 
 # Initialize services
 drug_search_service = DrugSearchService()
@@ -35,7 +53,7 @@ def create_server() -> Server:
     @server.list_tools()
     async def list_tools() -> list[Tool]:
         """List all available pharmacy tools."""
-        return [
+        return _decorate_tools([
             Tool(
                 name="search_drug",
                 description="Search for drugs by name. Returns results from RxNorm and FDA databases.",
@@ -554,27 +572,87 @@ def create_server() -> Server:
                     "required": ["order_id", "reason"],
                 },
             ),
-        ]
+        ])
     
     @server.call_tool()
-    async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-        """Handle tool calls."""
-        import json
-        
+    async def call_tool(
+        name: str,
+        arguments: dict[str, Any],
+    ) -> tuple[list[TextContent], dict[str, Any]] | CallToolResult:
+        """Handle tool calls using the versioned, agent-safe response contract."""
+
+        output_format = _parse_output_format(arguments.get("output_format"))
+        locale = str(arguments.get("locale", settings.default_locale))
+        service_arguments = {
+            key: value
+            for key, value in arguments.items()
+            if key not in {"output_format", "locale"}
+        }
         try:
-            result = await _handle_tool(name, arguments)
-            return [TextContent(
-                type="text",
-                text=json.dumps(result, ensure_ascii=False, indent=2)
-            )]
-        except Exception as e:
-            logger.error(f"Error in tool {name}: {e}")
-            return [TextContent(
-                type="text",
-                text=json.dumps({"error": str(e)}, ensure_ascii=False)
-            )]
+            result = await _handle_tool(name, service_arguments)
+            response = QueryResponse.success(
+                tool=name,
+                data=result,
+                output_format=output_format,
+                locale=locale,
+                disclaimer=settings.disclaimer,
+            )
+            structured = response.model_dump(mode="json")
+            return (
+                [
+                    TextContent(
+                        type="text",
+                        text=ResponseFormatter.render(response, output_format),
+                    )
+                ],
+                structured,
+            )
+        except Exception as exc:
+            logger.exception("Error in tool %s", name)
+            response = QueryResponse.failure(
+                tool=name,
+                code="tool_execution_error",
+                message=str(exc),
+                output_format=output_format,
+                locale=locale,
+                disclaimer=settings.disclaimer,
+                retryable=False,
+            )
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=ResponseFormatter.render(response, output_format),
+                    )
+                ],
+                structuredContent=response.model_dump(mode="json"),
+                isError=True,
+            )
     
     return server
+
+
+def _decorate_tools(tools: list[Tool]) -> list[Tool]:
+    """Apply the same input/output contract and agent instruction to every tool."""
+
+    for tool in tools:
+        properties = tool.inputSchema.setdefault("properties", {})
+        properties["output_format"] = OUTPUT_FORMAT_PROPERTY.copy()
+        properties["locale"] = LOCALE_PROPERTY.copy()
+        tool.outputSchema = OUTPUT_SCHEMA
+        tool.description = (
+            f"{tool.description or ''} "
+            "Agent contract: use structuredContent as the source of truth; "
+            "preserve schema_version/status/sources/warnings/errors/meta when "
+            "forwarding the result and never infer missing clinical facts."
+        ).strip()
+    return tools
+
+
+def _parse_output_format(value: Any) -> OutputFormat:
+    """Resolve a requested output format after JSON Schema input validation."""
+
+    return OutputFormat(value or settings.default_output_format)
 
 
 async def _handle_tool(name: str, arguments: dict[str, Any]) -> dict[str, Any]:

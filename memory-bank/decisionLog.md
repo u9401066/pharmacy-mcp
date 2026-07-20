@@ -82,5 +82,17 @@
 - 台灣資訊作為補充，不影響原有 API 結構
 - 當藥品有對應資料時才顯示，無則為 null
 
+### DEC-010: MCP structuredContent 作為唯一真實輸出
+**日期**: 2026-07-20
+**決策**: 所有 tools 共用 `QueryResponse` v1.0 JSON Schema；文字只作為 renderer
+**原因**:
+- 限制 agent 輸出漂移，讓查詢可被程式穩定解析
+- 以 `outputSchema` 讓 MCP SDK 在回傳前驗證結果
+- 允許人類選擇 JSON/compact JSON/Markdown，而不改變機器契約
+**相容策略**:
+- 原有 provider payload 保留在 `data`
+- breaking change 必須提升 `schema_version`
+- agents 必須保留 provenance、warnings、errors、meta，不可補造缺漏資料
+
 ---
 *Last updated: 2025-12-22*

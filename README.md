@@ -10,6 +10,10 @@
 
 ## ✨ Features
 
+- 🧭 **Unified Agent Contract** - every tool returns the same versioned,
+  JSON-Schema-validated envelope
+- 🧱 **Configurable Output** - `json`, `json_compact`, or `markdown` text while
+  `structuredContent` remains stable
 - 🔍 **Drug Search** - 藥品名稱、ATC 碼、適應症搜尋
 - 📋 **Drug Information** - 完整藥品資訊、仿單、藥理學
 - 🧮 **Dosage Calculator** - 小兒、腎功能、體重劑量計算
@@ -71,6 +75,10 @@ Add to your `claude_desktop_config.json`:
 ```
 
 ## 🛠️ Available Tools
+
+Every tool accepts the optional `output_format` and `locale` arguments. Agents
+must use MCP `structuredContent` as the source of truth. See the
+[response contract](docs/architecture/response-contract.md).
 
 ### Drug Search
 | Tool | Description |

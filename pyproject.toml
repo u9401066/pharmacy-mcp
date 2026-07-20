@@ -1,6 +1,6 @@
 [project]
 name = "pharmacy-mcp"
-version = "0.8.0"
+version = "0.9.0a1"
 description = "完整藥品資訊 MCP Server - 藥品查詢、資訊取得、劑量計算、交互作用檢查、食品藥品衝突、台灣健保整合"
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -58,7 +58,7 @@ dev = [
 ]
 
 [project.scripts]
-pharmacy-mcp = "pharmacy_mcp.server:main"
+pharmacy-mcp = "pharmacy_mcp.presentation.server:main"
 
 [build-system]
 requires = ["hatchling"]

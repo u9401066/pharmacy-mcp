@@ -2,8 +2,18 @@
 
 ## 🎯 當前焦點
 
-- v0.8.5 處方功能整合完成 ✅
-- 為低階 LangGraph Agent 設計原子化 MCP Tools
+- v0.9.0a1 全面現代化翻新進行中
+- 建立 MCP + harness 藥品查詢單一入口
+- 統一所有 tool 的可驗證輸出契約與格式約束
+
+## 🛠️ 本輪進度（2026-07-20）
+
+- 建立 `QueryResponse` v1.0：固定 status/data/sources/warnings/errors/meta
+- 所有 MCP tools 自動加入 `output_format` 與 `locale`
+- 所有 MCP tools 宣告相同 `outputSchema`，由 SDK 驗證 structured content
+- 支援 deterministic `json`、`json_compact`、`markdown` renderer
+- 修正套件 CLI entry point
+- 下一批：provider catalog、統一複合查詢與台灣健保真實資料匯入
 
 ## 📝 最近完成的變更（v0.8.5）
 
