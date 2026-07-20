@@ -12,12 +12,16 @@ from pharmacy_mcp.domain.models.provider import (
     QueryCapability,
 )
 from pharmacy_mcp.infrastructure.providers.builtin import (
+    ChEMBLKnowledgeProvider,
+    ClinicalTrialsKnowledgeProvider,
     DailyMedKnowledgeProvider,
     FHIRKnowledgeProvider,
     FormularyKnowledgeProvider,
     MedlinePlusKnowledgeProvider,
     OpenFDAKnowledgeProvider,
+    OpenTargetsKnowledgeProvider,
     PubChemKnowledgeProvider,
+    PubMedKnowledgeProvider,
     RxClassKnowledgeProvider,
     RxNormKnowledgeProvider,
     TaiwanKnowledgeProvider,
@@ -119,6 +123,10 @@ def build_default_registry() -> ProviderRegistry:
     registry.register(DailyMedKnowledgeProvider())
     registry.register(PubChemKnowledgeProvider())
     registry.register(MedlinePlusKnowledgeProvider())
+    registry.register(PubMedKnowledgeProvider())
+    registry.register(ClinicalTrialsKnowledgeProvider())
+    registry.register(ChEMBLKnowledgeProvider())
+    registry.register(OpenTargetsKnowledgeProvider())
     if settings.fhir_base_url:
         registry.register(FHIRKnowledgeProvider())
     file_roots = tuple(

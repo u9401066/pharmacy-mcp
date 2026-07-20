@@ -17,11 +17,15 @@ from pharmacy_mcp.domain.models.response import (
     ResponseStatus,
     SourceReference,
 )
+from pharmacy_mcp.infrastructure.api.chembl import ChEMBLClient
+from pharmacy_mcp.infrastructure.api.clinical_trials import ClinicalTrialsClient
 from pharmacy_mcp.infrastructure.api.dailymed import DailyMedClient
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
 from pharmacy_mcp.infrastructure.api.fhir import FHIRClient, FHIRSearchBatch
 from pharmacy_mcp.infrastructure.api.medlineplus import MedlinePlusClient
+from pharmacy_mcp.infrastructure.api.open_targets import OpenTargetsClient
 from pharmacy_mcp.infrastructure.api.pubchem import PubChemClient
+from pharmacy_mcp.infrastructure.api.pubmed import PubMedClient
 from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
 from pharmacy_mcp.infrastructure.knowledge.formulary import FormularyKnowledge
 from pharmacy_mcp.infrastructure.providers.catalog import get_provider_descriptor
@@ -253,6 +257,117 @@ class MedlinePlusKnowledgeProvider:
         return ProviderResult(
             provider_id=self.descriptor.id,
             data=data[: request.limit],
+            sources=[_source(self.descriptor.id)],
+        )
+
+
+class PubMedKnowledgeProvider:
+    """PubMed citation discovery for explicit literature queries."""
+
+    descriptor = get_provider_descriptor("pubmed")
+
+    def __init__(self, client: PubMedClient | None = None) -> None:
+        self.client = client or PubMedClient()
+
+    async def query(self, request: ProviderQuery) -> ProviderResult:
+        data = await self.client.search_articles(request.text, request.limit)
+        return ProviderResult(
+            provider_id=self.descriptor.id,
+            data=data,
+            sources=[_source(self.descriptor.id)],
+        )
+
+
+class ClinicalTrialsKnowledgeProvider:
+    """ClinicalTrials.gov intervention-study discovery."""
+
+    descriptor = get_provider_descriptor("clinical-trials-gov")
+
+    def __init__(self, client: ClinicalTrialsClient | None = None) -> None:
+        self.client = client or ClinicalTrialsClient()
+
+    async def query(self, request: ProviderQuery) -> ProviderResult:
+        data = await self.client.search_studies(request.text, request.limit)
+        return ProviderResult(
+            provider_id=self.descriptor.id,
+            data=data,
+            sources=[_source(self.descriptor.id)],
+        )
+
+
+class ChEMBLKnowledgeProvider:
+    """ChEMBL identity, mechanism, target, and bioactivity adapter."""
+
+    descriptor = get_provider_descriptor("chembl")
+
+    def __init__(self, client: ChEMBLClient | None = None) -> None:
+        self.client = client or ChEMBLClient()
+
+    async def query(self, request: ProviderQuery) -> ProviderResult:
+        molecules = await self.client.search_molecules(request.text, request.limit)
+        identifiers = [
+            molecule["chembl_id"]
+            for molecule in molecules[:3]
+            if isinstance(molecule.get("chembl_id"), str)
+        ]
+        requested = set(request.capabilities)
+        jobs: list[tuple[str, str, Awaitable[list[dict[str, Any]]]]] = []
+        for identifier in identifiers:
+            if requested.intersection(
+                {QueryCapability.TARGET, QueryCapability.INDICATION}
+            ):
+                jobs.append(
+                    (
+                        "mechanisms",
+                        identifier,
+                        self.client.get_mechanisms(identifier, min(request.limit, 20)),
+                    )
+                )
+            if QueryCapability.BIOACTIVITY in requested:
+                jobs.append(
+                    (
+                        "activities",
+                        identifier,
+                        self.client.get_activities(identifier, min(request.limit, 20)),
+                    )
+                )
+
+        data: dict[str, object] = {"molecules": molecules}
+        warnings: list[str] = []
+        grouped: dict[str, dict[str, list[dict[str, Any]]]] = {}
+        if jobs:
+            results = await asyncio.gather(
+                *(operation for _, _, operation in jobs),
+                return_exceptions=True,
+            )
+            for (kind, identifier, _), result in zip(jobs, results, strict=True):
+                if isinstance(result, BaseException):
+                    warnings.append(f"ChEMBL {kind} lookup failed for {identifier}")
+                    continue
+                grouped.setdefault(kind, {})[identifier] = result
+        data.update(grouped)
+        return ProviderResult(
+            provider_id=self.descriptor.id,
+            status=ResponseStatus.PARTIAL if warnings else ResponseStatus.OK,
+            data=data,
+            sources=[_source(self.descriptor.id)],
+            warnings=warnings,
+        )
+
+
+class OpenTargetsKnowledgeProvider:
+    """Open Targets drug mechanisms and indication adapter."""
+
+    descriptor = get_provider_descriptor("open-targets")
+
+    def __init__(self, client: OpenTargetsClient | None = None) -> None:
+        self.client = client or OpenTargetsClient()
+
+    async def query(self, request: ProviderQuery) -> ProviderResult:
+        data = await self.client.search_drugs(request.text, request.limit)
+        return ProviderResult(
+            provider_id=self.descriptor.id,
+            data=data,
             sources=[_source(self.descriptor.id)],
         )
 

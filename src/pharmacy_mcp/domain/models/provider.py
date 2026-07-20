@@ -34,6 +34,10 @@ class QueryCapability(StrEnum):
     DOCUMENT = "document"
     CHEMISTRY = "chemistry"
     LITERATURE = "literature"
+    CLINICAL_TRIAL = "clinical_trial"
+    INDICATION = "indication"
+    TARGET = "target"
+    BIOACTIVITY = "bioactivity"
     RECALL = "recall"
     SHORTAGE = "shortage"
 

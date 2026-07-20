@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     dailymed_base_url: str = "https://dailymed.nlm.nih.gov/dailymed/services"
     pubchem_base_url: str = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
     medlineplus_service_url: str = "https://connect.medlineplus.gov/service"
+    pubmed_base_url: str = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+    ncbi_api_key: SecretStr | None = None
+    ncbi_email: str | None = None
+    clinical_trials_base_url: str = "https://clinicaltrials.gov/api/v2"
+    chembl_base_url: str = "https://www.ebi.ac.uk/chembl/api/data"
+    open_targets_graphql_url: str = (
+        "https://api.platform.opentargets.org/api/v4/graphql"
+    )
 
     # Hospital FHIR. The adapter is enabled only when a base URL is configured.
     fhir_base_url: str | None = None

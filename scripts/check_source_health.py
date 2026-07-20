@@ -11,10 +11,14 @@ from typing import Any
 
 import httpx
 
+from pharmacy_mcp.infrastructure.api.chembl import ChEMBLClient
+from pharmacy_mcp.infrastructure.api.clinical_trials import ClinicalTrialsClient
 from pharmacy_mcp.infrastructure.api.dailymed import DailyMedClient
 from pharmacy_mcp.infrastructure.api.fda import FDAClient
 from pharmacy_mcp.infrastructure.api.medlineplus import MedlinePlusClient
+from pharmacy_mcp.infrastructure.api.open_targets import OpenTargetsClient
 from pharmacy_mcp.infrastructure.api.pubchem import PubChemClient
+from pharmacy_mcp.infrastructure.api.pubmed import PubMedClient
 from pharmacy_mcp.infrastructure.api.rxnorm import RxNormClient
 from pharmacy_mcp.infrastructure.api.tfda import TFDAClient
 from pharmacy_mcp.infrastructure.storage.nhi_index import NHI_DATASET_URL
@@ -68,6 +72,13 @@ async def check_sources() -> dict[str, Any]:
         ("openfda-shortages", fda.search_shortages("amoxicillin", 1)),
         ("dailymed", DailyMedClient().search_spls("warfarin", 1)),
         ("pubchem", PubChemClient().get_compound_by_name("warfarin")),
+        ("pubmed", PubMedClient().search_articles("warfarin", 1)),
+        (
+            "clinical-trials-gov",
+            ClinicalTrialsClient().search_studies("warfarin", 1),
+        ),
+        ("chembl", ChEMBLClient().search_molecules("warfarin", 1)),
+        ("open-targets", OpenTargetsClient().search_drugs("warfarin", 1)),
         (
             "medlineplus-connect",
             MedlinePlusClient().search_medication(drug_name="warfarin"),
