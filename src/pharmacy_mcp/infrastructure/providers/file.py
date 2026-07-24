@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pharmacy_mcp.domain.models.provider import ProviderQuery, ProviderResult
 from pharmacy_mcp.domain.models.response import SourceReference
-from pharmacy_mcp.infrastructure.documents import DocumentStore
+from pharmacy_mcp.infrastructure.documents import DocumentRead, DocumentStore
 from pharmacy_mcp.infrastructure.providers.catalog import get_provider_descriptor
 
 
@@ -43,8 +43,30 @@ class FileKnowledgeProvider:
             sources=[
                 SourceReference(
                     provider="file",
-                    title="Configured local pharmaceutical files",
+                    title=match.title,
+                    uri=(
+                        f"pharmacy-document://{match.document_id}"
+                        f"#char={match.char_start}-{match.char_end}"
+                    ),
+                    version=match.text_sha256,
                 )
+                for match in matches
             ],
             warnings=warnings,
+        )
+
+    async def read_document(
+        self,
+        document_id: str,
+        *,
+        offset: int = 0,
+        max_chars: int = 10_000,
+    ) -> DocumentRead:
+        """Read an exact bounded span by an opaque ID returned from search."""
+
+        return await asyncio.to_thread(
+            self.store.read_by_id,
+            document_id,
+            offset=offset,
+            max_chars=max_chars,
         )

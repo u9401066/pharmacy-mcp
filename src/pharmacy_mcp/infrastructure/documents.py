@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import shutil
 
 # Required only for optional legacy .doc extraction; never invoked through a shell.
@@ -14,14 +15,41 @@ from typing import Any
 SUPPORTED_EXTENSIONS = frozenset(
     {".csv", ".doc", ".docx", ".md", ".pdf", ".txt", ".xls", ".xlsx"}
 )
+MAX_READ_CHARS = 50_000
 
 
 @dataclass(frozen=True)
 class DocumentMatch:
+    document_id: str
     path: str
+    relative_path: str
     title: str
     extension: str
     snippet: str
+    line_start: int
+    line_end: int
+    char_start: int
+    char_end: int
+    text_sha256: str
+
+
+@dataclass(frozen=True)
+class DocumentRead:
+    """One bounded, exact text span addressable without a caller-supplied path."""
+
+    document_id: str
+    path: str
+    relative_path: str
+    title: str
+    extension: str
+    content: str
+    line_start: int
+    line_end: int
+    char_start: int
+    char_end: int
+    total_chars: int
+    truncated: bool
+    text_sha256: str
 
 
 class DocumentStore:
@@ -57,18 +85,69 @@ class DocumentStore:
             except (OSError, ValueError, RuntimeError) as exc:
                 warnings.append(f"{path.name}: {exc}")
                 continue
-            snippet = _matching_snippet(text, query)
-            if snippet is None:
+            span = _matching_span(text, query)
+            if span is None:
                 continue
+            start, end = span
+            line_start, line_end = _line_range(text, start, end)
+            document_id, relative_path = self._document_identity(path)
             matches.append(
                 DocumentMatch(
+                    document_id=document_id,
                     path=str(path),
+                    relative_path=relative_path,
                     title=path.stem,
                     extension=path.suffix.lower(),
-                    snippet=snippet,
+                    snippet=text[start:end],
+                    line_start=line_start,
+                    line_end=line_end,
+                    char_start=start,
+                    char_end=end,
+                    text_sha256=_text_sha256(text),
                 )
             )
         return matches, warnings, scanned
+
+    def read_by_id(
+        self,
+        document_id: str,
+        *,
+        offset: int = 0,
+        max_chars: int = 10_000,
+    ) -> DocumentRead:
+        """Return one exact, bounded span identified by a search result ID."""
+
+        if not document_id.startswith("doc-"):
+            raise ValueError("invalid document ID")
+        if offset < 0:
+            raise ValueError("offset must be zero or greater")
+        if not 1 <= max_chars <= MAX_READ_CHARS:
+            raise ValueError(f"max_chars must be between 1 and {MAX_READ_CHARS}")
+
+        path = self._path_for_id(document_id)
+        if path is None:
+            raise ValueError("document ID was not found in configured roots")
+        text = self.read(path)
+        if offset > len(text):
+            raise ValueError("offset exceeds extracted document length")
+        end = min(len(text), offset + max_chars)
+        line_start, line_end = _line_range(text, offset, end)
+        resolved_id, relative_path = self._document_identity(path)
+        return DocumentRead(
+            document_id=resolved_id,
+            path=str(path),
+            relative_path=relative_path,
+            title=path.stem,
+            extension=path.suffix.lower(),
+            content=text[offset:end],
+            line_start=line_start,
+            line_end=line_end,
+            char_start=offset,
+            char_end=end,
+            total_chars=len(text),
+            truncated=end < len(text),
+            text_sha256=_text_sha256(text),
+        )
 
     def read(self, path: Path) -> str:
         """Extract text after enforcing root, file type, symlink, and size policy."""
@@ -110,6 +189,28 @@ class DocumentStore:
 
     def _inside_root(self, path: Path) -> bool:
         return any(path.is_relative_to(root) for root in self.roots)
+
+    def _path_for_id(self, document_id: str) -> Path | None:
+        for path in self._files():
+            try:
+                candidate, _ = self._document_identity(path)
+            except ValueError:
+                continue
+            if candidate == document_id:
+                return path
+        return None
+
+    def _document_identity(self, path: Path) -> tuple[str, str]:
+        resolved = path.resolve()
+        if path.is_symlink():
+            raise ValueError("symlinks cannot be assigned a document ID")
+        for root_index, root in enumerate(self.roots):
+            if resolved.is_relative_to(root):
+                relative_path = resolved.relative_to(root).as_posix()
+                identity = f"{root_index}:{relative_path}".encode()
+                digest = hashlib.sha256(identity).hexdigest()[:24]
+                return f"doc-{digest}", relative_path
+        raise ValueError("path is outside configured roots")
 
 
 def _read_csv(path: Path) -> str:
@@ -191,7 +292,11 @@ def _stringify_row(row: Any) -> str:
     return " | ".join("" if value is None else str(value) for value in row)
 
 
-def _matching_snippet(text: str, query: str, size: int = 500) -> str | None:
+def _matching_span(
+    text: str,
+    query: str,
+    size: int = 500,
+) -> tuple[int, int] | None:
     haystack = text.casefold()
     needle = query.casefold().strip()
     if not needle:
@@ -201,9 +306,15 @@ def _matching_snippet(text: str, query: str, size: int = 500) -> str | None:
         return None
     start = max(0, index - size // 3)
     end = min(len(text), start + size)
-    snippet = " ".join(text[start:end].split())
-    if start:
-        snippet = "…" + snippet
-    if end < len(text):
-        snippet += "…"
-    return snippet
+    return start, end
+
+
+def _line_range(text: str, start: int, end: int) -> tuple[int, int]:
+    line_start = text.count("\n", 0, start) + 1
+    if end <= start:
+        return line_start, line_start
+    return line_start, text.count("\n", 0, end - 1) + 1
+
+
+def _text_sha256(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()

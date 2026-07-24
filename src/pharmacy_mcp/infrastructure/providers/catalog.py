@@ -170,6 +170,18 @@ PROVIDER_CATALOG: tuple[ProviderDescriptor, ...] = (
         notes="Base URL and SMART/Bearer authentication are supplied by the hospital.",
     ),
     ProviderDescriptor(
+        id="wcf",
+        title="Configured Internal SOAP/WCF Medication Service",
+        kind=ProviderKind.HEALTHCARE,
+        state=ProviderState.READY,
+        capabilities=(C.SEARCH, C.IDENTITY, C.FORMULARY, C.INVENTORY, C.SHORTAGE),
+        enabled_by_default=True,
+        notes=(
+            "Service URL, SOAP action, operation, and field allowlists are supplied "
+            "only through deployment settings."
+        ),
+    ),
+    ProviderDescriptor(
         id="local-formulary",
         title="Local Hospital Formulary",
         kind=ProviderKind.LOCAL,

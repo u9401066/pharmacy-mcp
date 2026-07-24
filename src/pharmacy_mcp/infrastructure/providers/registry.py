@@ -11,6 +11,7 @@ from pharmacy_mcp.domain.models.provider import (
     ProviderDescriptor,
     QueryCapability,
 )
+from pharmacy_mcp.infrastructure.api.wcf import WCFClient
 from pharmacy_mcp.infrastructure.providers.builtin import (
     ChEMBLKnowledgeProvider,
     ClinicalTrialsKnowledgeProvider,
@@ -36,6 +37,7 @@ from pharmacy_mcp.infrastructure.providers.vector import (
     VectorKnowledgeProvider,
     VectorSearchClient,
 )
+from pharmacy_mcp.infrastructure.providers.wcf import WCFKnowledgeProvider
 from pharmacy_mcp.infrastructure.providers.web import WebKnowledgeProvider
 
 
@@ -90,6 +92,11 @@ class ProviderRegistry:
             unique[provider.descriptor.id] = provider
         return list(unique.values()), missing
 
+    def get(self, provider_id: str) -> KnowledgeProvider | None:
+        """Return one registered provider or alias without exposing internals."""
+
+        return self._providers.get(provider_id)
+
     def catalog(self) -> list[dict[str, Any]]:
         """Return the full catalog with actual runtime registration state."""
 
@@ -129,6 +136,30 @@ def build_default_registry() -> ProviderRegistry:
     registry.register(OpenTargetsKnowledgeProvider())
     if settings.fhir_base_url:
         registry.register(FHIRKnowledgeProvider())
+    if (
+        settings.wcf_service_url
+        and settings.wcf_soap_action
+        and settings.wcf_operation
+        and settings.wcf_search_fields
+        and settings.wcf_output_fields
+    ):
+        registry.register(
+            WCFKnowledgeProvider(
+                WCFClient(
+                    settings.wcf_service_url,
+                    settings.wcf_soap_action,
+                    settings.wcf_operation,
+                    namespace=settings.wcf_namespace,
+                    verify_tls=settings.wcf_verify_tls,
+                    timeout=settings.wcf_timeout_seconds,
+                    cache_ttl_seconds=settings.wcf_cache_ttl_seconds,
+                    max_bytes=settings.wcf_max_bytes,
+                    max_records=settings.wcf_max_records,
+                ),
+                search_fields=tuple(settings.wcf_search_fields),
+                output_fields=tuple(settings.wcf_output_fields),
+            )
+        )
     file_roots = tuple(
         Path(value.strip()) for value in settings.file_roots.split(",") if value.strip()
     )

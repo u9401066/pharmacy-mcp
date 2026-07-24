@@ -39,6 +39,19 @@ class Settings(BaseSettings):
     fhir_medication_resources: str = "MedicationKnowledge,Medication"
     fhir_inventory_resources: str = "InventoryItem,InventoryReport,SupplyDelivery"
 
+    # Optional organization SOAP/WCF medication source. Contract values stay in env.
+    wcf_service_url: str | None = None
+    wcf_soap_action: str | None = None
+    wcf_operation: str | None = None
+    wcf_namespace: str = "http://tempuri.org/"
+    wcf_search_fields: list[str] = Field(default_factory=list)
+    wcf_output_fields: list[str] = Field(default_factory=list)
+    wcf_verify_tls: bool = True
+    wcf_timeout_seconds: float = 60.0
+    wcf_cache_ttl_seconds: int = 300
+    wcf_max_bytes: int = 25 * 1024 * 1024
+    wcf_max_records: int = 100_000
+
     # Local and organization knowledge connectors
     file_roots: str = "knowledge"
     file_max_bytes: int = 20 * 1024 * 1024
@@ -57,6 +70,8 @@ class Settings(BaseSettings):
     request_timeout: int = 30
     max_retries: int = 3
     provider_timeout_seconds: float = 20.0
+    provider_max_parallel: int = Field(default=6, ge=1, le=64)
+    provider_max_per_query: int = Field(default=24, ge=1, le=100)
 
     # Taiwan NHI official monthly CSV index
     nhi_index_path: str = ".cache/nhi/drug-items.sqlite3"

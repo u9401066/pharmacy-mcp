@@ -78,8 +78,87 @@ class FHIRClient:
 
         response = await self._get("metadata", {})
         response.raise_for_status()
-        payload: dict[str, Any] = response.json()
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError("FHIR metadata did not return a JSON object")
         return payload
+
+    async def inspect_capabilities(self) -> dict[str, Any]:
+        """Return a bounded pharmacy-focused projection of CapabilityStatement."""
+
+        payload = await self.capability_statement()
+        if payload.get("resourceType") != "CapabilityStatement":
+            raise ValueError("FHIR metadata did not return a CapabilityStatement")
+
+        resource_types: set[str] = set()
+        system_interactions: set[str] = set()
+        pharmacy_resources: list[dict[str, Any]] = []
+        for rest in _dict_items(payload.get("rest")):
+            if rest.get("mode") != "server":
+                continue
+            for interaction in _dict_items(rest.get("interaction")):
+                code = interaction.get("code")
+                if isinstance(code, str):
+                    system_interactions.add(code)
+            for resource in _dict_items(rest.get("resource")):
+                resource_type = resource.get("type")
+                if not isinstance(resource_type, str):
+                    continue
+                resource_types.add(resource_type)
+                if resource_type not in FHIR_RESOURCE_ALLOWLIST:
+                    continue
+                interactions = sorted(
+                    code
+                    for item in _dict_items(resource.get("interaction"))
+                    if isinstance((code := item.get("code")), str)
+                )
+                search_parameters = [
+                    {
+                        "name": item.get("name"),
+                        "type": item.get("type"),
+                        "definition": item.get("definition"),
+                    }
+                    for item in _dict_items(resource.get("searchParam"))
+                    if isinstance(item.get("name"), str)
+                ]
+                supported_profiles = _string_items(resource.get("supportedProfile"))
+                pharmacy_resources.append(
+                    {
+                        "resource_type": resource_type,
+                        "interactions": interactions,
+                        "search_parameters": search_parameters,
+                        "profile": resource.get("profile"),
+                        "supported_profiles": supported_profiles,
+                    }
+                )
+
+        configured_resources = sorted(
+            set(self.medication_resources + self.inventory_resources)
+        )
+        unsupported = sorted(set(configured_resources) - resource_types)
+        software = payload.get("software")
+        implementation = payload.get("implementation")
+        return {
+            "server": self.base_url,
+            "configured_fhir_version": self.fhir_version,
+            "reported_fhir_version": payload.get("fhirVersion"),
+            "status": payload.get("status"),
+            "kind": payload.get("kind"),
+            "formats": _string_items(payload.get("format")),
+            "patch_formats": _string_items(payload.get("patchFormat")),
+            "software": software if isinstance(software, dict) else None,
+            "implementation": (
+                implementation if isinstance(implementation, dict) else None
+            ),
+            "system_interactions": sorted(system_interactions),
+            "resource_types": sorted(resource_types),
+            "pharmacy_resources": sorted(
+                pharmacy_resources,
+                key=lambda item: str(item["resource_type"]),
+            ),
+            "configured_resources": configured_resources,
+            "unsupported_configured_resources": unsupported,
+        }
 
     async def search_medications(self, query: str, limit: int) -> FHIRSearchBatch:
         """Search Medication and MedicationKnowledge across R4/R5 servers."""
@@ -131,15 +210,42 @@ class FHIRClient:
             return [], _operation_warning(resource_type, response)
         response.raise_for_status()
         payload = response.json()
+        if not isinstance(payload, dict):
+            return [], f"{resource_type} search did not return a JSON object"
         if payload.get("resourceType") != "Bundle":
             return [], f"{resource_type} search did not return a FHIR Bundle"
+        if payload.get("type") != "searchset":
+            return [], f"{resource_type} search returned a non-searchset FHIR Bundle"
         entries = payload.get("entry", [])
-        resources = [
-            entry["resource"]
-            for entry in entries
-            if isinstance(entry, dict) and isinstance(entry.get("resource"), dict)
-        ]
-        return resources, None
+        if not isinstance(entries, list):
+            return [], f"{resource_type} search Bundle.entry is not an array"
+
+        resources: list[dict[str, Any]] = []
+        malformed_entries = 0
+        mismatched_resources: set[str] = set()
+        for entry in entries:
+            if not isinstance(entry, dict) or not isinstance(
+                (resource := entry.get("resource")), dict
+            ):
+                malformed_entries += 1
+                continue
+            returned_type = resource.get("resourceType")
+            if returned_type != resource_type:
+                mismatched_resources.add(str(returned_type or "missing-resourceType"))
+                continue
+            resources.append(resource)
+
+        warnings: list[str] = []
+        if malformed_entries:
+            warnings.append(
+                f"{resource_type} search ignored {malformed_entries} malformed entries"
+            )
+        if mismatched_resources:
+            warnings.append(
+                f"{resource_type} search ignored mismatched resource types: "
+                f"{', '.join(sorted(mismatched_resources))}"
+            )
+        return resources, "; ".join(warnings) or None
 
     async def _search_group(
         self,
@@ -187,6 +293,18 @@ class FHIRClient:
 
 def _resource_list(value: str) -> tuple[str, ...]:
     return tuple(item.strip() for item in value.split(",") if item.strip())
+
+
+def _dict_items(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _string_items(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
 
 
 def _validate_resources(resource_types: tuple[str, ...]) -> None:

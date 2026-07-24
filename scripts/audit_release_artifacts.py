@@ -12,6 +12,7 @@ from pathlib import Path
 
 FORBIDDEN_PARTS = {
     ".cache",
+    ".env",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
@@ -20,6 +21,10 @@ FORBIDDEN_PARTS = {
     "__pycache__",
     "dist",
     "htmlcov",
+    "daily_update.py",
+    "daily_update.zip",
+    "fetch_data_wcf.py",
+    "fetch_data_wcf.zip",
 }
 
 FORBIDDEN_PREFIXES = (

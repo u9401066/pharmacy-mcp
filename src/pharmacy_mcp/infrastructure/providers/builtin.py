@@ -380,6 +380,11 @@ class FHIRKnowledgeProvider:
     def __init__(self, client: FHIRClient | None = None) -> None:
         self.client = client or FHIRClient()
 
+    async def inspect_capabilities(self) -> dict[str, Any]:
+        """Inspect the server contract without exposing authentication material."""
+
+        return await self.client.inspect_capabilities()
+
     async def query(self, request: ProviderQuery) -> ProviderResult:
         requested = set(request.capabilities)
         jobs: list[tuple[str, Awaitable[FHIRSearchBatch]]] = []

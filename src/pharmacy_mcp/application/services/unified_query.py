@@ -28,9 +28,27 @@ class UnifiedQueryService:
         registry: ProviderRegistry,
         *,
         provider_timeout: float | None = None,
+        max_parallel: int | None = None,
+        max_providers: int | None = None,
     ) -> None:
         self.registry = registry
-        self.provider_timeout = provider_timeout or settings.provider_timeout_seconds
+        self.provider_timeout = (
+            settings.provider_timeout_seconds
+            if provider_timeout is None
+            else provider_timeout
+        )
+        self.max_parallel = (
+            settings.provider_max_parallel if max_parallel is None else max_parallel
+        )
+        self.max_providers = (
+            settings.provider_max_per_query if max_providers is None else max_providers
+        )
+        if self.provider_timeout <= 0:
+            raise ValueError("provider_timeout must be greater than zero")
+        if self.max_parallel <= 0:
+            raise ValueError("max_parallel must be greater than zero")
+        if self.max_providers <= 0:
+            raise ValueError("max_providers must be greater than zero")
 
     async def query(
         self,
@@ -66,8 +84,44 @@ class UnifiedQueryService:
             )
             for provider_id in missing
         ]
+        execution = {
+            "provider_count": len(providers),
+            "max_parallel": self.max_parallel,
+            "max_providers": self.max_providers,
+            "provider_timeout_seconds": self.provider_timeout,
+        }
+        if len(providers) > self.max_providers:
+            errors.append(
+                ErrorDetail(
+                    code="provider_budget_exceeded",
+                    message=(
+                        f"Query resolved {len(providers)} providers, exceeding the "
+                        f"configured maximum of {self.max_providers}. Select fewer "
+                        "sources or narrow the requested capabilities."
+                    ),
+                )
+            )
+            return ServiceResult(
+                status=ResponseStatus.ERROR,
+                data={
+                    "query": text,
+                    "capabilities": [item.value for item in requested_capabilities],
+                    "providers_queried": [],
+                    "providers_resolved": [
+                        provider.descriptor.id for provider in providers
+                    ],
+                    "provider_results": {},
+                    "execution": execution,
+                },
+                errors=errors,
+            )
+
+        semaphore = asyncio.Semaphore(self.max_parallel)
         results = await asyncio.gather(
-            *(self._query_provider(provider, request) for provider in providers)
+            *(
+                self._query_provider(provider, request, semaphore)
+                for provider in providers
+            )
         )
         provider_data: dict[str, object] = {}
         sources_out: list[SourceReference] = []
@@ -98,6 +152,7 @@ class UnifiedQueryService:
                 "capabilities": [item.value for item in requested_capabilities],
                 "providers_queried": [provider.descriptor.id for provider in providers],
                 "provider_results": provider_data,
+                "execution": execution,
             },
             sources=_deduplicate_sources(sources_out),
             warnings=warnings,
@@ -108,12 +163,14 @@ class UnifiedQueryService:
         self,
         provider: KnowledgeProvider,
         request: ProviderQuery,
+        semaphore: asyncio.Semaphore,
     ) -> ProviderResult:
         try:
-            return await asyncio.wait_for(
-                provider.query(request),
-                timeout=self.provider_timeout,
-            )
+            async with semaphore:
+                return await asyncio.wait_for(
+                    provider.query(request),
+                    timeout=self.provider_timeout,
+                )
         except TimeoutError:
             return ProviderResult(
                 provider_id=provider.descriptor.id,

@@ -15,6 +15,7 @@ from starlette.routing import Mount
 from starlette.types import Receive, Scope, Send
 
 from pharmacy_mcp.application.harness import AGENT_CONTRACT_NAME, build_agent_contract
+from pharmacy_mcp.application.services.connector_access import ConnectorAccessService
 from pharmacy_mcp.application.services.dosage import DosageService
 from pharmacy_mcp.application.services.drug_info import DrugInfoService
 from pharmacy_mcp.application.services.drug_search import DrugSearchService
@@ -49,6 +50,9 @@ SERVER_INSTRUCTIONS = (
     f"Always include the project disclaimer: {settings.disclaimer}"
 )
 SERVER_WEBSITE_URL = "https://github.com/u9401066/pharmacy-mcp"
+SERVICE_RESULT_TOOLS = frozenset(
+    {"query_pharmacy", "read_knowledge_document", "inspect_fhir_server"}
+)
 
 ToolResult = dict[str, Any]
 OUTPUT_SCHEMA = QueryResponse.model_json_schema()
@@ -92,7 +96,7 @@ class PharmacyFastMCP(FastMCP):
         try:
             converted = await super().call_tool(name, service_arguments)
             raw = _extract_structured_result(converted)
-            if name == "query_pharmacy":
+            if name in SERVICE_RESULT_TOOLS:
                 response = QueryResponse.from_service(
                     tool=name,
                     result=ServiceResult.model_validate(raw),
@@ -186,6 +190,13 @@ def get_unified_query_service() -> UnifiedQueryService:
     return UnifiedQueryService(get_provider_registry())
 
 
+@lru_cache(maxsize=1)
+def get_connector_access_service() -> ConnectorAccessService:
+    """Return safe explicit read/inspection operations for configured connectors."""
+
+    return ConnectorAccessService(get_provider_registry())
+
+
 def create_server(
     *,
     host: str | None = None,
@@ -261,6 +272,36 @@ def create_server(
     )
     def get_nhi_data_status() -> ToolResult:
         return get_taiwan_drug_service().get_nhi_data_status()
+
+    @server.tool(
+        description=(
+            "Read an exact bounded span from a configured PDF, DOC/DOCX, CSV, "
+            "XLS/XLSX, Markdown, or text file. document_id must come from the file "
+            "provider in query_pharmacy; arbitrary paths are never accepted."
+        )
+    )
+    async def read_knowledge_document(
+        document_id: str,
+        offset: int = 0,
+        max_chars: int = 10_000,
+    ) -> ToolResult:
+        result = await get_connector_access_service().read_document(
+            document_id,
+            offset=offset,
+            max_chars=max_chars,
+        )
+        return result.model_dump(mode="json")
+
+    @server.tool(
+        description=(
+            "Inspect the configured hospital FHIR CapabilityStatement. Returns "
+            "supported resource types, pharmacy interactions, search parameters, "
+            "profiles, and configured-resource compatibility without credentials."
+        )
+    )
+    async def inspect_fhir_server() -> ToolResult:
+        result = await get_connector_access_service().inspect_fhir_server()
+        return result.model_dump(mode="json")
 
     @server.tool(
         description="Search for drugs by name. Returns results from RxNorm and FDA databases."

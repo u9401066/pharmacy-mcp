@@ -42,6 +42,7 @@ dependencies = [
     "pydantic-settings>=2.1.0,<3",
     "aiosqlite>=0.19.0,<1",
     "diskcache>=5.6.0,<6",
+    "defusedxml>=0.7.1,<1",
     "pypdf>=5.0.0,<7",
     "python-docx>=1.1.0,<2",
     "openpyxl>=3.1.0,<4",
@@ -60,6 +61,7 @@ dev = [
     "ruff>=0.1.9",
     "bandit[toml]>=1.7.6",
     "types-openpyxl",
+    "types-defusedxml",
     "types-requests",
     "types-xlrd",
 ]
@@ -87,6 +89,7 @@ exclude = [
     "/.cline",
     "/.clinerules",
     "/.codex",
+    "/.env",
     "/.github",
     "/.mypy_cache",
     "/.pytest_cache",
@@ -98,8 +101,12 @@ exclude = [
     "/data/jobs",
     "/data/tables",
     "/dist",
+    "/daily_update.py",
+    "/daily_update.zip",
     "/docs/superpowers",
     "/htmlcov",
+    "/fetch_data_wcf.py",
+    "/fetch_data_wcf.zip",
     "/scripts",
 ]
 
