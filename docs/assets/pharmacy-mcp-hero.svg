@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc" viewBox="0 0 1200 420">
+  <title id="title">Pharmacy MCP Gateway</title>
+  <desc id="desc">A visual overview of one bounded MCP query routing to FHIR, public APIs, and organization knowledge, then returning QueryResponse version 1.0.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071d2b"/>
+      <stop offset="0.48" stop-color="#0b3f49"/>
+      <stop offset="1" stop-color="#126b61"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#70e1c2"/>
+      <stop offset="1" stop-color="#8bc7ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#001018" flood-opacity="0.34"/>
+    </filter>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M 36 0 L 0 0 0 36" fill="none" stroke="#b8fff0" stroke-opacity="0.055" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="420" rx="30" fill="url(#background)"/>
+  <rect width="1200" height="420" rx="30" fill="url(#grid)"/>
+  <circle cx="1102" cy="44" r="180" fill="#6ce5c0" opacity="0.07"/>
+  <circle cx="70" cy="400" r="170" fill="#79baff" opacity="0.06"/>
+
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="64" y="72" fill="#8ff3d5" font-size="17" font-weight="700" letter-spacing="3">PHARMACY MCP GATEWAY</text>
+    <text x="64" y="128" fill="#ffffff" font-size="47" font-weight="760">One contract.</text>
+    <text x="64" y="177" fill="#ffffff" font-size="47" font-weight="760">Every source.</text>
+    <text x="64" y="211" fill="#d8f4ef" font-size="18">FHIR-aligned knowledge. Bounded, traceable fan-out.</text>
+
+    <g transform="translate(64 237)">
+      <rect width="160" height="44" rx="22" fill="#ffffff" fill-opacity="0.1" stroke="#a6f5df" stroke-opacity="0.34"/>
+      <text x="80" y="28" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="650">35 MCP tools</text>
+      <rect x="174" width="158" height="44" rx="22" fill="#ffffff" fill-opacity="0.1" stroke="#a6f5df" stroke-opacity="0.34"/>
+      <text x="253" y="28" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="650">FHIR R4 / R5</text>
+      <rect x="346" width="171" height="44" rx="22" fill="#ffffff" fill-opacity="0.1" stroke="#a6f5df" stroke-opacity="0.34"/>
+      <text x="431.5" y="28" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="650">Citation-ready</text>
+    </g>
+
+    <g transform="translate(64 302)">
+      <rect width="472" height="70" rx="16" fill="#051a25" fill-opacity="0.5" stroke="#78dcc3" stroke-opacity="0.28"/>
+      <text x="22" y="28" fill="#9debd8" font-size="13" font-weight="700" letter-spacing="1.3">STABLE ENVELOPE</text>
+      <text x="22" y="51" fill="#ffffff" font-size="16" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">data · sources · warnings · errors · meta</text>
+    </g>
+
+    <g transform="translate(638 48)" filter="url(#shadow)">
+      <rect width="498" height="324" rx="25" fill="#071c29" fill-opacity="0.86" stroke="#8eead2" stroke-opacity="0.32"/>
+      <rect x="24" y="24" width="132" height="48" rx="14" fill="#173b48" stroke="#7bd9c4" stroke-opacity="0.42"/>
+      <text x="90" y="54" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="700">MCP client</text>
+
+      <path d="M 156 48 H 198" stroke="url(#accent)" stroke-width="3"/>
+      <path d="M 190 41 L 200 48 190 55" fill="none" stroke="#84e4cf" stroke-width="3"/>
+
+      <rect x="202" y="20" width="270" height="56" rx="16" fill="url(#accent)"/>
+      <text x="337" y="45" text-anchor="middle" fill="#06232c" font-size="13" font-weight="700" letter-spacing="1">BOUNDED ROUTER</text>
+      <text x="337" y="64" text-anchor="middle" fill="#06232c" font-size="15" font-weight="760">query_pharmacy</text>
+
+      <path d="M 337 76 V 116" stroke="#76dbc3" stroke-width="3"/>
+      <circle cx="337" cy="116" r="5" fill="#8bf0d5"/>
+      <path d="M 94 116 H 404 M 94 116 V 145 M 249 116 V 145 M 404 116 V 145" fill="none" stroke="#76dbc3" stroke-width="2.4"/>
+
+      <g transform="translate(24 145)">
+        <rect width="140" height="72" rx="15" fill="#123746" stroke="#72cbe7" stroke-opacity="0.55"/>
+        <text x="70" y="31" text-anchor="middle" fill="#9ddfff" font-size="14" font-weight="700">FHIR</text>
+        <text x="70" y="52" text-anchor="middle" fill="#dceff7" font-size="12">R4 / R5</text>
+      </g>
+      <g transform="translate(179 145)">
+        <rect width="140" height="72" rx="15" fill="#123f3d" stroke="#78e0c3" stroke-opacity="0.55"/>
+        <text x="70" y="31" text-anchor="middle" fill="#9af0d7" font-size="14" font-weight="700">Public APIs</text>
+        <text x="70" y="52" text-anchor="middle" fill="#dcefeb" font-size="12">TFDA / NHI</text>
+      </g>
+      <g transform="translate(334 145)">
+        <rect x="0" width="140" height="72" rx="15" fill="#23364f" stroke="#91bfff" stroke-opacity="0.55"/>
+        <text x="70" y="31" text-anchor="middle" fill="#b9d4ff" font-size="14" font-weight="700">Knowledge</text>
+        <text x="70" y="52" text-anchor="middle" fill="#e2eaff" font-size="12">Files / SQL / WCF</text>
+      </g>
+
+      <path d="M 94 217 V 235 H 249 V 251 M 249 217 V 251 M 404 217 V 235 H 249" fill="none" stroke="#6bcbb8" stroke-width="2.2"/>
+      <rect x="94" y="251" width="310" height="49" rx="14" fill="#0b252f" stroke="#82e5cd" stroke-opacity="0.48"/>
+      <text x="249" y="281" text-anchor="middle" fill="#ffffff" font-size="15" font-weight="700">QueryResponse v1.0 + provenance</text>
+    </g>
+  </g>
+</svg>

@@ -1,9 +1,11 @@
 # 一個入口，查完整的藥品知識
 
+![Pharmacy MCP 以單一受控查詢路由至 FHIR、公共 API 與組織知識](assets/pharmacy-mcp-hero.svg)
+
 <div class="pharmacy-hero" markdown>
 
 Pharmacy MCP 是一個 **MCP server + agent harness**。它把公共藥品 API、台灣
-TFDA/NHI、醫院 FHIR/庫存、SQLite、向量搜尋、文件與固定 Web 資料整合成
+TFDA/NHI、醫院 FHIR/庫存、設定式 SOAP/WCF、SQLite、向量搜尋、文件與固定 Web 資料整合成
 `query_pharmacy` 單一入口，另提供可信任 PK/DDI 模擬，並以可驗證的
 `QueryResponse` 回傳。
 
@@ -40,7 +42,8 @@ TFDA/NHI、醫院 FHIR/庫存、SQLite、向量搜尋、文件與固定 Web 資�
     ---
 
     設定 endpoint 即可啟用 read-only FHIR R4/R5 藥品、醫囑、調劑和
-    Inventory/Supply 查詢；組織資料連接器採 operator allowlist。
+    Inventory/Supply 查詢，並能檢查 CapabilityStatement；組織資料連接器採
+    operator allowlist。
 
 </div>
 
@@ -81,23 +84,7 @@ TFDA/NHI、醫院 FHIR/庫存、SQLite、向量搜尋、文件與固定 Web 資�
 
 ## 統一資料流
 
-```text
-MCP client / Python agent / CLI
-               │
-               ▼
-        query_pharmacy
-               │
-               ▼
-  capability + source routing
-               │
-    ┌──────────┼───────────┬───────────┐
-    ▼          ▼           ▼           ▼
- public API  TFDA/NHI  FHIR/inventory  org data
-    └──────────┴───────────┴───────────┘
-               │
-               ▼
- QueryResponse v1.0 + provenance
-```
+![Pharmacy MCP clients、閘道分層、provider、回應契約與信任邊界](assets/pharmacy-mcp-architecture.svg)
 
 !!! warning "臨床安全界線"
     本專案提供參考資料整合與可追溯查詢，不取代藥師、醫師或經核准的臨床
@@ -108,7 +95,9 @@ MCP client / Python agent / CLI
 - RxNorm/RxClass、openFDA、DailyMed、PubChem、MedlinePlus Connect
 - 台灣 TFDA 與健保署官方藥品項目月資料
 - FHIR R4/R5 medication、patient order/dispense、inventory/supply
+- operator-configured SOAP/WCF 藥品資料（field allowlist + TTL cache）
 - PDF、DOC/DOCX、CSV、XLS/XLSX、Markdown、text
+- 文件搜尋提供 SHA-256、行/字元 locator，並能用 opaque ID 安全調閱片段
 - read-only SQLite、vendor-neutral vector gateway、固定 HTTPS 文件
 - 原有劑量、交互作用、院內 formulary 與處方 workflow tools
 - 具來源、假設、限制與驗證 fixtures 的 PK/DDI formula/simulation tools

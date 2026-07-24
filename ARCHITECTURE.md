@@ -17,7 +17,7 @@ MCP client             Python agent              shell/job
           ┌─────────────────┼──────────────────┐
           │                 │                  │
      public/Taiwan      FHIR/hospital      organization data
-       APIs/data       meds + inventory   file/SQL/vector/web
+       APIs/data       meds + inventory   file/SQL/WCF/vector/web
           └─────────────────┼──────────────────┘
                             │
                     QueryResponse v1.0
@@ -28,9 +28,9 @@ MCP client             Python agent              shell/job
 - `domain/` defines the provider port, capabilities, response contract, drug
   entities, and value objects. It does not perform I/O.
 - `application/` owns use cases. `UnifiedQueryService` normalizes a query,
-  chooses providers, runs them concurrently, enforces per-provider timeouts,
-  and aggregates traceable partial results. `PharmacyHarness` adds the common
-  transport envelope.
+  chooses providers, enforces fan-out/concurrency budgets and per-provider
+  timeouts, and aggregates traceable partial results. `ConnectorAccessService`
+  owns safe document retrieval and FHIR capability inspection.
 - `infrastructure/` contains API/FHIR clients, the NHI index, local knowledge,
   parsers, and provider adapters. Every executable source implements
   `KnowledgeProvider.query(ProviderQuery)`.
@@ -46,7 +46,9 @@ orchestrates those ports, and presentation calls application services.
    limit, and authorized provider context.
 2. `ProviderRegistry` resolves configured adapters. Missing explicit providers
    become `provider_unavailable` errors.
-3. Providers execute concurrently with isolated timeouts and exceptions.
+3. The service rejects fan-out above `provider_max_per_query`, then executes at
+   most `provider_max_parallel` providers concurrently with isolated timeouts
+   and exceptions. These limits are operator policy, not caller arguments.
 4. Successful provider payloads remain keyed by provider ID. Provenance is
    deduplicated without merging source authority.
 5. The service selects `ok`, `partial`, or `error` and returns `ServiceResult`.
@@ -76,8 +78,11 @@ Adapters are selected by normalized capabilities such as `identity`, `label`,
 - The bundled formulary and renal-dose data remain small versioned assets.
 - Operator databases are opened read-only and expose only validated table and
   column mappings.
+- SOAP/WCF contracts and field allowlists remain deployment settings; snapshots
+  use secure XML parsing, byte/record limits, and a TTL cache before projection.
 - File extraction is bounded by root, extension, symlink, byte, and file-count
-  policy.
+  policy. Search emits opaque document IDs, extracted-text SHA-256 revisions,
+  and exact line/character spans; bounded reads accept IDs rather than paths.
 
 ## Security and privacy
 

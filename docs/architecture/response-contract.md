@@ -38,6 +38,10 @@ does not change `structuredContent`.
 
 Unknown top-level fields are forbidden. Breaking changes require a new
 `schema_version`; additive provider payload changes remain inside `data`.
+Execution policy metadata (for example provider count, timeout, fan-out budget,
+and concurrency limit) is additive data under `query_pharmacy.data.execution`.
+Connector-specific tools that can return partial results use the same
+`ServiceResult` to `QueryResponse` conversion as the unified query.
 
 ## Agent requirements
 

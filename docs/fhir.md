@@ -43,6 +43,19 @@ Hospitals that represent inventory through `Basic` or custom profiles may set
 the resource list to an allowlisted type and adapt server-side search profiles.
 Only known read-only resource types are accepted by the client.
 
+Call `inspect_fhir_server` after deployment. It reads `[base]/metadata` and
+returns a bounded projection of the server's `CapabilityStatement`: reported
+FHIR version, all advertised resource types, pharmacy-resource interactions,
+search parameters, profiles, and any configured resource types the server did
+not advertise. Authorization headers and tokens are never returned.
+
+FHIR search responses must be `Bundle.type=searchset`. Entries with a missing
+resource or a resource type different from the requested type are excluded with
+a warning. Valid resources remain raw FHIR JSON: core fields such as `id`,
+`meta`, `identifier`, `code`, `status`, form/ingredient structures, as well as
+hospital `extension`, `modifierExtension`, profiles, and additional local keys
+are preserved rather than flattened into a lossy internal schema.
+
 ## Unified query
 
 ```json
@@ -74,6 +87,10 @@ for the selected resources.
 Official references:
 
 - <https://hl7.org/fhir/http.html>
+- <https://hl7.org/fhir/R4/capabilitystatement.html>
+- <https://hl7.org/fhir/R4/bundle.html>
+- <https://hl7.org/fhir/R4/medication.html>
+- <https://hl7.org/fhir/medicationknowledge.html>
 - <https://hl7.org/fhir/R4/medicationrequest.html>
 - <https://fhir.hl7.org/fhir/inventoryitem.html>
 - <https://fhir.hl7.org/fhir/inventoryreport.html>

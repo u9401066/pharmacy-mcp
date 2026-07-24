@@ -18,13 +18,27 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   SQLite, vector gateways, and fixed HTTPS documents.
 - Added an atomic official NHI CSV index and compound TFDA/NHI coverage queries.
 - Added MkDocs/GitHub Pages deployment and a weekly 18-surface source probe.
+- Added `read_knowledge_document` with opaque IDs, SHA-256 revisions, exact
+  line/character locators, and bounded path-free document retrieval.
+- Added `inspect_fhir_server` with a credential-safe CapabilityStatement
+  projection and configured-resource compatibility reporting.
+- Added an operator-configured SOAP/WCF medication provider with HTTPS/TLS,
+  defused XML parsing, response limits, snapshot caching, and field allowlists;
+  private endpoint and contract values remain deployment-only.
 
 ### Changed
 - Integrated the 0.9.1 FastMCP transports and trusted PK/DDI simulation catalog
   into the unified gateway without weakening its output contract.
 - Set the package prerelease version to `1.0.0a1`.
+- Bounded unified-query provider fan-out and parallel execution through
+  operator-controlled budgets exposed in response execution metadata.
+- Hardened FHIR search contract validation while preserving raw standard fields,
+  extensions, profiles, and hospital-defined keys on valid resources.
 - Restored repo-wide strict mypy, Ruff, Bandit, coverage, package, docs, CLI,
   MCP transport, and release-artifact gates.
+- Redesigned both READMEs and the documentation landing page around two
+  accessible repo-native SVGs plus Mermaid flows for bounded fan-out, FHIR
+  compatibility inspection, and citation-ready document retrieval.
 
 ### Fixed
 - Fixed current TFDA HTTPS ZIP ingestion, nullable fields, NHI ROC-date

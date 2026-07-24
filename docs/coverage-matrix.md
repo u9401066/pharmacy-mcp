@@ -21,7 +21,7 @@ are cataloged honestly and are never scraped.
 | Targets and experimental bioactivity | ChEMBL REST | `target`, `bioactivity` | molecule/mechanism/activity contracts + live probe |
 | Drug–disease evidence | Open Targets GraphQL | `target`, `indication` | schema-checked search/detail contract + live probe |
 | Taiwan product and reimbursement | TFDA permits + NHI monthly drug items/rules | `identity`, `label`, `reimbursement` | compound provider, atomic SQLite index, source probes |
-| Hospital formulary and inventory | FHIR R4/R5 + local formulary | `formulary`, `inventory` | resource fallback and patient-context tests |
+| Hospital formulary and inventory | FHIR R4/R5 + local formulary + configured SOAP/WCF | `formulary`, `inventory` | capability/resource validation, patient context, WCF allowlist/cache tests |
 | Organization knowledge | files, SQLite, vector gateway, fixed web pages | `document`, `literature`, `formulary`, `inventory` | allowlist/read-only/size and transport tests |
 | Deterministic PK/DDI calculation | trusted formula catalog | dedicated MCP simulation tools | fixtures, provenance, numeric fail-closed tests |
 
@@ -29,7 +29,7 @@ are cataloged honestly and are never scraped.
 
 The single `query_pharmacy` entry accepts an explicit source list or routes by
 capability. Organization adapters cover PDF, DOC/DOCX, CSV, XLS/XLSX, Markdown,
-text, read-only SQLite, vector HTTP search, and fixed HTTPS pages. FHIR is
+text, read-only SQLite, configured SOAP/WCF, vector HTTP search, and fixed HTTPS pages. FHIR is
 registered after an operator sets its endpoint; patient medication resources
 require an explicit authorized `context.patient_id`.
 

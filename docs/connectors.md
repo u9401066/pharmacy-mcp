@@ -23,6 +23,19 @@ PHARMACY_MCP_FILE_MAX_BYTES=20971520
 PHARMACY_MCP_FILE_MAX_FILES=500
 ```
 
+File access is intentionally two-stage:
+
+1. Call `query_pharmacy` with `sources: ["file"]` and capability `document`.
+   Each match includes `document_id`, `text_sha256`, `line_start`/`line_end`,
+   and an exact half-open `char_start`/`char_end` span.
+2. Pass only that opaque ID to `read_knowledge_document`. `offset` and
+   `max_chars` select a bounded exact text span; the tool never accepts a path.
+
+The SHA-256 value identifies the complete extracted-text revision, so a caller
+can detect stale citations after a source file changes. `sources[].uri` uses a
+`pharmacy-document://...#char=start-end` locator. The returned content is the
+exact extracted span rather than a whitespace-normalized paraphrase.
+
 ## Read-only SQLite
 
 The SQL connector does not accept SQL from an MCP caller. The operator provides
@@ -38,6 +51,35 @@ PHARMACY_MCP_SQL_TABLES=[{"table":"medications","search_columns":["code","name",
 Use a database view when row-level or column-level access needs to be narrower
 than the underlying table. Never add secrets or unrestricted patient tables to
 the output projection.
+
+## Internal SOAP/WCF medication service
+
+The optional `wcf` provider adapts one administrator-configured, no-argument
+SOAP operation to the normal `query_pharmacy` contract. Real endpoint, action,
+operation, namespace, and field names stay in `.env`; no organization contract
+value is committed. Both search and returned fields require explicit allowlists.
+
+```dotenv
+PHARMACY_MCP_WCF_SERVICE_URL=https://wcf.internal.example/MedicationService.svc
+PHARMACY_MCP_WCF_SOAP_ACTION=urn:organization/IMedicationService/GetMedicationData
+PHARMACY_MCP_WCF_OPERATION=GetMedicationData
+PHARMACY_MCP_WCF_NAMESPACE=urn:organization/
+PHARMACY_MCP_WCF_SEARCH_FIELDS=["drug_code","generic_name","local_name"]
+PHARMACY_MCP_WCF_OUTPUT_FIELDS=["drug_code","generic_name","local_name","stock","status"]
+PHARMACY_MCP_WCF_VERIFY_TLS=true
+PHARMACY_MCP_WCF_CACHE_TTL_SECONDS=300
+```
+
+The client requires credential-free HTTPS, does not follow redirects, uses
+defused XML parsing, limits response bytes/records, and caches snapshots to avoid
+downloading a full formulary for every merged query. TLS verification defaults
+to enabled. If an internal PKI is used, install its CA bundle in the runtime;
+disabling verification should be an explicit temporary deployment exception.
+
+The historical daily updater remains an operations concern rather than an
+agent-triggerable write tool. Its SQLite output can be queried safely through
+the existing read-only SQL provider by allowlisting the materialized table and
+columns. Vector refresh likewise stays outside the MCP request boundary.
 
 ## Vector-search gateway
 
@@ -84,4 +126,5 @@ purpose-built provider instead of embedding credentials in a URL.
 Call `list_knowledge_sources` to distinguish shipped support (`state: ready`)
 from runtime availability (`registered: true`). The file connector is normally
 registered because `knowledge/` is the default root. SQL, vector, and web are
-registered only after their required settings are present.
+registered only after their required settings are present. WCF also requires
+its endpoint, SOAP contract values, and both field allowlists before registration.

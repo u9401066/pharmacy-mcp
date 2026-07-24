@@ -17,6 +17,7 @@ catalog status and whether an executable adapter is actually registered.
 | `tw-tfda` | [TFDA open data](https://data.gov.tw/dataset/9122) | permits, ingredients, product identity | ready |
 | `tw-nhi` | [NHI drug-item dataset](https://info.nhi.gov.tw/IODE0000/IODE0000S09?id=111) | reimbursement item and coverage metadata | ready |
 | `fhir` | [HL7 FHIR](https://hl7.org/fhir/) | hospital medications, formulary, orders, dispense and inventory | ready; endpoint required |
+| `wcf` | configured internal SOAP/WCF service | local medication identity, formulary, stock and status fields | ready; private contract + field allowlists required |
 | `local-formulary` | bundled or hospital formulary | local product rules | ready |
 | `sql` | allowlisted read-only SQLite | formulary, price, inventory | ready; mapping required |
 | `vector` | organization vector gateway | semantic document retrieval | ready; endpoint required |
@@ -44,7 +45,7 @@ another succeeds, the response status is `partial`; each failure remains in the
 top-level `errors` list and successful provenance remains in `sources`.
 
 The provider registry is deliberately transport-neutral. An API, FHIR server,
-SQL database, vector index, file collection, or allowlisted website implements
+SQL database, SOAP/WCF service, vector index, file collection, or allowlisted website implements
 the same `KnowledgeProvider.query(ProviderQuery)` port.
 
 ## Clinical safety boundary
