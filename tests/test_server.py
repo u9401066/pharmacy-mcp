@@ -21,6 +21,8 @@ EXPECTED_TOOL_NAMES = {
     "query_pharmacy",
     "list_knowledge_sources",
     "get_nhi_data_status",
+    "read_knowledge_document",
+    "inspect_fhir_server",
     "search_drug",
     "get_drug_info",
     "get_drug_dosage",
@@ -116,6 +118,19 @@ class TestMCPServer:
         assert structured["data"]["converted_value"] == 1000
         assert structured["data"]["converted_unit"] == "mg"
         assert content[0].text
+
+    async def test_connector_access_tools_return_service_envelopes(self):
+        """Connector-specific reads use the same partial/error contract."""
+        server = create_server()
+
+        _, document = await server.call_tool(
+            "read_knowledge_document",
+            {"document_id": "doc-000000000000000000000000"},
+        )
+
+        assert document["schema_version"] == "1.0"
+        assert document["status"] == "error"
+        assert document["errors"][0]["code"] == "document_not_found"
 
     async def test_server_routes_simulation_tool_calls(self):
         """Test simulation tools return formula-backed structured output."""

@@ -76,7 +76,7 @@ jobs:
               assert FormulaCatalog().count >= 6
               server = create_server()
               tools = await server.list_tools()
-              assert len(tools) == 33
+              assert len(tools) == 35
               assert all(tool.outputSchema is not None for tool in tools)
 
           asyncio.run(check())

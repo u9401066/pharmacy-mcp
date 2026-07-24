@@ -1,5 +1,7 @@
 """Tests for file, SQL, vector, and allowlisted web knowledge connectors."""
 
+import html
+import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
@@ -9,9 +11,17 @@ import pytest
 from docx import Document
 from openpyxl import Workbook
 
+from pharmacy_mcp.application.services.connector_access import ConnectorAccessService
+from pharmacy_mcp.config import settings
 from pharmacy_mcp.domain.models.provider import ProviderQuery
+from pharmacy_mcp.domain.models.response import ResponseStatus
+from pharmacy_mcp.infrastructure.api.wcf import WCFClient
 from pharmacy_mcp.infrastructure.documents import DocumentStore
 from pharmacy_mcp.infrastructure.providers.file import FileKnowledgeProvider
+from pharmacy_mcp.infrastructure.providers.registry import (
+    ProviderRegistry,
+    build_default_registry,
+)
 from pharmacy_mcp.infrastructure.providers.sql import (
     SQLiteKnowledgeProvider,
     SQLTableMapping,
@@ -20,6 +30,7 @@ from pharmacy_mcp.infrastructure.providers.vector import (
     VectorKnowledgeProvider,
     VectorSearchClient,
 )
+from pharmacy_mcp.infrastructure.providers.wcf import WCFKnowledgeProvider
 from pharmacy_mcp.infrastructure.providers.web import WebKnowledgeProvider
 
 
@@ -61,6 +72,43 @@ async def test_file_provider_searches_markdown_csv_docx_and_xlsx(
     extensions = {match["extension"] for match in result.data["matches"]}
     assert extensions == {".csv", ".docx", ".md", ".xlsx"}
     assert result.data["files_scanned"] == 4
+    assert all(
+        match["document_id"].startswith("doc-") for match in result.data["matches"]
+    )
+    assert all(len(match["text_sha256"]) == 64 for match in result.data["matches"])
+    assert all(
+        match["char_end"] > match["char_start"] for match in result.data["matches"]
+    )
+
+    markdown_match = next(
+        match for match in result.data["matches"] if match["extension"] == ".md"
+    )
+    document = await provider.read_document(markdown_match["document_id"], max_chars=20)
+    assert document.content == "# Anticoagulation\nWa"
+    assert document.text_sha256 == markdown_match["text_sha256"]
+    assert document.char_start == 0
+    assert document.char_end == 20
+    assert document.truncated is True
+
+    registry = ProviderRegistry()
+    registry.register(provider)
+    service_result = await ConnectorAccessService(registry).read_document(
+        markdown_match["document_id"],
+        max_chars=20,
+    )
+    assert service_result.status is ResponseStatus.OK
+    assert service_result.data["content"] == document.content
+    assert service_result.sources[0].version == document.text_sha256
+
+
+@pytest.mark.asyncio
+async def test_document_access_service_reports_unknown_id() -> None:
+    result = await ConnectorAccessService(ProviderRegistry()).read_document(
+        "doc-000000000000000000000000"
+    )
+
+    assert result.status is ResponseStatus.ERROR
+    assert result.errors[0].code == "file_provider_unavailable"
 
 
 def test_document_store_rejects_symlink_escape(
@@ -175,3 +223,81 @@ def test_web_provider_rejects_non_https_or_credentialed_urls() -> None:
         WebKnowledgeProvider(("http://127.0.0.1/secret",), max_bytes=1000)
     with pytest.raises(ValueError, match="credential-free HTTPS"):
         WebKnowledgeProvider(("https://user@example.test/secret",), max_bytes=1000)
+
+
+@pytest.mark.asyncio
+async def test_wcf_provider_caches_and_projects_only_allowlisted_fields() -> None:
+    calls = 0
+    rows = [
+        {
+            "drug_code": "W001",
+            "generic_name": "Warfarin",
+            "stock": 42,
+            "internal_secret": "must-not-leak",
+        },
+        {"drug_code": "A001", "generic_name": "Aspirin", "stock": 9},
+    ]
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        assert request.headers["soapaction"] == '"urn:test/GetMedicationData"'
+        assert b"<GetMedicationData" in request.content
+        payload = html.escape(json.dumps(rows))
+        return httpx.Response(
+            200,
+            text=(
+                '<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
+                "<soap:Body><GetMedicationDataResponse>"
+                f"<GetMedicationDataResult>{payload}</GetMedicationDataResult>"
+                "</GetMedicationDataResponse></soap:Body></soap:Envelope>"
+            ),
+        )
+
+    provider = WCFKnowledgeProvider(
+        WCFClient(
+            "https://wcf.test/service.svc",
+            "urn:test/GetMedicationData",
+            "GetMedicationData",
+            cache_ttl_seconds=300,
+            transport=httpx.MockTransport(handler),
+        ),
+        search_fields=("drug_code", "generic_name"),
+        output_fields=("drug_code", "generic_name", "stock"),
+    )
+
+    first = await provider.query(ProviderQuery(text="warfarin"))
+    second = await provider.query(ProviderQuery(text="W001"))
+
+    assert first.data["matches"] == [
+        {"drug_code": "W001", "generic_name": "Warfarin", "stock": 42}
+    ]
+    assert "internal_secret" not in str(first.data)
+    assert first.data["cache_hit"] is False
+    assert second.data["cache_hit"] is True
+    assert calls == 1
+
+
+def test_wcf_client_rejects_unsafe_endpoint_or_operation() -> None:
+    with pytest.raises(ValueError, match="credential-free HTTPS"):
+        WCFClient("http://127.0.0.1/service", "urn:test/action", "GetData")
+    with pytest.raises(ValueError, match="safe XML name"):
+        WCFClient(
+            "https://wcf.test/service",
+            "urn:test/action",
+            "GetData><Injected",
+        )
+
+
+def test_default_registry_registers_wcf_only_with_complete_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "wcf_service_url", "https://wcf.test/service")
+    monkeypatch.setattr(settings, "wcf_soap_action", "urn:test/GetData")
+    monkeypatch.setattr(settings, "wcf_operation", "GetData")
+    monkeypatch.setattr(settings, "wcf_search_fields", ["name"])
+    monkeypatch.setattr(settings, "wcf_output_fields", ["code", "name"])
+
+    providers = {item["id"]: item for item in build_default_registry().catalog()}
+
+    assert providers["wcf"]["registered"] is True

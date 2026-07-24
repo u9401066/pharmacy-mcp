@@ -1,5 +1,6 @@
 """Tests for provider discovery and the unified query orchestrator."""
 
+import asyncio
 from typing import Any
 
 import pytest
@@ -43,8 +44,10 @@ class FakeProvider:
         )
         self.data = data
         self.error = error
+        self.calls = 0
 
     async def query(self, request: ProviderQuery) -> ProviderResult:
+        self.calls += 1
         if self.error:
             raise self.error
         return ProviderResult(
@@ -163,7 +166,9 @@ def test_catalog_ids_are_unique_and_states_are_explicit() -> None:
     provider_ids = [provider.id for provider in PROVIDER_CATALOG]
 
     assert len(provider_ids) == len(set(provider_ids))
-    assert {"rxnorm", "openfda", "tw-tfda", "tw-nhi", "fhir"}.issubset(provider_ids)
+    assert {"rxnorm", "openfda", "tw-tfda", "tw-nhi", "fhir", "wcf"}.issubset(
+        provider_ids
+    )
     assert all(provider.state for provider in PROVIDER_CATALOG)
 
 
@@ -180,6 +185,61 @@ async def test_unified_query_preserves_success_when_one_provider_fails() -> None
     assert result.data["provider_results"]["good"]["value"] == ["warfarin"]
     assert result.errors[0].provider == "bad"
     assert result.errors[0].code == "provider_error"
+
+
+@pytest.mark.asyncio
+async def test_unified_query_bounds_parallel_provider_execution() -> None:
+    state = {"active": 0, "maximum": 0}
+
+    class ConcurrentProvider(FakeProvider):
+        async def query(self, request: ProviderQuery) -> ProviderResult:
+            state["active"] += 1
+            state["maximum"] = max(state["maximum"], state["active"])
+            try:
+                await asyncio.sleep(0.01)
+                return await super().query(request)
+            finally:
+                state["active"] -= 1
+
+    registry = ProviderRegistry()
+    providers = [ConcurrentProvider(f"provider-{index}") for index in range(6)]
+    for provider in providers:
+        registry.register(provider)
+    service = UnifiedQueryService(
+        registry,
+        provider_timeout=1,
+        max_parallel=2,
+        max_providers=10,
+    )
+
+    result = await service.query(
+        text="warfarin",
+        sources=[provider.descriptor.id for provider in providers],
+    )
+
+    assert result.status is ResponseStatus.OK
+    assert state["maximum"] == 2
+    assert result.data["execution"]["max_parallel"] == 2
+    assert result.data["execution"]["provider_count"] == 6
+
+
+@pytest.mark.asyncio
+async def test_unified_query_rejects_provider_fanout_over_budget() -> None:
+    registry = ProviderRegistry()
+    providers = [FakeProvider(f"provider-{index}") for index in range(3)]
+    for provider in providers:
+        registry.register(provider)
+    service = UnifiedQueryService(registry, max_parallel=2, max_providers=2)
+
+    result = await service.query(
+        text="warfarin",
+        sources=[provider.descriptor.id for provider in providers],
+    )
+
+    assert result.status is ResponseStatus.ERROR
+    assert result.errors[0].code == "provider_budget_exceeded"
+    assert result.data["providers_queried"] == []
+    assert all(provider.calls == 0 for provider in providers)
 
 
 @pytest.mark.asyncio
