@@ -56,6 +56,10 @@ Thumbs.db
 .env.local
 *.local
 
+# Private internal API documentation; never add or publish these archives.
+/daily_update.zip
+/fetch_data_wcf.zip
+
 # Logs
 *.log
 
