@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class InteractionSeverity(str, Enum):
@@ -48,7 +49,7 @@ class DrugInteraction:
     # Source
     source: str = "FDA"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "drug1": {

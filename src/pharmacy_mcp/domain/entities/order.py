@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 
 class OrderStatus(str, Enum):
@@ -129,7 +130,7 @@ class Order:
         """完整處方顯示"""
         return f"{self.drug_name} {self.dose_display} {self.route} {self.frequency}"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """轉換為字典"""
         return {
             "order_id": self.order_id,

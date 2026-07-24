@@ -1,6 +1,7 @@
 """醫囑結果值物件"""
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -19,7 +20,7 @@ class ValidationResult:
     valid: bool
     errors: tuple[str, ...] = field(default_factory=tuple)
     warnings: tuple[str, ...] = field(default_factory=tuple)
-    suggested_adjustments: dict | None = None
+    suggested_adjustments: dict[str, Any] | None = None
 
     @classmethod
     def success(cls, warnings: list[str] | None = None) -> "ValidationResult":
@@ -45,7 +46,7 @@ class ValidationResult:
     def with_adjustment(
         cls,
         warnings: list[str],
-        adjustments: dict,
+        adjustments: dict[str, Any],
     ) -> "ValidationResult":
         """建立需要調整的驗證結果"""
         return cls(
@@ -55,7 +56,7 @@ class ValidationResult:
             suggested_adjustments=adjustments,
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """轉換為字典"""
         return {
             "valid": self.valid,
@@ -93,7 +94,7 @@ class OrderResult:
         """建立失敗結果"""
         return cls(success=False, errors=tuple(errors), message=message)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """轉換為字典"""
         return {
             "success": self.success,
@@ -127,7 +128,7 @@ class StopResult:
         """建立失敗結果"""
         return cls(success=False, message=message)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """轉換為字典"""
         return {
             "success": self.success,
@@ -173,7 +174,7 @@ class FormularyItem:
     requires_renal_adjustment: bool = False
     high_alert: bool = False
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """轉換為字典"""
         return {
             "drug_code": self.drug_code,
@@ -217,7 +218,7 @@ class RenalAdjustment:
     suggested_frequency: str | None = None
     contraindicated: bool = False
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """轉換為字典"""
         return {
             "drug_code": self.drug_code,

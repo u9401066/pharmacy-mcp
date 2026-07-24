@@ -8,13 +8,28 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ## [Unreleased]
 
 ### Added
-- None.
+- Added the `QueryResponse` v1.0 envelope to every FastMCP tool, with
+  deterministic JSON, compact JSON, and Markdown renderings.
+- Added `query_pharmacy`, `list_knowledge_sources`, `get_nhi_data_status`, the
+  Python harness/CLI, and the `pharmacy-query-contract` prompt.
+- Added capability-routed providers for RxNorm/RxClass, all seven openFDA drug
+  endpoints, DailyMed, PubChem, MedlinePlus Connect, PubMed,
+  ClinicalTrials.gov, ChEMBL, Open Targets, TFDA/NHI, FHIR R4/R5, local files,
+  SQLite, vector gateways, and fixed HTTPS documents.
+- Added an atomic official NHI CSV index and compound TFDA/NHI coverage queries.
+- Added MkDocs/GitHub Pages deployment and a weekly 18-surface source probe.
 
 ### Changed
-- None.
+- Integrated the 0.9.1 FastMCP transports and trusted PK/DDI simulation catalog
+  into the unified gateway without weakening its output contract.
+- Set the package prerelease version to `1.0.0a1`.
+- Restored repo-wide strict mypy, Ruff, Bandit, coverage, package, docs, CLI,
+  MCP transport, and release-artifact gates.
 
 ### Fixed
-- None.
+- Fixed current TFDA HTTPS ZIP ingestion, nullable fields, NHI ROC-date
+  comparisons, provider partial-status propagation, explicit resource
+  lifecycles, and import-time Taiwan cache creation.
 
 ---
 

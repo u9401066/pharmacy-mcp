@@ -7,6 +7,7 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 
 @dataclass
@@ -43,10 +44,10 @@ class HISMockClient:
     - 保留相同的介面以便切換
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化 Mock 客戶端"""
         # 模擬的訂單儲存（記憶體）
-        self._orders: dict[str, dict] = {}
+        self._orders: dict[str, dict[str, Any]] = {}
 
         # 模擬的病人資料
         self._patients: dict[str, HISPatient] = {
@@ -183,7 +184,7 @@ class HISMockClient:
             message="醫囑已停止",
         )
 
-    async def get_order(self, order_id: str) -> dict | None:
+    async def get_order(self, order_id: str) -> dict[str, Any] | None:
         """取得醫囑資料
 
         Args:
@@ -205,7 +206,7 @@ class HISMockClient:
         """
         return self._patients.get(patient_id)
 
-    async def get_patient_active_orders(self, patient_id: str) -> list[dict]:
+    async def get_patient_active_orders(self, patient_id: str) -> list[dict[str, Any]]:
         """取得病人的進行中醫囑
 
         Args:

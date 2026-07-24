@@ -1,4 +1,8 @@
-"""FDA openFDA API client."""
+"""FDA openFDA drug API client."""
+
+from __future__ import annotations
+
+from typing import Any
 
 import httpx
 
@@ -12,7 +16,9 @@ class FDAClient:
         self.base_url = base_url or settings.fda_base_url
         self.timeout = settings.request_timeout
 
-    async def search_drug_labels(self, drug_name: str, limit: int = 10) -> list[dict]:
+    async def search_drug_labels(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
         """
         Search drug labels by name.
 
@@ -23,23 +29,16 @@ class FDAClient:
         Returns:
             List of drug label data
         """
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(
-                f"{self.base_url}/drug/label.json",
-                params={
-                    "search": f'openfda.brand_name:"{drug_name}" OR '
-                    f'openfda.generic_name:"{drug_name}"',
-                    "limit": limit,
-                },
-            )
-            if response.status_code == 404:
-                return []
-            response.raise_for_status()
-            data = response.json()
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "label",
+            f'openfda.brand_name:"{term}" OR openfda.generic_name:"{term}"',
+            limit,
+        )
 
-        return data.get("results", [])
-
-    async def get_adverse_events(self, drug_name: str, limit: int = 100) -> list[dict]:
+    async def get_adverse_events(
+        self, drug_name: str, limit: int = 100
+    ) -> list[dict[str, Any]]:
         """
         Get adverse events for a drug.
 
@@ -50,22 +49,116 @@ class FDAClient:
         Returns:
             List of adverse event reports
         """
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "event",
+            f'patient.drug.medicinalproduct:"{term}"',
+            limit,
+        )
+
+    async def search_ndc(self, drug_name: str, limit: int = 10) -> list[dict[str, Any]]:
+        """Search the NDC Directory; an NDC does not imply FDA approval."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "ndc",
+            f'brand_name:"{term}" OR generic_name:"{term}"',
+            limit,
+        )
+
+    async def search_recalls(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Search public drug recall enforcement reports."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "enforcement",
+            (
+                f'openfda.brand_name:"{term}" OR '
+                f'openfda.generic_name:"{term}" OR '
+                f'product_description:"{term}"'
+            ),
+            limit,
+        )
+
+    async def search_approvals(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Search Drugs@FDA approval application records."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "drugsfda",
+            (
+                f'openfda.brand_name:"{term}" OR '
+                f'openfda.generic_name:"{term}" OR '
+                f'products.brand_name:"{term}"'
+            ),
+            min(limit, 99),
+        )
+
+    async def search_orange_book(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Search Orange Book products and therapeutic-equivalence data."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "orangebook",
+            (
+                f'products.active_ingredients.name:"{term}" OR '
+                f'products.brand_name:"{term}"'
+            ),
+            limit,
+        )
+
+    async def search_shortages(
+        self, drug_name: str, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Search FDA's current and resolved drug shortage records."""
+
+        term = self._quoted_term(drug_name)
+        return await self._search_endpoint(
+            "shortages",
+            f'generic_name:"{term}" OR proprietary_name:"{term}"',
+            limit,
+        )
+
+    async def _search_endpoint(
+        self,
+        endpoint: str,
+        search: str,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """Run one bounded openFDA endpoint query and normalize empty results."""
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.get(
-                f"{self.base_url}/drug/event.json",
-                params={
-                    "search": f'patient.drug.medicinalproduct:"{drug_name}"',
-                    "limit": limit,
-                },
+                f"{self.base_url}/drug/{endpoint}.json",
+                params={"search": search, "limit": limit},
             )
             if response.status_code == 404:
                 return []
             response.raise_for_status()
-            data = response.json()
+            data: Any = response.json()
 
-        return data.get("results", [])
+        if not isinstance(data, dict):
+            return []
+        results = data.get("results", [])
+        if not isinstance(results, list):
+            return []
+        return [item for item in results if isinstance(item, dict)]
 
-    async def get_drug_interactions_from_label(self, drug_name: str) -> dict | None:
+    @staticmethod
+    def _quoted_term(value: str) -> str:
+        """Escape the two characters significant inside an openFDA phrase."""
+
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
+    async def get_drug_interactions_from_label(
+        self, drug_name: str
+    ) -> dict[str, Any] | None:
         """
         Get drug interactions from label.
 
@@ -87,7 +180,7 @@ class FDAClient:
             "precautions": label.get("precautions", []),
         }
 
-    async def get_drug_label_sections(self, drug_name: str) -> dict | None:
+    async def get_drug_label_sections(self, drug_name: str) -> dict[str, Any] | None:
         """
         Get all relevant sections from drug label.
 

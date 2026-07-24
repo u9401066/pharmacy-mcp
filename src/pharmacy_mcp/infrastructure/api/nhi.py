@@ -4,29 +4,43 @@ from typing import Any
 
 from pharmacy_mcp.config import settings
 from pharmacy_mcp.infrastructure.cache.disk_cache import CacheService
+from pharmacy_mcp.infrastructure.storage.nhi_index import NHI_DATASET_URL, NHIIndex
 
 
 class NHIClient:
     """Client for Taiwan NHI (National Health Insurance) drug data.
 
     Data sources:
-    - 健保用藥品項: https://data.nhi.gov.tw/
+    - 健保用藥品項: https://info.nhi.gov.tw/IODE0000/IODE0000S09?id=111
     - 藥品給付規定: https://www.nhi.gov.tw/
 
-    Note: NHI doesn't provide direct API, data is from open data portal.
+    The monthly official CSV is indexed into SQLite on demand. A small built-in
+    rule set remains available as an offline fallback for common medications.
     """
 
     # 健保藥品開放資料 URL (政府資料開放平台)
-    NHI_DRUG_PRICE_URL = "https://data.nhi.gov.tw/resource/Opendata/%e5%81%a5%e4%bf%9d%e7%94%a8%e8%97%a5%e5%93%81%e9%a0%85.csv"
+    NHI_DRUG_PRICE_URL = NHI_DATASET_URL
 
     # Cache TTL: 30 days (NHI updates less frequently)
     CACHE_TTL = 30 * 24 * 60 * 60  # 2592000 seconds
 
-    def __init__(self, cache_service: CacheService | None = None):
+    def __init__(
+        self,
+        cache_service: CacheService | None = None,
+        index: NHIIndex | None = None,
+        *,
+        auto_download: bool | None = None,
+    ) -> None:
         self.timeout = settings.request_timeout
         self._cache = cache_service or CacheService()
+        self._index = index or NHIIndex(auto_download=auto_download)
 
-    async def search_by_nhi_code(self, nhi_code: str) -> dict | None:
+    def get_index_status(self) -> dict[str, Any]:
+        """Return official-dataset index status without triggering download."""
+
+        return self._index.status()
+
+    async def search_by_nhi_code(self, nhi_code: str) -> dict[str, Any] | None:
         """
         Search drug by NHI code (健保代碼).
 
@@ -39,19 +53,22 @@ class NHIClient:
         # Check cache first
         cache_key = f"nhi:code:{nhi_code}"
         cached = self._cache.get(cache_key)
-        if cached is not None:
+        if isinstance(cached, dict):
             return cached
 
-        # Since NHI data requires downloading large CSV,
-        # we use a simplified lookup from our built-in database
+        # Preserve the small offline fallback, then query the official index.
         result = self._lookup_nhi_code(nhi_code)
+        if result is None:
+            result = await self._index.get_by_code(nhi_code)
 
         if result:
             self._cache.set(cache_key, result, ttl=self.CACHE_TTL)
 
         return result
 
-    async def search_by_drug_name(self, drug_name: str, limit: int = 20) -> list[dict]:
+    async def search_by_drug_name(
+        self, drug_name: str, limit: int = 20
+    ) -> list[dict[str, Any]]:
         """
         Search NHI coverage by drug name.
 
@@ -62,12 +79,9 @@ class NHIClient:
         Returns:
             List of NHI coverage records
         """
-        _ = (drug_name, limit)
-        # This would typically query a database or API
-        # For now, return empty list as placeholder
-        return []
+        return await self._index.search(drug_name, limit=limit)
 
-    async def get_drug_price(self, nhi_code: str) -> dict | None:
+    async def get_drug_price(self, nhi_code: str) -> dict[str, Any] | None:
         """
         Get NHI reimbursement price for a drug.
 
@@ -82,12 +96,13 @@ class NHIClient:
             return {
                 "nhi_code": nhi_code,
                 "price": drug_info.get("price"),
-                "unit": drug_info.get("unit"),
-                "effective_date": drug_info.get("effective_date"),
+                "unit": drug_info.get("unit") or drug_info.get("strength_unit"),
+                "effective_date": drug_info.get("effective_date")
+                or drug_info.get("effective_start"),
             }
         return None
 
-    async def check_coverage(self, drug_name: str) -> dict:
+    async def check_coverage(self, drug_name: str) -> dict[str, Any]:
         """
         Check if a drug is covered by NHI.
 
@@ -97,6 +112,15 @@ class NHIClient:
         Returns:
             Coverage status and details
         """
+        built_in = get_nhi_coverage_info(drug_name)
+        if built_in:
+            return {
+                "is_covered": bool(built_in.get("is_covered")),
+                "drug_name": drug_name,
+                "coverage_details": [built_in],
+                "note": "此藥品有健保給付（內建給付規則）",
+            }
+
         results = await self.search_by_drug_name(drug_name)
 
         if results:
@@ -114,7 +138,7 @@ class NHIClient:
                 "note": "此藥品可能為自費藥品或需查詢更詳細資料",
             }
 
-    def _lookup_nhi_code(self, nhi_code: str) -> dict | None:
+    def _lookup_nhi_code(self, nhi_code: str) -> dict[str, Any] | None:
         """
         Internal lookup for NHI code.
 
@@ -122,7 +146,7 @@ class NHIClient:
         a proper database or downloaded NHI data.
         """
         # Common NHI codes for reference
-        common_drugs = {
+        common_drugs: dict[str, dict[str, Any]] = {
             "A022664100": {
                 "nhi_code": "A022664100",
                 "chinese_name": "可邁丁錠 5毫克",
@@ -148,7 +172,7 @@ class NHIClient:
 
         return common_drugs.get(nhi_code.upper())
 
-    async def get_prior_authorization_drugs(self) -> list[dict]:
+    async def get_prior_authorization_drugs(self) -> list[dict[str, Any]]:
         """
         Get list of drugs requiring prior authorization (事前審查).
 
@@ -713,7 +737,7 @@ NHI_COVERAGE_RULES: dict[str, dict[str, Any]] = {
 }
 
 
-def get_nhi_coverage_info(drug_name: str) -> dict | None:
+def get_nhi_coverage_info(drug_name: str) -> dict[str, Any] | None:
     """
     Get NHI coverage information for a drug.
 
@@ -730,7 +754,7 @@ def get_nhi_coverage_info(drug_name: str) -> dict | None:
         return NHI_COVERAGE_RULES[drug_lower]
 
     # Search in drug names
-    for _key, info in NHI_COVERAGE_RULES.items():
+    for info in NHI_COVERAGE_RULES.values():
         if drug_lower in info["drug_name"].lower():
             return info
 

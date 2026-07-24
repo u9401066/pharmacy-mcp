@@ -1,194 +1,158 @@
-# Pharmacy MCP Server
+# Pharmacy MCP Gateway
 
-Pharmacy MCP is a Python MCP server for medication reference workflows. It
-combines drug search, label summaries, dosing calculators, Taiwan TFDA/NHI
-lookups, hospital prescription helpers, and a trusted PBPK-lite formula catalog
-for educational PK/DDI simulation.
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/Model_Context_Protocol-server-00695C.svg)](https://modelcontextprotocol.io/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-GitHub_Pages-00897B.svg)](https://u9401066.github.io/pharmacy-mcp/)
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
-[![MCP](https://img.shields.io/badge/MCP-1.27+-green.svg)](https://modelcontextprotocol.io/)
+An MCP server and agent harness that makes pharmaceutical knowledge available
+through one traceable query contract. It combines public drug APIs, Taiwan
+TFDA/NHI data, hospital FHIR and inventory, organization databases, vector
+search, files, fixed web documents, and a trusted PK/DDI simulation catalog.
 
-Traditional Chinese: [README.zh-TW.md](README.zh-TW.md)
+[繁體中文](README.zh-TW.md) · [Documentation](https://u9401066.github.io/pharmacy-mcp/) · [Architecture](ARCHITECTURE.md)
 
-## What Is New In 0.9.1
+> Version 1.0 prerelease. Reference data only; not medical advice or a replacement for
+> a pharmacist, physician, or validated clinical decision-support system.
 
-- Hardened interaction outputs so local database guidance is surfaced as
-  non-prescriptive management considerations with safety metadata.
-- Added fail-closed simulation guardrails for NaN, infinity, unstable
-  denominators, and catalog metadata drift.
-- Added release artifact auditing and packaged-wheel smoke tests.
-- Made Streamable HTTP ASGI exports lazy and mount-aware.
+## Why this gateway
 
-## What Is New In 0.9.0
+- **One agent entry point:** `query_pharmacy` routes by capability or explicit
+  source and isolates provider timeouts and failures.
+- **Stable output:** every MCP tool returns `QueryResponse` v1.0 through a
+  shared JSON Schema. Text is a deterministic `json`, `json_compact`, or
+  `markdown` rendering; MCP `structuredContent` remains authoritative.
+- **Agent constraint:** every tool carries forwarding rules and clients can load
+  the `pharmacy-query-contract` MCP prompt.
+- **Traceable compound results:** provider payloads, provenance, warnings, and
+  errors remain distinct. Successful data survives as `partial` if another
+  source fails.
+- **Hospital-ready boundaries:** FHIR is read-only; file, SQL, vector, and web
+  connectors are configured by operators instead of accepting arbitrary agent
+  paths, SQL, endpoints, or URLs.
+- **Drift detection:** a scheduled health workflow probes 18 official API and
+  dataset surfaces every week without downloading the large Taiwan datasets.
+- **Deployable FastMCP:** use stdio locally or mount the same tool catalog over
+  SSE/Streamable HTTP; service creation and the ASGI export remain lazy.
+- **Auditable simulation:** trusted formulas include units, assumptions,
+  limitations, provenance, fixtures, and fail-closed numerical validation.
 
-- Built-in trusted PK/DDI formula catalog under `src/pharmacy_mcp/data/formulas/`.
-- Deterministic simulation service for one-compartment concentration, repeated-dose accumulation, renal clearance adjustment, CYP reversible inhibition, AUC ratio, and temperature-corrected elimination.
-- Mechanism-aware DDI tools for supported CYP inhibition examples such as warfarin/fluconazole and statin/clarithromycin.
-- Modern MCP surfaces: tools, read-only resources, resource templates, prompts, Streamable HTTP deployment helpers, and structured outputs.
-- Release gates for pytest coverage, ruff, mypy, bandit, package build, and
-  artifact audit.
+## Quick start
 
-Simulation outputs are screening estimates only. They always include the project
-disclaimer and `not_for_direct_clinical_decision: true`.
-
-## Install
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/u9401066/pharmacy-mcp.git
 cd pharmacy-mcp
 uv sync --all-extras
+uv run pharmacy-mcp
 ```
 
-## Run
+Streamable HTTP and ASGI deployments use the same tools and output contract:
 
 ```bash
-# stdio transport for local MCP clients
-uv run pharmacy-mcp
-
-# explicit stdio
-uv run pharmacy-mcp --transport stdio
-
-# Streamable HTTP
-uv run pharmacy-mcp --transport streamable-http --host 0.0.0.0 --port 8000
-
-# ASGI app
-uv run uvicorn pharmacy_mcp.presentation.server:app --host 0.0.0.0 --port 8000
+uv run pharmacy-mcp --transport streamable-http --host 127.0.0.1 --port 8000
+uvicorn pharmacy_mcp.presentation.server:app --host 127.0.0.1 --port 8000
 ```
 
-Environment variables use the `PHARMACY_MCP_` prefix. Supported settings include
-`PHARMACY_MCP_TRANSPORT`, `PHARMACY_MCP_HOST`, `PHARMACY_MCP_PORT`,
-`PHARMACY_MCP_MOUNT_PATH`, `PHARMACY_MCP_STREAMABLE_HTTP_PATH`, and
-`PHARMACY_MCP_STATELESS_HTTP`.
-
-## Claude Desktop Example
+MCP client configuration:
 
 ```json
 {
   "mcpServers": {
     "pharmacy": {
       "command": "uv",
-      "args": ["run", "pharmacy-mcp", "--transport", "stdio"],
-      "cwd": "/path/to/pharmacy-mcp"
+      "args": ["run", "pharmacy-mcp"],
+      "cwd": "/absolute/path/to/pharmacy-mcp"
     }
   }
 }
 ```
 
-## MCP Tools
+Recommended tool call:
 
-Drug reference:
-
-- `search_drug`
-- `get_drug_info`
-- `get_drug_dosage`
-- `get_drug_warnings`
-- `check_drug_interaction`
-- `check_multi_drug_interactions`
-- `check_food_drug_interaction`
-
-Dosing calculators:
-
-- `calculate_dose_by_weight`
-- `calculate_dose_by_bsa`
-- `calculate_creatinine_clearance`
-- `calculate_pediatric_dose`
-- `calculate_infusion_rate`
-- `convert_dose_units`
-
-Taiwan TFDA/NHI:
-
-- `search_tfda_drug`
-- `get_nhi_coverage`
-- `get_nhi_drug_price`
-- `translate_drug_name`
-- `list_prior_authorization_drugs`
-- `list_nhi_coverage_rules`
-
-Hospital prescription workflow:
-
-- `get_formulary_item`
-- `search_formulary`
-- `get_renal_adjustment`
-- `validate_order`
-- `submit_order`
-- `stop_order`
-
-Trusted formula and simulation:
-
-- `list_formula_catalog`
-- `get_formula_details`
-- `explain_interaction_mechanism`
-- `simulate_pk_interaction`
-- `simulate_concentration_time`
-
-## MCP Resources And Prompts
-
-Resources:
-
-- `pharmacy://server/disclaimer`
-- `pharmacy://formulas`
-- `pharmacy://formulas/{formula_id}`
-- `pharmacy://validation/formulas`
-
-Prompts:
-
-- `ddi_analysis_workflow`
-- `formula_review_checklist`
-
-## Trusted Formula Model
-
-Formula metadata is committed as data, not executed as arbitrary runtime code.
-Each trusted formula has an ID, expression, parameters, units, assumptions,
-limitations, references, and validation cases. The Python simulation service
-dispatches by formula ID to reviewed implementations.
-
-External formula generators such as NSForge can be used as companion authoring
-tools, but Pharmacy MCP does not vendor NSForge in 0.9.x. Generated formulas
-must be reviewed, committed to the trusted catalog, and covered by tests before
-production tools can use them.
-
-## Data Sources
-
-| Source | Provider | Data |
-| --- | --- | --- |
-| RxNorm API | NIH/NLM | Drug names and concepts |
-| openFDA | FDA | Drug labels and warnings |
-| DailyMed | NLM | Label sections |
-| TFDA Open Data | Taiwan TFDA | Taiwan permits and drug names |
-| NHI Open Data | Taiwan NHI | Coverage rules and reimbursement data |
-| Local catalog | Pharmacy MCP | Trusted PK/DDI formulas and hospital mock data |
-
-## Architecture
-
-```text
-src/pharmacy_mcp/
-  domain/                  Entities and value objects
-  application/services/    Use-case services and simulation orchestration
-  infrastructure/api/      External API clients
-  infrastructure/cache/    Disk cache adapter
-  infrastructure/knowledge/Local formularies and trusted formula catalog
-  presentation/            FastMCP server, tools, resources, prompts
+```json
+{
+  "query": "warfarin",
+  "capabilities": ["identity", "label", "reimbursement", "formulary"],
+  "sources": ["rxnorm", "dailymed", "tw-tfda", "tw-nhi", "local-formulary"],
+  "limit": 10,
+  "output_format": "json_compact",
+  "locale": "zh-TW"
+}
 ```
 
-## Verification
+For a shell or non-MCP workflow:
 
 ```bash
-uv run pytest --cov=src --cov-report=term-missing
-uv run ruff check src tests
-uv run mypy src
-uv run bandit -q -r src
-uv build
-uv run python scripts/audit_release_artifacts.py dist
+uv run pharmacy-query warfarin \
+  --source local-formulary \
+  --capability formulary \
+  --format json_compact
 ```
 
-## Disclaimer
+The Python API exposes the same contract through
+`pharmacy_mcp.application.harness.PharmacyHarness`.
 
-This project is for reference, education, and workflow support only. It does not
-provide medical advice and must not be used as the sole basis for clinical
-decisions. Consult qualified healthcare professionals and validated clinical
-systems for patient care.
+## Integrated knowledge
+
+| Area | Shipped adapters |
+|---|---|
+| Public drug knowledge | RxNorm/RxClass; all seven openFDA drug endpoints; DailyMed; PubChem; MedlinePlus Connect; PubMed; ClinicalTrials.gov; ChEMBL; Open Targets |
+| Taiwan | TFDA permits, official NHI monthly drug items, coverage rules and terminology |
+| Hospital | FHIR R4/R5 medication, order, dispense, inventory and supply; bundled formulary |
+| Organization data | PDF, DOC/DOCX, CSV, XLS/XLSX, Markdown, text, read-only SQLite, vector gateway, fixed HTTPS pages |
+| PK/DDI simulation | Trusted formula catalog, concentration-time estimates, mechanistic CYP inhibition screening, formula resources and validation fixtures |
+| Licensed catalog | DrugBank, FDB and Micromedex are discoverable but never scraped or presented as enabled without a license |
+
+Call `list_knowledge_sources` for the runtime source of truth: capabilities,
+implementation state, credential needs, and whether an adapter is registered.
+See the [complete data-source catalog](docs/data-sources.md).
+
+## Taiwan NHI and hospital setup
+
+The NHI provider downloads the official monthly CSV on demand and atomically
+builds a versioned SQLite index. It can combine reimbursement code, price, ATC,
+effective dates, TFDA results, and coverage-rule metadata in one query. See
+[Taiwan NHI compound queries](docs/taiwan-nhi.md).
+
+Set `PHARMACY_MCP_FHIR_BASE_URL` to register the hospital adapter. Bearer tokens
+are read from `SecretStr` settings, and patient resources are queried only when
+an authorized caller explicitly supplies `context.patient_id`. Organization
+connectors use similarly explicit allowlists. Start with [.env.example](.env.example),
+[FHIR and inventory](docs/fhir.md), and [organization connectors](docs/connectors.md).
+
+## Output and agent rules
+
+The canonical top-level fields are:
+
+```text
+schema_version · status · data · sources · warnings · errors · meta
+```
+
+Unknown top-level fields are rejected. All 33 current tools, including
+calculation and simulation tools, use this envelope. Agents must preserve all seven fields,
+must not infer absent clinical facts, and must not flatten multiple providers
+into one implied authority. See the [agent harness guide](docs/agent-harness.md)
+and [response contract](docs/architecture/response-contract.md).
+
+## Development
+
+```bash
+uv sync --all-extras
+uv run pytest
+uv run ruff check src tests examples scripts
+uv run mypy src
+uv run mkdocs build --strict
+uv run python scripts/check_source_health.py
+```
+
+The repository uses segmented Conventional Commits, an updated Memory Bank, CI
+across supported Python versions, weekly public-source health checks, and a
+GitHub Pages documentation workflow.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
 ## License
 
-[Apache License 2.0](LICENSE)
+Apache License 2.0. Upstream datasets and commercial knowledge bases retain
+their own terms, attribution requirements, and clinical-use restrictions.

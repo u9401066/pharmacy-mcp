@@ -18,6 +18,9 @@ from pharmacy_mcp.presentation.server import (
 )
 
 EXPECTED_TOOL_NAMES = {
+    "query_pharmacy",
+    "list_knowledge_sources",
+    "get_nhi_data_status",
     "search_drug",
     "get_drug_info",
     "get_drug_dosage",
@@ -64,6 +67,7 @@ EXPECTED_RESOURCE_TEMPLATE_URIS = {
 EXPECTED_PROMPT_NAMES = {
     "ddi_analysis_workflow",
     "formula_review_checklist",
+    "pharmacy-query-contract",
 }
 
 
@@ -90,6 +94,14 @@ class TestMCPServer:
 
         search_tool = next(tool for tool in tools if tool.name == "search_drug")
         assert search_tool.inputSchema["properties"]["max_results"]["default"] == 10
+        assert search_tool.inputSchema["properties"]["output_format"]["enum"] == [
+            "json",
+            "json_compact",
+            "markdown",
+        ]
+        assert (
+            search_tool.outputSchema["properties"]["schema_version"]["const"] == "1.0"
+        )
 
     async def test_server_routes_structured_tool_calls(self):
         """Test registered FastMCP tools call the underlying services."""
@@ -100,8 +112,9 @@ class TestMCPServer:
             {"value": 1, "from_unit": "g", "to_unit": "mg"},
         )
 
-        assert structured["converted_value"] == 1000
-        assert structured["converted_unit"] == "mg"
+        assert structured["schema_version"] == "1.0"
+        assert structured["data"]["converted_value"] == 1000
+        assert structured["data"]["converted_unit"] == "mg"
         assert content[0].text
 
     async def test_server_routes_simulation_tool_calls(self):
@@ -113,8 +126,8 @@ class TestMCPServer:
             {"dose": 500, "vd": 50, "ke": 0.1, "time": 6},
         )
 
-        assert structured["formula_id"] == "one_compartment_concentration"
-        assert structured["outputs"]["concentration"] == 5.4881
+        assert structured["data"]["formula_id"] == "one_compartment_concentration"
+        assert structured["data"]["outputs"]["concentration"] == 5.4881
         assert content[0].text
 
     async def test_server_routes_formula_and_mechanism_tool_calls(self):
@@ -146,11 +159,11 @@ class TestMCPServer:
             },
         )
 
-        assert catalog["formula_count"] >= 6
-        assert formula["id"] == "cyp_reversible_inhibition_clearance"
-        assert missing_formula["error"] == "Formula missing_formula not found"
-        assert mechanism["mechanism"]["pathway"] == "CYP2C9"
-        assert simulation["simulation"]["outputs"]["auc_ratio"] > 1
+        assert catalog["data"]["formula_count"] >= 6
+        assert formula["data"]["id"] == "cyp_reversible_inhibition_clearance"
+        assert missing_formula["data"]["error"] == "Formula missing_formula not found"
+        assert mechanism["data"]["mechanism"]["pathway"] == "CYP2C9"
+        assert simulation["data"]["simulation"]["outputs"]["auc_ratio"] > 1
 
     async def test_server_routes_prescription_tool_calls(self):
         """Test hospital workflow tools route through FastMCP."""
@@ -183,11 +196,11 @@ class TestMCPServer:
             },
         )
 
-        assert formulary_item["drug_code"] == "GENTA-INJ"
-        assert missing_item["error"] == "Drug code NOPE not found in formulary"
-        assert search_result["count"] >= 1
-        assert renal["drug_code"] == "GENTA-INJ"
-        assert validation["valid"] is True
+        assert formulary_item["data"]["drug_code"] == "GENTA-INJ"
+        assert missing_item["data"]["error"] == "Drug code NOPE not found in formulary"
+        assert search_result["data"]["count"] >= 1
+        assert renal["data"]["drug_code"] == "GENTA-INJ"
+        assert validation["data"]["valid"] is True
 
     async def test_server_exposes_formula_resources(self):
         """Test FastMCP exposes read-only formula resources."""
@@ -258,7 +271,9 @@ class TestMCPServer:
             streamable_http_path="/api/mcp",
         )
 
-        mount = next(route for route in streamable_app.routes if route.path == "/clinic")
+        mount = next(
+            route for route in streamable_app.routes if route.path == "/clinic"
+        )
 
         assert isinstance(mount, Mount)
         assert isinstance(mount.app, Starlette)

@@ -168,9 +168,7 @@ async def test_drug_info_builds_full_label_taiwan_and_section_views(monkeypatch)
 
 async def test_drug_info_handles_missing_label_sections(monkeypatch):
     monkeypatch.setattr(drug_info_module, "translate_drug_name", lambda _name: None)
-    monkeypatch.setattr(
-        drug_info_module, "get_nhi_coverage_info", lambda _name: None
-    )
+    monkeypatch.setattr(drug_info_module, "get_nhi_coverage_info", lambda _name: None)
     service = DrugInfoService(
         rxnorm_client=FakeRxNormClient(),
         fda_client=FakeFDAClient(label={}),
@@ -221,9 +219,10 @@ async def test_interaction_service_checks_local_fda_food_and_all_paths():
     assert food["source_label_excerpts"][0]["section"] == "drug_interactions"
     assert all_interactions["drug_interactions"]
     assert "recommendation" not in all_interactions["drug_interactions"][0]
-    assert "Reduce" not in all_interactions["drug_interactions"][0][
-        "management_consideration"
-    ]
+    assert (
+        "Reduce"
+        not in all_interactions["drug_interactions"][0]["management_consideration"]
+    )
     assert "contraindications" not in all_interactions
     assert any(
         excerpt["section"] == "contraindications"
@@ -304,5 +303,7 @@ async def test_multi_drug_interactions_handles_fda_only_hit_without_local_severi
     assert result["total_interactions"] == 1
     assert result["interactions"][0]["interactions"] == []
     assert result["interactions"][0]["fda_mentions_interaction"] is True
-    assert result["interactions"][0]["source_label_excerpts"][0]["source"] == "FDA label"
+    assert (
+        result["interactions"][0]["source_label_excerpts"][0]["source"] == "FDA label"
+    )
     assert result["not_for_direct_clinical_decision"] is True

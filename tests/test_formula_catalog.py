@@ -121,9 +121,7 @@ class TestFormulaCatalog:
                 "unknown inputs",
             ),
             (
-                lambda formula: formula["validation_cases"][0].update(
-                    {"tolerance": 0}
-                ),
+                lambda formula: formula["validation_cases"][0].update({"tolerance": 0}),
                 "tolerance must be positive",
             ),
         ],

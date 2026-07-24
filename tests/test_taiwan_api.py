@@ -64,7 +64,7 @@ class TestDrugNameTranslation:
 
     def test_drug_mapping_completeness(self):
         """Test that drug mapping has required fields."""
-        for _drug_name, info in DRUG_NAME_MAPPING.items():
+        for info in DRUG_NAME_MAPPING.values():
             assert "english" in info
             assert "chinese_generic" in info
             assert "chinese_brand" in info
@@ -161,7 +161,7 @@ class TestNHIClient:
     @pytest.fixture
     def client(self):
         """Create NHI client instance."""
-        return NHIClient()
+        return NHIClient(auto_download=False)
 
     def test_lookup_known_nhi_code(self, client):
         """Test looking up known NHI code."""

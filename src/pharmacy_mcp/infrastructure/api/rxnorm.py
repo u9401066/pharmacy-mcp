@@ -1,5 +1,7 @@
 """RxNorm API client."""
 
+from typing import Any
+
 import httpx
 
 from pharmacy_mcp.config import settings
@@ -83,11 +85,11 @@ class RxNormClient:
         )
 
         # Get additional info
-        drug.drug_classes = await self._get_drug_classes(rxcui)
+        drug.drug_classes = await self.get_drug_classes(rxcui)
 
         return drug
 
-    async def get_interactions(self, rxcui: str) -> list[dict]:
+    async def get_interactions(self, rxcui: str) -> list[dict[str, Any]]:
         """
         Get drug interactions for a given RxCUI.
 
@@ -100,13 +102,27 @@ class RxNormClient:
         Returns:
             List of interaction data (empty - API discontinued)
         """
-        _ = rxcui
+        del rxcui
         # RxNorm Drug Interaction API was discontinued by NLM in 2025
         # Return empty list - use local interaction database instead
         return []
 
-    async def _get_drug_classes(self, rxcui: str) -> list[str]:
-        """Get drug classes for a given RxCUI."""
+    async def get_drug_classes(self, rxcui: str) -> list[str]:
+        """Get unique RxClass names for a given RxCUI."""
+
+        memberships = await self.get_drug_class_memberships(rxcui)
+        names: list[str] = []
+        for membership in memberships:
+            class_name = membership.get("class_name")
+            if class_name and class_name not in names:
+                names.append(class_name)
+        return names
+
+    async def get_drug_class_memberships(
+        self, rxcui: str
+    ) -> list[dict[str, str | None]]:
+        """Get structured RxClass membership, relation, and source metadata."""
+
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.get(
                 f"{self.base_url}/rxclass/class/byRxcui.json", params={"rxcui": rxcui}
@@ -115,14 +131,27 @@ class RxNormClient:
                 return []
             data = response.json()
 
-        classes = []
+        memberships: list[dict[str, str | None]] = []
+        seen: set[tuple[str | None, ...]] = set()
         for entry in data.get("rxclassDrugInfoList", {}).get("rxclassDrugInfo", []):
+            if not isinstance(entry, dict):
+                continue
             class_info = entry.get("rxclassMinConceptItem", {})
-            class_name = class_info.get("className")
-            if class_name:
-                classes.append(class_name)
+            if not isinstance(class_info, dict):
+                continue
+            membership = {
+                "class_id": class_info.get("classId"),
+                "class_name": class_info.get("className"),
+                "class_type": class_info.get("classType"),
+                "relation": entry.get("rela"),
+                "relation_source": entry.get("relaSource"),
+            }
+            key = tuple(membership.values())
+            if membership["class_name"] and key not in seen:
+                memberships.append(membership)
+                seen.add(key)
 
-        return list(set(classes))  # Remove duplicates
+        return memberships
 
     def _parse_drug_type(self, tty: str) -> DrugType:
         """Parse term type to DrugType."""

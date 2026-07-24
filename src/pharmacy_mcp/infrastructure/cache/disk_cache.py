@@ -1,6 +1,8 @@
 """Disk-based cache service."""
 
 import json
+import weakref
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +18,7 @@ class CacheService:
         self.cache_dir = Path(cache_dir or settings.cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self._cache = Cache(str(self.cache_dir))
+        self._finalizer = weakref.finalize(self, self._cache.close)
         self.default_ttl = settings.cache_ttl_seconds
 
     def get(self, key: str) -> Any | None:
@@ -51,7 +54,7 @@ class CacheService:
         ttl = ttl or self.default_ttl
         if isinstance(value, (dict, list)):
             value = json.dumps(value, ensure_ascii=False)
-        return self._cache.set(key, value, expire=ttl)
+        return bool(self._cache.set(key, value, expire=ttl))
 
     def delete(self, key: str) -> bool:
         """
@@ -63,14 +66,14 @@ class CacheService:
         Returns:
             True if key existed
         """
-        return self._cache.delete(key)
+        return bool(self._cache.delete(key))
 
     def clear(self) -> None:
         """Clear all cache."""
         self._cache.clear()
 
     def get_or_set(
-        self, key: str, default_factory: callable, ttl: int | None = None
+        self, key: str, default_factory: Callable[[], Any], ttl: int | None = None
     ) -> Any:
         """
         Get from cache or set with default factory.
@@ -97,4 +100,5 @@ class CacheService:
 
     def close(self) -> None:
         """Close cache connection."""
-        self._cache.close()
+        if self._finalizer.alive:
+            self._finalizer()

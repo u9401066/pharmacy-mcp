@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from typing import Any
 
 from pharmacy_mcp.domain.value_objects.order_result import RenalAdjustment
 
@@ -23,7 +24,7 @@ class RenalDosingKnowledge:
                 Path(__file__).parent.parent.parent / "data" / "renal_adjustments.json"
             )
 
-        self._adjustments: dict[str, dict] = {}
+        self._adjustments: dict[str, dict[str, Any]] = {}
         self._load_data(data_path)
 
     def _load_data(self, data_path: Path) -> None:

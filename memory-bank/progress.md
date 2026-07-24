@@ -1,4 +1,4 @@
-# Progress (Updated: 2026-04-09)
+# Progress (Updated: 2026-07-20)
 
 ## Done
 
@@ -59,20 +59,61 @@
 - ✅ LangGraph 範例模組 (`examples/langgraph_prescription/`)
 - ✅ 71 個測試全部通過
 
-### v0.8.6 MCP SDK 現代化 + 部署
-- ✅ 將 low-level MCP server 改為 FastMCP 實作
-- ✅ 保留 25 個既有 MCP Tools 並改為 decorator 註冊
-- ✅ 新增 Streamable HTTP ASGI app (`pharmacy_mcp.presentation.server:app`)
-- ✅ 新增 CLI transport 選項：`stdio` / `sse` / `streamable-http`
-- ✅ 新增 `PHARMACY_MCP_*` 部署環境變數設定
-- ✅ 修復壞掉的 package script (`pharmacy-mcp`)
-- ✅ README / README.zh-TW 補上部署說明
-- ✅ `tests/test_server.py` 擴充為 FastMCP/CLI/ASGI 驗證
-- ✅ 75 個測試全部通過
-
 ## Doing
 
-- 無
+- ✅ v1.0.0a1 現代化翻新與 main 整合
+- ✅ QueryResponse v1.0 穩定輸出契約
+- ✅ 全 MCP tool 共用 outputSchema 與 output_format/locale
+- ✅ 修正 `pharmacy-mcp` CLI entry point
+- ✅ provider catalog 與 unified query orchestrator
+- ✅ `query_pharmacy` / `list_knowledge_sources` MCP tools
+- ✅ provider timeout、partial failure、provenance 聚合
+- ✅ 台灣 TFDA/NHI 複合查詢與官方 CSV SQLite 索引
+- ✅ NHI 真實資料 smoke test（224,455 rows）與 ROC date regression test
+- ✅ DailyMed SPL v2 adapter + live smoke test
+- ✅ PubChem PUG REST chemical identity adapter + live smoke test
+- ✅ MedlinePlus Connect patient education adapter + live smoke test
+- ✅ PubMed E-utilities literature citation adapter + live smoke test
+- ✅ ClinicalTrials.gov API v2 intervention-study adapter + live smoke test
+- ✅ ChEMBL molecule/target/bioactivity adapter + live smoke test
+- ✅ Open Targets drug/target/indication GraphQL adapter + live smoke test
+- ✅ FHIR R4/R5 medication + explicit patient query adapter
+- ✅ FHIR R5 InventoryItem/InventoryReport + R4 SupplyDelivery fallback
+- ✅ Bearer secret boundary、resource allowlist、unsupported resource isolation
+- ✅ PDF/DOC/DOCX/CSV/XLS/XLSX/Markdown/text file connector
+- ✅ read-only allowlisted SQLite connector
+- ✅ vendor-neutral vector search gateway connector
+- ✅ fixed HTTPS document connector（no redirects / no caller URL）
+- ✅ Python agent harness + deterministic CLI
+- ✅ MCP agent-contract prompt
+- ✅ FastMCP stdio/SSE/Streamable HTTP + lazy ASGI
+- ✅ trusted PK/DDI formula catalog、resources、prompts 與 simulation service
+- ✅ 全 33 tools 由 transport boundary 套用 QueryResponse v1.0
+- ✅ MkDocs Material GitHub Pages 說明網站
+- ✅ GitHub Pages official artifact/deploy workflow
+- ✅ Python 3.11/3.12/3.13 test/build CI
+- ✅ 雙語 README、architecture/security/contributing/changelog 現代化
+- ✅ repo-wide Ruff format/check baseline
+- ✅ repo-wide strict mypy baseline
+- ✅ CI quality gate（format/lint/type）
+- ✅ 195 tests / 82.97% branch coverage（gate 70%）
+- ✅ SQLite/Cache resources explicit lifecycle，ResourceWarning-as-error 通過
+- ✅ Bandit security baseline in CI；legacy cache key 改 SHA-256
+- ✅ MkDocs strict build、sdist/wheel build
+- ✅ isolated MCP stdio + Streamable HTTP smoke（33 tools / 3 prompts / compound query / simulation）
+- ✅ isolated wheel CLI smoke
+- ✅ RxClass 獨立 provider（class ID/type/relation/source）
+- ✅ openFDA 七個 drug endpoints 全部可依 capability 執行
+- ✅ bounded openFDA label/regulatory projections
+- ✅ provider partial status 正確傳遞到統一回應
+- ✅ TFDA current HTTPS ZIP ingestion + plain JSON compatibility
+- ✅ 每週 18-surface live health workflow；2026-07-20 全數通過
+- ✅ 藥品知識 coverage/evidence matrix（可執行來源、capability、測試與界線）
+- ✅ 新增能力後完整 release audit 全綠（quality/security/docs/package/CLI/MCP）
+- ✅ 功能、測試、文件與狀態均以分段 commits 發布到 `agent/modernize-unified-pharmacy-gateway`
+- ✅ two-parent integration 已發佈；PR #2 mergeable 且 CI run 29741488853 成功
+- ✅ API/docs expansion audited tree 已發佈；CI run 29742857952 成功
+- ⚠️ 本機 `gh` token 仍無效；後續 terminal push 前需 `gh auth login -h github.com`
 
 ## Next
 

@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 
 class DrugType(str, Enum):
@@ -55,7 +56,7 @@ class Drug:
     source: str = "RxNorm"
     last_updated: str | None = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "rxcui": self.rxcui,

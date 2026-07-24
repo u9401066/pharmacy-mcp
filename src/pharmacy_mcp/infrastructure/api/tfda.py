@@ -1,11 +1,24 @@
 """Taiwan TFDA (食品藥物管理署) Open Data API client."""
 
+from __future__ import annotations
+
+import io
+import json
+import zipfile
 from typing import Any
 
 import httpx
 
 from pharmacy_mcp.config import settings
 from pharmacy_mcp.infrastructure.cache.disk_cache import CacheService
+
+
+def _text(value: object) -> str:
+    """Normalize nullable government-data scalar fields at the adapter edge."""
+
+    if value is None:
+        return ""
+    return value if isinstance(value, str) else str(value)
 
 
 class TFDAClient:
@@ -16,8 +29,9 @@ class TFDAClient:
     """
 
     # 政府開放資料 URL
-    DRUG_PERMITS_JSON_URL = "https://data.fda.gov.tw/opendata/exportDataList.do?method=ExportData&InfoId=36&logType=5"
-    ACTIVE_PERMITS_JSON_URL = "https://data.fda.gov.tw/opendata/exportDataList.do?method=ExportData&InfoId=37&logType=5"
+    DRUG_PERMITS_JSON_URL = "https://data.fda.gov.tw/data/opendata/export/36/json"
+    ACTIVE_PERMITS_JSON_URL = "https://data.fda.gov.tw/data/opendata/export/37/json"
+    MAX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024
 
     # Cache TTL: 7 days (matching government update frequency)
     CACHE_TTL = 7 * 24 * 60 * 60  # 604800 seconds
@@ -25,9 +39,11 @@ class TFDAClient:
     def __init__(self, cache_service: CacheService | None = None):
         self.timeout = settings.request_timeout
         self._cache = cache_service or CacheService()
-        self._drug_data: list[dict] | None = None
+        self._drug_data: list[dict[str, Any]] | None = None
 
-    async def _fetch_drug_permits(self, active_only: bool = True) -> list[dict]:
+    async def _fetch_drug_permits(
+        self, active_only: bool = True
+    ) -> list[dict[str, Any]]:
         """
         Fetch drug permits from TFDA open data.
 
@@ -41,8 +57,8 @@ class TFDAClient:
 
         # Check cache first
         cached = self._cache.get(cache_key)
-        if cached is not None:
-            return cached
+        if isinstance(cached, list):
+            return [item for item in cached if isinstance(item, dict)]
 
         # Fetch from API
         url = (
@@ -54,16 +70,37 @@ class TFDAClient:
         ) as client:  # Longer timeout for large file
             response = await client.get(url)
             response.raise_for_status()
-            data = response.json()
+            payload = self._decode_payload(response)
+
+        if not isinstance(payload, list):
+            raise ValueError("TFDA permits endpoint must return a JSON array")
+        data = [item for item in payload if isinstance(item, dict)]
 
         # Cache the data
         self._cache.set(cache_key, data, ttl=self.CACHE_TTL)
 
         return data
 
+    def _decode_payload(self, response: httpx.Response) -> Any:
+        """Decode TFDA's current ZIP-wrapped JSON or legacy plain JSON."""
+
+        content = response.content
+        if not zipfile.is_zipfile(io.BytesIO(content)):
+            return response.json()
+
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            members = [item for item in archive.infolist() if not item.is_dir()]
+            if len(members) != 1 or not members[0].filename.lower().endswith(".json"):
+                raise ValueError("TFDA ZIP must contain exactly one JSON document")
+            member = members[0]
+            if member.file_size > self.MAX_UNCOMPRESSED_BYTES:
+                raise ValueError("TFDA JSON exceeds the uncompressed size limit")
+            with archive.open(member) as source:
+                return json.load(source)
+
     async def search_drug_by_name(
         self, query: str, limit: int = 20, active_only: bool = True
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Search drugs by Chinese or English name.
 
@@ -80,9 +117,9 @@ class TFDAClient:
 
         results = []
         for drug in data:
-            chinese_name = drug.get("中文品名", "").lower()
-            english_name = drug.get("英文品名", "").lower()
-            ingredients = drug.get("主成分略述", "").lower()
+            chinese_name = _text(drug.get("中文品名")).lower()
+            english_name = _text(drug.get("英文品名")).lower()
+            ingredients = _text(drug.get("主成分略述")).lower()
 
             if (
                 query_lower in chinese_name
@@ -95,7 +132,9 @@ class TFDAClient:
 
         return results
 
-    async def search_drug_by_permit_number(self, permit_number: str) -> dict | None:
+    async def search_drug_by_permit_number(
+        self, permit_number: str
+    ) -> dict[str, Any] | None:
         """
         Get drug by permit number (許可證字號).
 
@@ -108,14 +147,14 @@ class TFDAClient:
         data = await self._fetch_drug_permits(active_only=False)
 
         for drug in data:
-            if drug.get("許可證字號") == permit_number:
+            if _text(drug.get("許可證字號")) == permit_number:
                 return self._format_drug_record(drug)
 
         return None
 
     async def search_drug_by_ingredient(
         self, ingredient: str, limit: int = 50, active_only: bool = True
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Search drugs by ingredient (主成分).
 
@@ -132,7 +171,7 @@ class TFDAClient:
 
         results = []
         for drug in data:
-            ingredients = drug.get("主成分略述", "").lower()
+            ingredients = _text(drug.get("主成分略述")).lower()
 
             if query_lower in ingredients:
                 results.append(self._format_drug_record(drug))
@@ -143,7 +182,7 @@ class TFDAClient:
 
     async def search_drug_by_manufacturer(
         self, manufacturer: str, limit: int = 50, active_only: bool = True
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """
         Search drugs by manufacturer name.
 
@@ -160,8 +199,8 @@ class TFDAClient:
 
         results = []
         for drug in data:
-            mfr_name = drug.get("製造廠名稱", "").lower()
-            applicant = drug.get("申請商名稱", "").lower()
+            mfr_name = _text(drug.get("製造商名稱") or drug.get("製造廠名稱")).lower()
+            applicant = _text(drug.get("申請商名稱")).lower()
 
             if query_lower in mfr_name or query_lower in applicant:
                 results.append(self._format_drug_record(drug))
@@ -170,7 +209,7 @@ class TFDAClient:
 
         return results
 
-    async def get_drug_statistics(self) -> dict:
+    async def get_drug_statistics(self) -> dict[str, Any]:
         """
         Get statistics about Taiwan drug permits.
 
@@ -183,7 +222,7 @@ class TFDAClient:
         # Count by dosage form (劑型)
         dosage_forms: dict[str, int] = {}
         for drug in active_data:
-            form = drug.get("劑型", "未知")
+            form = _text(drug.get("劑型")) or "未知"
             dosage_forms[form] = dosage_forms.get(form, 0) + 1
 
         return {
@@ -195,7 +234,7 @@ class TFDAClient:
             ),  # Top 20 dosage forms
         }
 
-    def _format_drug_record(self, raw: dict) -> dict:
+    def _format_drug_record(self, raw: dict[str, Any]) -> dict[str, Any]:
         """
         Format raw TFDA record to standardized format.
 
@@ -206,33 +245,33 @@ class TFDAClient:
             Formatted drug record
         """
         return {
-            "permit_number": raw.get("許可證字號", ""),
-            "chinese_name": raw.get("中文品名", ""),
-            "english_name": raw.get("英文品名", ""),
-            "dosage_form": raw.get("劑型", ""),
-            "packaging": raw.get("包裝", ""),
-            "drug_category": raw.get("藥品類別", ""),
-            "controlled_drug_class": raw.get("管制藥品分類級別", ""),
-            "ingredients": raw.get("主成分略述", ""),
-            "indications": raw.get("適應症", ""),
+            "permit_number": _text(raw.get("許可證字號")),
+            "chinese_name": _text(raw.get("中文品名")),
+            "english_name": _text(raw.get("英文品名")),
+            "dosage_form": _text(raw.get("劑型")),
+            "packaging": _text(raw.get("包裝")),
+            "drug_category": _text(raw.get("藥品類別")),
+            "controlled_drug_class": _text(raw.get("管制藥品分類級別")),
+            "ingredients": _text(raw.get("主成分略述")),
+            "indications": _text(raw.get("適應症")),
             "applicant": {
-                "name": raw.get("申請商名稱", ""),
-                "address": raw.get("申請商地址", ""),
-                "tax_id": raw.get("申請商統一編號", ""),
+                "name": _text(raw.get("申請商名稱")),
+                "address": _text(raw.get("申請商地址")),
+                "tax_id": _text(raw.get("申請商統一編號")),
             },
             "manufacturer": {
-                "name": raw.get("製造廠名稱", ""),
-                "address": raw.get("製造廠廠址", ""),
-                "country": raw.get("製造廠國別", ""),
+                "name": _text(raw.get("製造商名稱") or raw.get("製造廠名稱")),
+                "address": _text(raw.get("製造廠廠址")),
+                "country": _text(raw.get("製造廠國別")),
             },
             "dates": {
-                "issue_date": raw.get("發證日期", ""),
-                "expiry_date": raw.get("有效日期", ""),
-                "cancellation_date": raw.get("註銷日期", ""),
+                "issue_date": _text(raw.get("發證日期")),
+                "expiry_date": _text(raw.get("有效日期")),
+                "cancellation_date": _text(raw.get("註銷日期")),
             },
             "status": {
                 "is_cancelled": bool(raw.get("註銷狀態")),
-                "cancellation_reason": raw.get("註銷理由", ""),
+                "cancellation_reason": _text(raw.get("註銷理由")),
             },
             "source": "TFDA",
         }
@@ -244,7 +283,7 @@ class TFDAClient:
 
 
 # 中英文藥名對照表（常用藥品）
-DRUG_NAME_MAPPING: dict[str, dict[str, str]] = {
+DRUG_NAME_MAPPING: dict[str, dict[str, Any]] = {
     # === 抗凝血/抗血小板藥物 ===
     "warfarin": {
         "english": "Warfarin",
@@ -1119,7 +1158,8 @@ def translate_drug_name(
     Returns:
         Translation result or None if not found
     """
-    _ = to_language
+    if to_language not in {"auto", "chinese", "english"}:
+        raise ValueError("to_language must be auto, chinese, or english")
     name_lower = name.lower().strip()
 
     # Direct lookup

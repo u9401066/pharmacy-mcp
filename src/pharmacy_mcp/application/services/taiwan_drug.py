@@ -17,9 +17,13 @@ from pharmacy_mcp.infrastructure.api.tfda import (
 class TaiwanDrugService:
     """Service for Taiwan-specific drug information."""
 
-    def __init__(self) -> None:
-        self._tfda_client = TFDAClient()
-        self._nhi_client = NHIClient()
+    def __init__(
+        self,
+        tfda_client: TFDAClient | None = None,
+        nhi_client: NHIClient | None = None,
+    ) -> None:
+        self._tfda_client = tfda_client or TFDAClient()
+        self._nhi_client = nhi_client or NHIClient()
 
     async def search_tfda_drug(
         self, query: str, limit: int = 20, search_type: str = "name"
@@ -125,23 +129,40 @@ class TaiwanDrugService:
             "note": "未找到此健保代碼，請確認代碼正確性",
         }
 
-    def translate_drug_name(
+    async def search_nhi_drugs(
         self,
-        name: str,
-        target_language: str = "auto",
+        drug_name: str,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        """Search the indexed official NHI drug-item dataset by name/code/ATC."""
+
+        results = await self._nhi_client.search_by_drug_name(drug_name, limit)
+        return {
+            "query": drug_name,
+            "result_count": len(results),
+            "results": results,
+            "index": self._nhi_client.get_index_status(),
+        }
+
+    def get_nhi_data_status(self) -> dict[str, Any]:
+        """Return NHI local-index freshness and upstream provenance."""
+
+        return self._nhi_client.get_index_status()
+
+    def translate_drug_name(
+        self, name: str, target_language: str = "auto"
     ) -> dict[str, Any]:
         """
         Translate drug name between English and Chinese.
 
         Args:
             name: Drug name to translate
-            target_language: Currently ignored; reserved for future language routing
+            target_language: Target language (auto, chinese, english)
 
         Returns:
             Translation result
         """
-        _ = target_language
-        result = translate_drug_name(name)
+        result = translate_drug_name(name, target_language)
 
         if result:
             return {
@@ -211,7 +232,7 @@ class TaiwanDrugService:
         Returns:
             List of available translations
         """
-        translations: list[dict[str, Any]] = []
+        translations = []
         for eng_name, info in DRUG_NAME_MAPPING.items():
             translations.append(
                 {

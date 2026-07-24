@@ -1,69 +1,58 @@
-# 貢獻指南
+# Contributing
 
-感謝你有興趣為此專案做出貢獻！
+Contributions are welcome for adapters, data-quality fixes, tests, and
+documentation. For clinical content, include a primary/official source and make
+the effective date and jurisdiction explicit.
 
-## 如何貢獻
+## Local setup
 
-### 回報問題 (Bug Report)
-
-1. 先搜尋現有 Issues，確認問題未被回報
-2. 使用 Issue 模板提交問題
-3. 提供清晰的重現步驟
-
-### 功能建議 (Feature Request)
-
-1. 先搜尋現有 Issues
-2. 描述功能的使用場景
-3. 說明期望的行為
-
-### 提交程式碼 (Pull Request)
-
-#### 開發流程
-
-1. Fork 此專案
-2. 建立功能分支：`git checkout -b feature/your-feature`
-3. 遵循專案架構（參見 `CONSTITUTION.md`）
-4. 提交變更：`git commit -m 'feat: add your feature'`
-5. 推送分支：`git push origin feature/your-feature`
-6. 建立 Pull Request
-
-#### Commit 訊息格式
-
-遵循 Conventional Commits：
-
-```
-<type>(<scope>): <subject>
-
-<body>
-
-<footer>
+```bash
+git clone https://github.com/u9401066/pharmacy-mcp.git
+cd pharmacy-mcp
+uv sync --all-extras
 ```
 
-類型：
-- `feat`: 新功能
-- `fix`: 修復
-- `docs`: 文檔
-- `refactor`: 重構
-- `test`: 測試
-- `chore`: 雜項
+Use a focused branch and Conventional Commits (`feat:`, `fix:`, `docs:`,
+`refactor:`, `test:`, `chore:`). Keep unrelated changes in separate commits.
 
-#### 程式碼規範
+## Required checks
 
-- 遵循 DDD 架構（參見 `.github/bylaws/ddd-architecture.md`）
-- DAL 必須獨立
-- 提交前更新相關文檔
+```bash
+uv run pytest
+uv run ruff check src tests examples
+uv run mypy src
+uv run mkdocs build --strict
+```
 
-### 審查流程
+Network-dependent checks must be explicit integration tests; the default suite
+must use synthetic fixtures or mocked transports. Never place credentials or
+patient data in a test.
 
-1. 自動化檢查通過
-2. 至少一位維護者審查
-3. 所有討論已解決
-4. 文檔已更新
+## Adding a provider
 
-## 行為準則
+1. Add an honest `ProviderDescriptor` to the catalog, including capabilities,
+   credential needs, documentation, and implementation state.
+2. Implement the `KnowledgeProvider` port with bounded output and provenance.
+3. Register it only when all required settings are present.
+4. Isolate timeouts/errors and do not silently substitute another authority.
+5. Test success, malformed upstream data, failure, secret boundaries, and any
+   patient or data-egress behavior.
+6. Update `docs/data-sources.md`, relevant setup docs, `.env.example`,
+   `CHANGELOG.md`, and the Memory Bank.
 
-請參閱 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+Licensed sources must not be scraped, reverse engineered, or described as
+enabled without an organization's valid agreement and credentials.
 
-## 問題？
+## Changing output
 
-如有任何問題，歡迎開 Issue 討論！
+`QueryResponse` is an external compatibility contract. Preserve its seven
+top-level fields and `additionalProperties: false`. A breaking meaning or shape
+change requires a new schema version, migration notes, renderer updates, MCP
+`outputSchema` tests, harness tests, and changelog documentation.
+
+## Pull requests
+
+Explain the user-facing outcome, source/legal assumptions, security or clinical
+risk, verification performed, and documentation changes. Small reviewable
+commits are preferred. CI must pass and review discussion should be resolved
+before merge. Participation follows [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).

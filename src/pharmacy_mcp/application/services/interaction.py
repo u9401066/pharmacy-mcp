@@ -2,7 +2,7 @@
 
 import hashlib
 import re
-from typing import Any
+from typing import Any, cast
 
 from pharmacy_mcp.application.services.simulation import SimulationService
 from pharmacy_mcp.config import settings
@@ -358,7 +358,7 @@ class InteractionService:
         )
         cached = self.cache.get(cache_key)
         if cached:
-            return cached
+            return cast(dict[str, Any], cached)
 
         # Check local database for interactions
         interactions = []
@@ -503,7 +503,7 @@ class InteractionService:
             }
 
         # Check local database first
-        local_interactions = []
+        local_interactions: list[dict[str, Any]] = []
         for drug_key, interactions in FOOD_DRUG_INTERACTIONS.items():
             if self._drug_names_match(drug_key, drug_normalized):
                 local_interactions.extend(
@@ -667,10 +667,12 @@ class InteractionService:
                 **self._safety_metadata(),
             }
 
-        cache_key = self._cache_key(f"all_interactions:{CACHE_SCHEMA_VERSION}", drug_normalized)
+        cache_key = self._cache_key(
+            f"all_interactions:{CACHE_SCHEMA_VERSION}", drug_normalized
+        )
         cached = self.cache.get(cache_key)
         if cached:
-            return cached
+            return cast(dict[str, Any], cached)
 
         # Get local drug-drug interactions from database
         local_drug_interactions = []
@@ -699,7 +701,7 @@ class InteractionService:
 
         # Get FDA label interactions
         fda_interactions = await self.fda.get_drug_interactions_from_label(drug_name)
-        source_label_excerpts = []
+        source_label_excerpts: list[dict[str, Any]] = []
         if fda_interactions:
             for section in ["drug_interactions", "contraindications", "warnings"]:
                 source_label_excerpts.extend(
@@ -736,7 +738,9 @@ class InteractionService:
             or len(query_normalized) < MIN_PARTIAL_MATCH_LENGTH
         ):
             return False
-        return known_normalized in query_normalized or query_normalized in known_normalized
+        return (
+            known_normalized in query_normalized or query_normalized in known_normalized
+        )
 
     def _food_interaction_view(self, interaction: dict[str, Any]) -> dict[str, Any]:
         """Return a non-prescriptive food interaction record."""
@@ -808,7 +812,7 @@ class InteractionService:
             "not_for_direct_clinical_decision": True,
         }
 
-    def _cache_key(self, *args) -> str:
+    def _cache_key(self, *args: object) -> str:
         """Generate cache key from arguments."""
         key_str = ":".join(str(a) for a in args)
         return hashlib.sha256(key_str.encode()).hexdigest()

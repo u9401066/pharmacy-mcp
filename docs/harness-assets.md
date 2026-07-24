@@ -17,7 +17,7 @@ GitHub agents, and external MCP workflows can work with the same project rules.
 
 ## External MCP Boundary
 
-0.9.x treats these integrations as harness assets, not runtime dependencies of
+The 1.0 prerelease treats these integrations as harness assets, not runtime dependencies of
 the pharmacy server. Pharmacy MCP can be installed and tested without Zotero,
 PubMed Search MCP, Asset-Aware MCP, or NSForge running.
 
@@ -44,7 +44,7 @@ NSForge is best treated as an external companion for formula authoring:
 - Promote a formula only after review, source attribution, validation cases,
   committed catalog metadata, and tests.
 
-0.9.x intentionally does not add NSForge as a submodule or vendored dependency.
+The 1.0 prerelease intentionally does not add NSForge as a submodule or vendored dependency.
 That keeps the runtime server smaller and makes the trusted formula boundary
 auditable. A later release can add an optional `external-mcp/nsforge` harness if
 the formula-promotion workflow needs tighter automation.
@@ -53,7 +53,7 @@ the formula-promotion workflow needs tighter automation.
 
 The workspace instructions mention `npm run sync-assets` for VSIX-oriented
 projects. This repository currently has no `package.json` or VS Code extension
-package, so that command is not a 0.9.x release gate. CI instead validates the
+package, so that command is not a 1.0 release gate. CI instead validates the
 Python package and checked-in harness assets with:
 
 ```bash

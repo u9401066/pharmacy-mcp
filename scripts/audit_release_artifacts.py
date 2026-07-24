@@ -68,7 +68,9 @@ def main() -> int:
     for sdist in sdists:
         expected_name = f"{ARTIFACT_STEM}-{expected_version}.tar.gz"
         if sdist.name != expected_name:
-            errors.append(f"unexpected sdist name: {sdist.name}; expected {expected_name}")
+            errors.append(
+                f"unexpected sdist name: {sdist.name}; expected {expected_name}"
+            )
         if sdist.stat().st_size > args.max_sdist_bytes:
             errors.append(f"sdist too large: {sdist} ({sdist.stat().st_size} bytes)")
         with tarfile.open(sdist) as archive:
@@ -130,9 +132,7 @@ def _read_wheel_metadata(
     names: list[str],
 ) -> dict[str, str]:
     """Read package metadata from a wheel METADATA file."""
-    candidates = [
-        name for name in names if name.endswith(".dist-info/METADATA")
-    ]
+    candidates = [name for name in names if name.endswith(".dist-info/METADATA")]
     if len(candidates) != 1:
         return {}
     message = Parser().parsestr(archive.read(candidates[0]).decode("utf-8"))
@@ -149,9 +149,7 @@ def _metadata_errors(
     if not metadata:
         return [f"{artifact_name} missing package metadata"]
     if metadata.get("Name") != PROJECT_NAME:
-        errors.append(
-            f"{artifact_name} metadata name mismatch: {metadata.get('Name')}"
-        )
+        errors.append(f"{artifact_name} metadata name mismatch: {metadata.get('Name')}")
     if metadata.get("Version") != expected_version:
         errors.append(
             f"{artifact_name} metadata version mismatch: "

@@ -1,79 +1,56 @@
-# 專案憲法 (Project Constitution)
+# Project constitution
 
-> 本文件為 **藥品資訊 MCP Server** 專案的最高原則，所有子法、Skills 和程式碼必須遵守。
+This document records the non-negotiable design rules for Pharmacy MCP.
 
----
+## 1. One knowledge gateway
 
-## 第一章：架構原則
+MCP `query_pharmacy`, the Python `PharmacyHarness`, and the CLI are views of one
+application contract. New cross-source capabilities join the provider port and
+registry instead of creating disconnected gateways. Focused atomic tools may
+remain when deterministic workflow operations need them.
 
-### 第 1 條：MCP 優先
-本專案為 Model Context Protocol (MCP) Server 實作，所有功能皆透過 MCP Tools 提供。
+## 2. Stable, constrained output
 
-### 第 2 條：模組化設計
-藥品功能分為獨立模組：
-1. **Drug Search** - 藥品查詢
-2. **Drug Info** - 藥品資訊
-3. **Dosage Calculator** - 劑量計算
-4. **Interaction Checker** - 交互作用檢查
-5. **Food-Drug** - 食品藥品衝突
+Every agent-facing result uses a versioned, JSON-Schema-validated envelope.
+`structuredContent` is authoritative; text is a deterministic rendering.
+Agents preserve status, data, provenance, warnings, errors, metadata, and the
+medical disclaimer. Breaking contract changes require a schema-version change.
 
-### 第 3 條：分層架構
-```
-├── Domain/          # 核心領域（藥品實體、值物件）
-├── Application/     # 應用層（用例、服務編排）
-├── Infrastructure/  # 基礎設施（API Client、快取）
-└── Presentation/    # 呈現層（MCP Tools）
-```
+## 3. Source honesty
 
----
+Prefer primary official sources and identify jurisdiction and effective date.
+Never invent missing facts, erase upstream disagreement, or present merged data
+as one authority. Provider failures stay observable. Licensed knowledge bases
+are not scraped or represented as enabled without valid rights and credentials.
 
-## 第二章：資料來源原則
+## 4. Clinical safety
 
-### 第 4 條：資料來源優先序
-1. **官方來源優先**：FDA、NIH/NLM、台灣 TFDA
-2. **學術來源次之**：DrugBank（學術版）
-3. **本地快取輔助**：減少 API 呼叫
+The gateway supplies reference information, not medical advice. Dose,
+interaction, prescribing, dispensing, and reimbursement outputs retain their
+limitations and should be verified by qualified professionals and approved
+clinical systems. Tests use synthetic data and mock external integrations by
+default.
 
-### 第 5 條：資料正確性
-1. 藥品資訊必須標註來源
-2. 交互作用必須標註嚴重等級
-3. 劑量計算必須包含警示
+## 5. Least privilege and privacy
 
----
+Credentials are server-side secrets, never tool arguments. Hospital access is
+read-only by default. Patient-scoped queries require explicit authorized
+context. File, SQL, vector, and web integrations use operator-controlled
+allowlists and bounded egress. Production authorization, consent, audit,
+retention, and regulatory controls remain deployment responsibilities.
 
-## 第三章：安全原則
+## 6. Layered architecture
 
-### 第 6 條：免責聲明
-所有藥品資訊必須附帶：
-> ⚠️ 本資訊僅供參考，不構成醫療建議。請諮詢專業醫療人員。
+Domain defines contracts and pure rules; application owns use cases;
+infrastructure performs I/O behind domain ports; presentation owns transports
+and rendering. Dependencies point inward and source-specific behavior does not
+leak into MCP handlers.
 
-### 第 7 條：敏感資訊
-1. 不儲存個人健康資訊
-2. 不提供處方建議
-3. 嚴重交互作用必須明確警告
+## 7. Reproducible maintenance
 
----
+Use uv and a committed lockfile. Keep default tests deterministic. Important
+work is delivered in reviewable Conventional Commits with matching README/docs,
+changelog, and Memory Bank updates. CI and the documentation site must build
+from a clean checkout.
 
-## 第四章：開發哲學
-
-### 第 8 條：測試即文檔
-1. 測試程式碼是最好的使用範例
-2. API 整合測試必須 Mock
-
-### 第 9 條：環境即程式碼
-1. 使用 uv 管理套件
-2. 依賴必須明確版本鎖定
-
-### 第 10 條：Memory Bank 必更新
-每次重要操作必須同步更新 Memory Bank。
-
----
-
-## 修正案
-
-（保留未來修正空間）
-
----
-
-*Created: 2025-12-22*
-*Author: u9401066@gap.kmu.edu.tw*
+Adopted 2025-12-22; modernized for the v0.9 gateway on 2026-07-20.

@@ -126,7 +126,9 @@ class FormulaCatalog:
         """Validate formula case schemas and finite numeric expectations."""
         for index, case in enumerate(formula.validation_cases):
             if not isinstance(case, dict):
-                raise ValueError(f"Formula {formula.id} validation case {index} invalid")
+                raise ValueError(
+                    f"Formula {formula.id} validation case {index} invalid"
+                )
             inputs = case.get("inputs")
             expected = case.get("expected")
             tolerance = case.get("tolerance")

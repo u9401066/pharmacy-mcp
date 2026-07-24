@@ -1,66 +1,61 @@
 # Roadmap
 
-## Released
+Updated: 2026-07-20
 
-### v0.9.0 - Trusted Formula And Simulation Modernization
+## v1.0.0a1 — unified pharmacy gateway
 
-- [x] Trusted PK/DDI formula catalog with auditable metadata.
-- [x] Formula loader and domain value objects.
-- [x] PBPK-lite simulation service for deterministic PK/DDI estimates.
-- [x] Mechanism-aware interaction simulation for selected CYP inhibition pairs.
-- [x] FastMCP tools, resources, resource templates, and prompts.
-- [x] Streamable HTTP deployment helper.
-- [x] Assistant harness assets documented for Codex, Claude, Cline, PubMed/Zotero, and Asset-Aware MCP workflows.
-- [x] Release CI workflow with tests, coverage, ruff, mypy, bandit, and build.
+### Complete locally
 
-### v0.8.0 - Taiwan TFDA/NHI Integration
+- [x] Versioned `QueryResponse` schema and deterministic output renderers
+- [x] MCP, Python harness, and CLI share one query contract
+- [x] Capability/source routing with timeout and partial-failure isolation
+- [x] RxNorm and structured RxClass execution
+- [x] All seven openFDA drug endpoints with bounded projections
+- [x] DailyMed, PubChem, and MedlinePlus Connect adapters
+- [x] TFDA permits plus official NHI CSV → atomic SQLite index
+- [x] Compound TFDA/NHI item/coverage queries
+- [x] Read-only FHIR R4/R5 medication, order, dispense, inventory, and supply
+- [x] PDF/DOC/DOCX/CSV/XLS/XLSX/Markdown/text, SQLite, vector, and web connectors
+- [x] GitHub Pages documentation, multi-version CI, and weekly source-health probes
+- [x] Strict Ruff, mypy, Bandit, branch coverage, package, docs, CLI, and MCP smoke gates
+- [x] FastMCP stdio, SSE, Streamable HTTP, and lazy ASGI deployment
+- [x] Trusted PK/DDI formula catalog, deterministic simulation, and validation resources
 
-- [x] TFDA search client and tools.
-- [x] NHI coverage and reimbursement helpers.
-- [x] English/Traditional Chinese drug-name mapping.
-- [x] Taiwan-specific `DrugInfoService` integration.
-- [x] Prior authorization and coverage-rule tools.
+### Release boundary
 
-### v0.1.x - Core Pharmacy MCP
+- [x] Publish the segmented feature branch to GitHub
+- [x] Integrate current main and verify a conflict-free PR with passing CI
+- [ ] Review and merge through the repository's normal branch policy
+- [ ] Select GitHub Actions as the repository Pages source
+- [ ] Run the public-source workflow and verify the deployed documentation URL
 
-- [x] Project scaffold and packaging.
-- [x] Drug, interaction, dosage, and order domain models.
-- [x] Drug search and information services.
-- [x] Dosing calculators.
-- [x] Local interaction database after RxNorm interaction API discontinuation.
+The branch was published through the installed GitHub connector because the
+machine-local `gh` credential was invalid. Re-authenticate `gh` before the next
+terminal-only push; no credential was written into the repository.
 
-## Next
+## v1.0 prerelease — production hardening
 
-### v0.10.0 - Formula Authoring Harness
+- [ ] Add operator-configured SMART Backend Services token acquisition/rotation
+- [ ] Add PostgreSQL and organization-specific SQL mapping adapters
+- [ ] Add observable metrics/tracing without logging patient context or secrets
+- [ ] Add configurable provider concurrency/rate limits and circuit breakers
+- [ ] Add signed source snapshots and dataset freshness policies
+- [ ] Add institution-specific FHIR conformance fixtures and inventory mappings
 
-- [ ] Add an optional external-MCP harness for NSForge-style symbolic derivation and dimensional checks.
-- [ ] Add a draft formula import workflow that stores generated formulas as untrusted review artifacts.
-- [ ] Add formula promotion checks: references, unit review, numeric validation, tests, and safety text.
-- [ ] Add formula diff reports for catalog review.
-- [ ] Add more CYP, transporter, renal, and protein-binding examples with citations.
+## v1.0.0 — stable contract
 
-### v0.11.0 - Clinical Workflow Hardening
+- [ ] Freeze and publish the v1 response/support policy
+- [ ] Reach at least 80% branch coverage without excluding gateway paths
+- [ ] Complete independent clinical-safety and threat-model review
+- [ ] Publish deployment runbooks and container artifacts
+- [ ] Publish the package after release-candidate interoperability testing
 
-- [ ] Improve external API client typing and remove gradual mypy overrides module by module.
-- [ ] Add structured error codes across all MCP tools.
-- [ ] Add integration tests for Streamable HTTP.
-- [ ] Add cache observability and explicit TTL configuration.
-- [ ] Add richer provenance fields for FDA, RxNorm, TFDA, and NHI responses.
+## Deliberate boundaries
 
-### v1.0.0 - Production Stabilization
-
-- [ ] No known high-severity security issues.
-- [ ] Strict typing on the actively maintained core and API boundaries.
-- [ ] 80%+ coverage target after legacy API client cleanup.
-- [ ] Complete user-facing documentation and examples.
-- [ ] PyPI release workflow.
-- [ ] Signed release artifacts and changelog automation.
-
-## Non-Goals For 0.9.x
-
-- No direct clinical recommendations from simulation outputs.
-- No runtime execution of untrusted formula expressions.
-- No vendored NSForge submodule unless a later release needs offline formula authoring.
-- No commercial drug database integration without explicit licensing review.
-
-*Last updated: 2026-05-17*
+- Licensed clinical knowledge (DrugBank, FDB, Micromedex) remains catalog-only
+  until an operator supplies a valid contract, credentials, and adapter.
+- The retired RxNorm interaction API is not emulated as an official service.
+- Public/open datasets remain reference material, not a validated clinical
+  decision-support engine.
+- Write operations against hospital FHIR/HIS remain outside the unified
+  knowledge-query provider unless explicitly designed and authorized later.

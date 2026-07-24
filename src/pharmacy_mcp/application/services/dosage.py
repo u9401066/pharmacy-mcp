@@ -30,7 +30,7 @@ class PatientParameters:
     def bsa(self) -> float | None:
         """Calculate Body Surface Area (Mosteller formula) in m²."""
         if self.weight_kg and self.height_cm:
-            return ((self.height_cm * self.weight_kg) / 3600) ** 0.5
+            return float(((self.height_cm * self.weight_kg) / 3600) ** 0.5)
         return None
 
     @property
