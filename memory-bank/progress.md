@@ -1,4 +1,4 @@
-# Progress (Updated: 2026-07-20)
+# Progress (Updated: 2026-07-24)
 
 ## Done
 
@@ -88,11 +88,24 @@
 - ✅ MCP agent-contract prompt
 - ✅ FastMCP stdio/SSE/Streamable HTTP + lazy ASGI
 - ✅ trusted PK/DDI formula catalog、resources、prompts 與 simulation service
-- ✅ 全 33 tools 由 transport boundary 套用 QueryResponse v1.0
+- ✅ 全 35 tools 由 transport boundary 套用 QueryResponse v1.0
+- ✅ 統一查詢加入 operator-controlled fan-out、平行數與 per-provider timeout
+- ✅ query response 回傳可觀測的 provider execution policy metadata
+- ✅ 文件搜尋加入 opaque ID、完整 extracted-text SHA-256、行/字元 locator
+- ✅ `read_knowledge_document` 提供不接受 path 的 bounded 文件調閱
+- ✅ `inspect_fhir_server` 提供 CapabilityStatement 相容性檢查
+- ✅ FHIR searchset/resourceType 驗證，保留 core fields、extensions 與院內欄位
+- ✅ 私有 SOAP/WCF 契約僅本機盤點，泛化成可設定 `wcf` provider
+- ✅ WCF HTTPS/TLS、defused XML、byte/record limits、TTL cache、field allowlists
+- ✅ 真實 WCF endpoint/action/欄位只存在 ignored `.env`，repo 僅有 placeholders
 - ✅ MkDocs Material GitHub Pages 說明網站
 - ✅ GitHub Pages official artifact/deploy workflow
 - ✅ Python 3.11/3.12/3.13 test/build CI
 - ✅ 雙語 README、architecture/security/contributing/changelog 現代化
+- ✅ 雙語 README 重構為大型 MCP 產品入口，補齊 FHIR、文件、SQL、WCF 與安全邊界
+- ✅ 新增兩張 accessible repo-native SVG（hero + knowledge-plane architecture）
+- ✅ README 新增 bounded fan-out、FHIR 相容性、citation-ready retrieval Mermaid
+- ✅ `architect.md` 與 `systemPatterns.md` 從 19-tool 舊模型更新為 35-tool 現況
 - ✅ repo-wide Ruff format/check baseline
 - ✅ repo-wide strict mypy baseline
 - ✅ CI quality gate（format/lint/type）
@@ -100,7 +113,7 @@
 - ✅ SQLite/Cache resources explicit lifecycle，ResourceWarning-as-error 通過
 - ✅ Bandit security baseline in CI；legacy cache key 改 SHA-256
 - ✅ MkDocs strict build、sdist/wheel build
-- ✅ isolated MCP stdio + Streamable HTTP smoke（33 tools / 3 prompts / compound query / simulation）
+- ✅ isolated MCP stdio + Streamable HTTP smoke（第一階段 33 tools / 3 prompts / compound query / simulation）
 - ✅ isolated wheel CLI smoke
 - ✅ RxClass 獨立 provider（class ID/type/relation/source）
 - ✅ openFDA 七個 drug endpoints 全部可依 capability 執行
@@ -110,10 +123,22 @@
 - ✅ 每週 18-surface live health workflow；2026-07-20 全數通過
 - ✅ 藥品知識 coverage/evidence matrix（可執行來源、capability、測試與界線）
 - ✅ 新增能力後完整 release audit 全綠（quality/security/docs/package/CLI/MCP）
-- ✅ 功能、測試、文件與狀態均以分段 commits 發布到 `agent/modernize-unified-pharmacy-gateway`
+- ✅ PR #2 已合併至 `main`，本階段開始前已同步 `origin/main`
+- ✅ 私有內部 API archives 僅本機檢視，保持 exact-ignore、untracked、未複製且不進入 artifact
+- ✅ 第二階段 focused tests 41 passed；strict mypy 與 changed-file Ruff 通過
+- ✅ 最終 206 tests / 83.46% branch coverage（gate 70%）
+- ✅ repo-wide Ruff、strict mypy、Bandit、lock、MkDocs strict 全綠
+- ✅ sdist/wheel、artifact/private-contract audit、Python 3.13 isolated 35-tool smoke 全綠
+- ⚠️ 院內 WCF 主機可解析但此環境無私網連線；需在院內網路做一次 live query
 - ✅ two-parent integration 已發佈；PR #2 mergeable 且 CI run 29741488853 成功
 - ✅ API/docs expansion audited tree 已發佈；CI run 29742857952 成功
-- ⚠️ 本機 `gh` token 仍無效；後續 terminal push 前需 `gh auth login -h github.com`
+- ✅ 本機 `gh` 已重新驗證，可透過 HTTPS push publication branch
+- ✅ SVG XML 有效且 hero/architecture 皆完成實際 PNG render 視覺檢查
+- ✅ README/MEM 後 206 tests、83.46% branch coverage、Ruff、mypy、Bandit、lock、MkDocs 全綠
+- ✅ sdist/wheel artifact audit 與 isolated Python 3.13 35-tool smoke 通過
+- ✅ tracked range、wheel、sdist 的私有 WCF 契約字串掃描皆為零命中
+- ✅ 分段 commits：`01228f8` feature、`36361c4` tests、`024f954` docs、最終 Memory checkpoint
+- ✅ 發布分支 `agent/modernize-pharmacy-mcp-readme` 已推至 origin；既有 harness 修改未混入
 
 ## Next
 

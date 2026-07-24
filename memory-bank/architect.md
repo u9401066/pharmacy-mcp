@@ -1,139 +1,168 @@
 # System Architect
 
-## 🌐 系統架構圖
+Updated: 2026-07-24
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     MCP Client (Claude)                         │
-│                                                                  │
-│  ┌───────────────────────────────────────────────────────────┐  │
-│  │  User: "Check interaction between aspirin and warfarin"   │  │
-│  └───────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ MCP Protocol
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Pharmacy MCP Server                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌───────────────── Presentation Layer ──────────────────────┐  │
-│  │                                                            │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────────┐  │  │
-│  │  │ Search   │ │ Info     │ │ Dosage   │ │ Interaction  │  │  │
-│  │  │ Tools    │ │ Tools    │ │ Tools    │ │ Tools        │  │  │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────────┘  │  │
-│  │                                                            │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│  ┌───────────────── Application Layer ───────────────────────┐  │
-│  │                                                            │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐  │  │
-│  │  │ SearchService│  │ InfoService  │  │ InteractionSvc │  │  │
-│  │  └──────────────┘  └──────────────┘  └────────────────┘  │  │
-│  │                                                            │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│  ┌─────────────────── Domain Layer ──────────────────────────┐  │
-│  │                                                            │  │
-│  │  ┌─────────┐  ┌─────────────┐  ┌────────────────────┐    │  │
-│  │  │ Drug    │  │ Interaction │  │ Value Objects      │    │  │
-│  │  │ Entity  │  │ Entity      │  │ (Dosage, Severity) │    │  │
-│  │  └─────────┘  └─────────────┘  └────────────────────┘    │  │
-│  │                                                            │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│  ┌───────────────── Infrastructure Layer ────────────────────┐  │
-│  │                                                            │  │
-│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐  ┌────────┐ │  │
-│  │  │ RxNorm    │  │ FDA       │  │ DailyMed  │  │ Cache  │ │  │
-│  │  │ Client    │  │ Client    │  │ Client    │  │ Layer  │ │  │
-│  │  └───────────┘  └───────────┘  └───────────┘  └────────┘ │  │
-│  │                                                            │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ HTTPS
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      External APIs                               │
-│                                                                  │
-│  ┌──────────────┐  ┌───────────────┐  ┌─────────────────────┐  │
-│  │              │  │               │  │                     │  │
-│  │   RxNorm     │  │   openFDA     │  │     DailyMed        │  │
-│  │   (NIH/NLM)  │  │   (FDA)       │  │     (NLM)           │  │
-│  │              │  │               │  │                     │  │
-│  └──────────────┘  └───────────────┘  └─────────────────────┘  │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+## Current system shape
+
+Pharmacy MCP is a schema-bound gateway, not a collection of unrelated tool
+wrappers. FastMCP owns the transport contract, the application layer owns
+orchestration and provider policy, domain models define provider and response
+ports, and infrastructure adapters retain protocol-specific behavior.
+
+```mermaid
+flowchart LR
+    subgraph Clients
+        MCP["MCP agents"]
+        HTTP["Streamable HTTP / ASGI"]
+        CLI["CLI / Python harness"]
+    end
+
+    subgraph Presentation
+        FM["PharmacyFastMCP<br/>35 tools"]
+        SC["QueryResponse v1.0<br/>outputSchema + renderer"]
+    end
+
+    subgraph Application
+        UQ["UnifiedQueryService"]
+        CA["ConnectorAccessService"]
+        Legacy["Drug / Taiwan / PK-DDI services"]
+    end
+
+    subgraph Domain
+        KP["KnowledgeProvider port"]
+        QR["ProviderQuery / ProviderResult"]
+        RE["Response envelope models"]
+    end
+
+    subgraph Infrastructure
+        PUB["Public APIs + TFDA/NHI"]
+        FHIR["FHIR R4/R5"]
+        WCF["Configured SOAP/WCF"]
+        ORG["Files / SQL / vector / fixed web"]
+        SIM["Formula catalog + cache"]
+    end
+
+    MCP & HTTP & CLI --> FM
+    FM --> UQ
+    FM --> CA
+    FM --> Legacy
+    UQ --> KP
+    CA --> KP
+    KP --> QR
+    KP --> PUB & FHIR & WCF & ORG
+    Legacy --> SIM
+    QR --> RE
+    RE --> SC
+    SC --> MCP & HTTP & CLI
 ```
 
-## 📦 元件圖
+The detailed repo-native diagram is maintained at
+`docs/assets/pharmacy-mcp-architecture.svg`; both READMEs embed it directly.
 
-```
-src/pharmacy_mcp/
-├── __init__.py
-├── __main__.py            # MCP Server 入口
-├── config.py              # 設定管理
-│
-├── domain/                # 領域層
-│   ├── entities/
-│   │   ├── drug.py        # Drug 實體
-│   │   └── interaction.py # Interaction 實體
-│   └── value_objects/
-│       ├── dosage.py      # 劑量值物件
-│       └── severity.py    # 嚴重等級值物件
-│
-├── application/           # 應用層
-│   └── services/
-│       ├── drug_search.py # 搜尋服務
-│       ├── drug_info.py   # 資訊服務 (整合台灣資訊)
-│       ├── dosage.py      # 劑量計算器
-│       ├── interaction.py # 交互作用檢查器
-│       └── taiwan_drug.py # 🇹🇼 台灣藥品服務
-│
-├── infrastructure/        # 基礎設施層
-│   ├── api/
-│   │   ├── rxnorm.py      # RxNorm Client
-│   │   ├── fda.py         # FDA Client
-│   │   ├── tfda.py        # 🇹🇼 TFDA Client + 藥名對照
-│   │   └── nhi.py         # 🇹🇼 NHI Client + 給付規則
-│   └── cache/
-│       └── disk_cache.py  # 磁碟快取
-│
-└── presentation/          # 呈現層
-    └── server.py          # MCP Server (19 Tools)
+## Dependency direction
+
+```text
+Presentation ──uses──▶ Application ──uses──▶ Domain
+      │                    │                    ▲
+      └──────── wiring ────┴──▶ Infrastructure ┘
 ```
 
-## 🛠️ MCP Tools 清單 (19 個)
+- Domain models have no MCP, HTTP, file, or database dependency.
+- Application services coordinate ports and policies; they do not parse SOAP,
+  FHIR bundles, spreadsheets, or SQL rows.
+- Infrastructure adapters implement protocol-specific access and projections.
+- Presentation maps every result through one output schema at the transport edge.
 
-### 基礎功能 (13 個)
-| 類別 | Tools |
-|------|-------|
-| 搜尋 | `search_drug` |
-| 資訊 | `get_drug_info`, `get_drug_dosage`, `get_drug_warnings` |
-| 交互作用 | `check_drug_interaction`, `check_multi_drug_interactions`, `check_food_drug_interaction` |
-| 劑量計算 | `calculate_dose_by_weight`, `calculate_dose_by_bsa`, `calculate_creatinine_clearance`, `calculate_pediatric_dose`, `calculate_infusion_rate`, `convert_dose_units` |
+## Query execution model
 
-### 台灣功能 (6 個) 🇹🇼
-| Tool | 說明 |
-|------|------|
-| `search_tfda_drug` | 搜尋 TFDA 藥品許可證 |
-| `get_nhi_coverage` | 查詢健保給付 |
-| `get_nhi_drug_price` | 查詢健保藥價 |
-| `translate_drug_name` | 中英藥名對照 |
-| `list_prior_authorization_drugs` | 事前審查清單 |
-| `list_nhi_coverage_rules` | 健保給付規則 |
-
-## 🔗 依賴關係
-
-```
-Presentation ──depends──▶ Application
-Application ──depends──▶ Domain
-Application ──depends──▶ Infrastructure
-Infrastructure ──implements──▶ Domain (interfaces)
+```mermaid
+stateDiagram-v2
+    [*] --> Resolve
+    Resolve --> Rejected: provider count exceeds budget
+    Resolve --> Queued: accepted providers
+    Queued --> Running: semaphore slot acquired
+    Running --> Success
+    Running --> Partial
+    Running --> Failed
+    Running --> TimedOut
+    Success --> Aggregate
+    Partial --> Aggregate
+    Failed --> Aggregate
+    TimedOut --> Aggregate
+    Aggregate --> QueryResponse
+    Rejected --> QueryResponse
+    QueryResponse --> [*]
 ```
 
----
-*Last updated: 2025-12-22*
+Policy is server-owned through `provider_max_per_query`,
+`provider_max_parallel`, and `provider_timeout_seconds`. The timeout begins
+inside the semaphore slot. Provider failures remain typed and isolated; any
+successful provider data produces `partial` rather than being discarded.
+
+## FHIR interoperability boundary
+
+FHIR resource semantics remain native. The gateway validates the search
+container and expected `resourceType`, then retains each complete resource JSON
+including standard fields, extensions, profiles, and hospital-defined keys.
+
+| Capability | Resources |
+|---|---|
+| Identity/formulary | `Medication`, `MedicationKnowledge` |
+| Patient medication context | `MedicationRequest`, `MedicationDispense` |
+| R5 inventory | `InventoryItem`, `InventoryReport` |
+| R4 supply fallback | `SupplyDelivery`, optional `SupplyRequest` |
+| Capability inspection | `CapabilityStatement` from `[base]/metadata` |
+
+The FHIR adapter is read-only. Patient-scoped searches require explicit
+`context.patient_id`; authorization acquisition and rotation belong to hospital
+infrastructure. Unsupported resources, search parameters, or profiles become
+observable compatibility data or warnings.
+
+## Organization connector boundary
+
+```mermaid
+flowchart TD
+    Config["Operator configuration"] --> Files["Allowed roots + formats"]
+    Config --> SQL["Read-only DB + table/column projection"]
+    Config --> Vector["Fixed vector endpoint + outbound filter"]
+    Config --> Web["Fixed HTTPS URLs + SSRF controls"]
+    Config --> WCF["Fixed SOAP action + field allowlists"]
+
+    Files --> Evidence["Opaque document ID<br/>SHA-256 + line/char span"]
+    SQL --> Result["Bound values + projected rows"]
+    Vector --> Result
+    Web --> Result
+    WCF --> Result
+    Evidence --> Envelope["QueryResponse v1.0"]
+    Result --> Envelope
+```
+
+No connector accepts arbitrary caller paths, SQL, endpoint URLs, or credentials.
+The WCF provider exposes only a generic read contract. Real organization
+endpoint/action/field values and private archives remain ignored local assets.
+
+## Tool catalog
+
+| Group | Tools |
+|---|---|
+| Gateway and discovery | `query_pharmacy`, `list_knowledge_sources`, `get_nhi_data_status` |
+| Connector access | `read_knowledge_document`, `inspect_fhir_server` |
+| Drug knowledge | `search_drug`, `get_drug_info`, `get_drug_dosage`, `get_drug_warnings` |
+| Interactions and dose calculation | 9 interaction, dose, renal, infusion, and conversion tools |
+| Taiwan | 6 TFDA/NHI and terminology tools |
+| Formulary/order compatibility | 7 formulary, renal-adjustment, validation, and order tools |
+| Trusted simulation | 5 formula, mechanism, PK, and concentration tools |
+
+Total: 35 tools. `structuredContent` is authoritative for every tool and always
+contains `schema_version`, `status`, `data`, `sources`, `warnings`, `errors`, and
+`meta`.
+
+## Deployment and release boundary
+
+- stdio, SSE, Streamable HTTP, mounted ASGI, Python harness, and CLI share the
+  same service and response models.
+- Service creation and the ASGI app are lazy to avoid import-time resources.
+- CI covers Python 3.11–3.13, branch coverage, Ruff, strict mypy, Bandit,
+  MkDocs strict build, wheel/sdist, and installed-wheel MCP smoke.
+- Build artifacts are scanned for secrets, private contract values, and private
+  archive names before publication.

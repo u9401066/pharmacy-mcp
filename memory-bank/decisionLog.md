@@ -258,5 +258,62 @@ ClinicalTrials.gov、ChEMBL 與 Open Targets；以 `literature`、
 - 195 tests / 82.97% branch coverage，Ruff、strict mypy、Bandit、docs、package gates 全綠
 - 18/18 live probes 成功，四來源 compound CLI query 經 QueryResponse v1.0 回傳
 
+### DEC-025: 大型 MCP fan-out 與 connector 調閱採伺服器端政策
+**日期**: 2026-07-24
+**決策**: 統一查詢的最大 provider 數、同時執行數與 timeout 由 operator 設定；
+文件完整調閱與 FHIR capability inspection 採獨立 MCP tools，但仍共用
+`QueryResponse` v1.0。
+**平行查詢界線**:
+- `provider_max_per_query` 超限時 fail closed，且不送出任何 upstream request
+- `provider_max_parallel` 以 semaphore 控制單次複合查詢的 active providers
+- timeout 從 provider 取得執行 slot 後開始，避免排隊時間冒充 upstream timeout
+- 實際 policy 以 additive `data.execution` 回傳，caller 不能透過 tool argument 放寬
+**文件證據界線**:
+- 搜尋結果以 root-relative path 衍生 opaque stable ID，不接受 caller path
+- 每次抽取提供完整文字 SHA-256、exact half-open char span 與 line span
+- `read_knowledge_document` 僅能依搜尋取得的 ID 做最多 50,000 字元 bounded read
+**FHIR 契約界線**:
+- `inspect_fhir_server` 從 CapabilityStatement 投影 resource、interaction、
+  search parameter 與 profile，不回傳 token/header
+- search 必須是 `Bundle.type=searchset`；錯誤型別 entry 隔離為 warning
+- 合法 FHIR resource 保留 raw core fields、extension/profile 與院內自訂 keys，
+  不建立會遺失資料的共同最小 schema
+**相容性**:
+- 不改 QueryResponse 七個 top-level fields 或 `schema_version`
+- 新 execution、locator、capability 欄位均位於 `data`，屬 additive change
+
+### DEC-026: 私有 daily WCF 流程拆成 read provider 與外部 materialization
+**日期**: 2026-07-24
+**決策**: 私有文件中的 no-argument SOAP/WCF operation 以泛化 `wcf` provider
+接入 `query_pharmacy`；daily SQLite/Excel/vector 更新不暴露成 agent 可觸發 tool。
+**隱私與設定**:
+- 原始 ZIP、解壓 source、真實 endpoint/action/欄位名稱不得進 git 或 artifacts
+- repo 只提供 generic `.env.example`；實際契約值只寫 ignored `.env`
+- provider 只有 URL/action/operation/search/output allowlists 全部設定時才註冊
+**安全與擴展性**:
+- endpoint 必須是 credential-free HTTPS，TLS 預設驗證且不跟 redirects
+- SOAP operation 驗證 XML name，response 使用 defused XML parser
+- full snapshot 設 byte/record limits 與 TTL cache，避免每次 compound query 重抓
+- query 只能搜尋 allowlisted fields，回傳只能投影 allowlisted output fields
+- daily materialized SQLite 若要供 agent 查詢，沿用既有 `mode=ro` SQL provider
+**理由**:
+- MCP 查詢層應維持 read-mostly、bounded、可平行失敗隔離
+- 寫入/atomic swap/vector rebuild 是 ops workflow，不應讓 agent 取得任意刷新權限
+
+### DEC-027: README 與 Memory Bank 使用 repo-native 架構圖
+**日期**: 2026-07-24
+**決策**: 雙語 README 共用兩張版本控制內的 accessible SVG，並以 Mermaid
+呈現 bounded fan-out、FHIR 相容性檢查與 citation-ready 文件調閱 sequence；
+Memory Bank 同步升級為目前 35-tool gateway 架構。
+**原因**:
+- SVG 適合產品總覽與固定視覺層級，可在 GitHub 直接顯示且不依賴外部圖片服務
+- Mermaid 適合會隨程式變動的流程，review 時可直接檢查文字 diff
+- 雙語 README 共用視覺資產，避免架構圖在兩個入口各自漂移
+**可維護性與隱私**:
+- SVG 僅使用原生元素、內嵌樣式、`title`/`desc`，不含 script 或 remote asset
+- 圖與文件只描述 generic WCF/FHIR/connector boundary，不含私有 endpoint、action、
+  field contract、credential 或 archive 內容
+- 架構變更需同步 README、`architect.md`、`systemPatterns.md` 與 decision log
+
 ---
-*Last updated: 2026-07-20*
+*Last updated: 2026-07-24*

@@ -1,127 +1,132 @@
 # System Patterns
 
-## 設計模式
+Updated: 2026-07-24
 
-### 1. Repository Pattern
-用於 API 資料存取，將資料來源抽象化。
+## 1. Schema-bound transport edge
+
+`PharmacyFastMCP` decorates every tool with the same `QueryResponse` v1.0
+output schema. Tool functions may return domain/application payloads, but the
+transport boundary always emits the seven canonical fields. Text renderers are
+deterministic views; MCP `structuredContent` is authoritative.
+
+```text
+schema_version · status · data · sources · warnings · errors · meta
+```
+
+Pattern rule: additive provider details belong under `data`; breaking top-level
+changes require a schema version increment.
+
+## 2. Provider port and honest catalog
+
+Heterogeneous sources implement one async `KnowledgeProvider` port using
+`ProviderQuery` and `ProviderResult`. The provider catalog describes capability,
+license, credentials, and readiness independently from runtime registration.
 
 ```python
-class DrugRepository(Protocol):
-    async def get_by_rxcui(self, rxcui: str) -> Drug | None: ...
-    async def search_by_name(self, name: str) -> list[Drug]: ...
+class KnowledgeProvider(Protocol):
+    descriptor: ProviderDescriptor
+
+    async def query(self, request: ProviderQuery) -> ProviderResult: ...
 ```
 
-### 2. Service Pattern
-應用層服務封裝業務邏輯。
+Pattern rule: `ready`, `registered`, and `license_required` are distinct states.
+Never silently substitute an unavailable provider or claim a licensed source is
+enabled.
 
-```python
-class DrugSearchService:
-    def __init__(self, repo: DrugRepository, cache: CacheService):
-        self.repo = repo
-        self.cache = cache
-    
-    async def search(self, query: str) -> list[Drug]: ...
+## 3. Bounded scatter-gather
+
+`UnifiedQueryService` resolves compatible providers, rejects over-budget fan-out
+before any I/O, and runs accepted providers behind an `asyncio.Semaphore`.
+Per-provider timeout begins after slot acquisition.
+
+```text
+resolve → budget check → semaphore slot → provider timeout → typed aggregation
 ```
 
-### 3. Factory Pattern
-用於建立 API Client 實例。
+Pattern rule: preserve successful payloads and provenance when siblings fail;
+return `partial` with typed errors instead of all-or-nothing failure.
 
-```python
-class APIClientFactory:
-    @staticmethod
-    def create_rxnorm_client() -> RxNormClient: ...
-    @staticmethod
-    def create_fda_client() -> FDAClient: ...
+## 4. Capability routing
+
+Providers advertise only capabilities they can execute. Expensive discovery
+surfaces such as literature, trial, target, indication, and bioactivity require
+an explicit capability or source instead of joining every general drug search.
+
+Pattern rule: a catalog claim needs an executable adapter, bounded projection,
+provenance, contract tests, and operational health evidence.
+
+## 5. FHIR-native resources inside a stable envelope
+
+The FHIR adapter validates `Bundle.type=searchset` and expected `resourceType`,
+but does not flatten unlike FHIR resources into a lossy common record. Raw core
+fields, `meta.profile`, `extension`, and organization-defined keys remain intact.
+
+Pattern rule: standardize orchestration and evidence metadata around FHIR; do
+not rewrite FHIR resource semantics. Use `CapabilityStatement` inspection to
+detect version, resource, interaction, search-parameter, and profile drift.
+
+## 6. Operator-owned connector allowlists
+
+Every organization connector is narrowed at startup:
+
+| Connector | Allowed input | Explicitly rejected |
+|---|---|---|
+| Files | Query against configured roots | Caller path, symlink, traversal, oversized file |
+| SQLite | Query and bound values against configured projection | Caller SQL, write mode, unknown table/column |
+| Vector | Query, limit, explicit vector filters | Patient context, caller endpoint |
+| Web | Fixed credential-free HTTPS documents | Caller URL, redirect, unsafe destination |
+| SOAP/WCF | Fixed URL/action/operation and search fields | Caller contract, unbounded snapshot, unsafe XML |
+
+Pattern rule: an MCP search tool is not a general file, database, or network tool.
+
+## 7. Citation-ready document identity
+
+Search returns a stable opaque ID derived from configured-root index and
+root-relative path. Every extraction includes a full-text SHA-256 and exact
+half-open character and line spans. Bounded reads resolve only the ID.
+
+Pattern rule: revision hashes identify the extracted text version; locators must
+remain exact and reproducible. Never weaken locator integrity to satisfy a test.
+
+## 8. Safe snapshot adapter for legacy SOAP/WCF
+
+The WCF connector treats a no-argument SOAP response as a bounded snapshot:
+
+```text
+TLS POST → safe XML parse → JSON object rows → byte/record bounds → TTL cache
+                                              ↓
+                                   search/output allowlists
 ```
 
-### 4. Integration Pattern (台灣整合)
-自動整合本地化資訊到現有查詢流程。
+Pattern rule: MCP performs read-only lookup. Daily materialization, SQLite swap,
+spreadsheet generation, or vector rebuild belongs to an external operations
+workflow and is not agent-triggerable.
 
-```python
-class DrugInfoService:
-    def _get_taiwan_info(self, drug_name: str) -> dict | None:
-        """Get Taiwan-specific drug information."""
-        translation = translate_drug_name(drug_name)
-        nhi_coverage = get_nhi_coverage_info(drug_name)
-        return {"translation": translation, "nhi": nhi_coverage}
-    
-    async def get_full_info(self, drug_name: str) -> dict:
-        # ... 原有查詢 ...
-        result["taiwan"] = self._get_taiwan_info(drug_name)
-        return result
-```
+## 9. Atomic local indexes
 
-## 編碼慣例
+Large official datasets such as NHI monthly drug items are streamed, validated,
+indexed in a temporary SQLite database, then atomically replaced. Schema version
+changes trigger rebuilds; queries use the last complete index.
 
-### 命名規範
-- 類別: PascalCase (`DrugSearchService`)
-- 函數/變數: snake_case (`search_drug_by_name`)
-- 常數: UPPER_SNAKE_CASE (`API_BASE_URL`)
-- MCP Tool: snake_case (`search_drug_by_name`)
+Pattern rule: interrupted refresh must never corrupt the currently usable index.
 
-### 目錄結構
-```
-domain/
-├── entities/      # 實體類別
-├── value_objects/ # 值物件
-└── services/      # Domain Services
-```
+## 10. Security and resource lifecycle
 
-### 錯誤處理
-```python
-class DrugNotFoundError(Exception):
-    """藥品不存在"""
-    pass
+- Secrets come from environment-backed `SecretStr`, never tool arguments.
+- HTTP clients use TLS verification and connector-specific redirect/SSRF rules.
+- XML uses `defusedxml`; cache keys use SHA-256.
+- SQLite and cache resources have explicit, idempotent close behavior.
+- Numeric simulation validates units, ranges, formulas, and finite output.
 
-class APIRateLimitError(Exception):
-    """API 速率限制"""
-    pass
-```
+Pattern rule: fail closed at trust boundaries and degrade only at independent
+provider boundaries.
 
-## API 整合模式
+## 11. Verification pattern
 
-### 重試機制
-```python
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(min=1, max=10)
-)
-async def fetch_drug(rxcui: str) -> dict: ...
-```
+Behavior changes require focused regression tests plus the full release gates:
+Ruff format/check, strict mypy, branch-coverage tests, Bandit, lock check,
+MkDocs strict build, package build, artifact privacy audit, and installed-wheel
+MCP smoke.
 
-### 快取策略
-```python
-# 台灣資料 - 7 天 TTL（配合政府更新頻率）
-TFDA_CACHE_TTL = 7 * 24 * 60 * 60  # 604800 seconds
-
-# 健保資料 - 30 天 TTL（更新頻率較低）
-NHI_CACHE_TTL = 30 * 24 * 60 * 60  # 2592000 seconds
-
-@cached(ttl=86400)  # 24 hours
-async def get_drug_info(rxcui: str) -> Drug: ...
-```
-
-## 台灣本地化模式
-
-### 資料來源整合
-```python
-# 不自建資料庫，使用政府開放資料 + disk cache
-
-TFDA_SOURCE = "https://data.fda.gov.tw/opendata/exportDataList.do"
-NHI_SOURCE = "https://data.nhi.gov.tw/"
-
-# 本地規則資料庫（因無公開 API）
-NHI_COVERAGE_RULES: dict[str, dict] = {
-    "warfarin": {...},
-    "clopidogrel": {...},
-    # 60+ 藥品規則
-}
-
-DRUG_NAME_MAPPING: dict[str, dict] = {
-    "warfarin": {"chinese_generic": "華法林", ...},
-    # 120+ 藥品對照
-}
-```
-
----
-*Last updated: 2025-12-22*
+Pattern rule: mocks prove deterministic contracts; scheduled live probes detect
+external source drift. Neither replaces the other.
