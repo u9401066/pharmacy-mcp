@@ -71,4 +71,3 @@ requested capabilities. Explicit sources are preferable in reproducible agent
 workflows because they make cost, latency, egress, and provenance predictable.
 An unconfigured source yields a machine-actionable `provider_unavailable`
 error instead of silently switching to another source.
-

@@ -85,4 +85,3 @@ Call `list_knowledge_sources` to distinguish shipped support (`state: ready`)
 from runtime availability (`registered: true`). The file connector is normally
 registered because `knowledge/` is the default root. SQL, vector, and web are
 registered only after their required settings are present.
-
